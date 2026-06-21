@@ -1,0 +1,13 @@
+{
+  "name": "stock-battleground",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node server.mjs",
+    "build": "node scripts/build.mjs",
+    "preview": "node scripts/preview.mjs",
+    "test": "node --test tests/*.test.js",
+    "start": "node server.mjs"
+  }
+}
