@@ -8,6 +8,7 @@ import {
   buyStock,
   cancelOrder,
   createGame,
+  createRumor,
   currentPrice,
   getPlayerSummary,
   getRanking,
@@ -20,21 +21,43 @@ import {
   useSpecialItem,
 } from "./engine.js";
 import { API_BASE_URL } from "./config.js";
+import { getLanguage, localizeDocument, phrase, setLanguage, translateText } from "./i18n.js";
 
 const $ = (selector, parent = document) => parent.querySelector(selector);
 const $$ = (selector, parent = document) => [...parent.querySelectorAll(selector)];
+const USD_KRW_RATE = 1_500;
 const money = (value, compact = false) => {
   const number = Math.round(Number(value) || 0);
+  if (getLanguage() === "en") {
+    const dollars = number / USD_KRW_RATE;
+    const absolute = Math.abs(dollars);
+    const sign = dollars < 0 ? "-" : "";
+    if (compact && absolute >= 1_000_000) return `${sign}$${(absolute / 1_000_000).toFixed(2)}M`;
+    if (compact && absolute >= 1_000) return `${sign}$${(absolute / 1_000).toFixed(1)}K`;
+    const digits = absolute < 10_000 ? 2 : 0;
+    return `${sign}$${absolute.toLocaleString("en-US", { minimumFractionDigits: digits, maximumFractionDigits: digits })}`;
+  }
   if (compact && Math.abs(number) >= 100_000_000) return `${number < 0 ? "-" : ""}₩${(Math.abs(number) / 100_000_000).toFixed(2)}억`;
   if (compact && Math.abs(number) >= 10_000) return `${number < 0 ? "-" : ""}₩${(Math.abs(number) / 10_000).toFixed(0)}만`;
   return `${number < 0 ? "-" : ""}₩${Math.abs(number).toLocaleString("ko-KR")}`;
+};
+const currencyInputValue = (won) => getLanguage() === "en" ? (Number(won) / USD_KRW_RATE).toFixed(2) : String(Math.round(Number(won)));
+const wonFromCurrencyInput = (value) => Math.round((Number(value) || 0) * (getLanguage() === "en" ? USD_KRW_RATE : 1));
+const displayText = (value) => {
+  const translated = translateText(String(value));
+  if (getLanguage() !== "en") return translated;
+  return translated.replace(/₩([\d,]+)/g, (_, amount) => money(Number(amount.replaceAll(",", ""))));
 };
 const percent = (value) => `${value >= 0 ? "+" : ""}${(value * 100).toFixed(2)}%`;
 const escapeHtml = (value) => String(value).replace(/[&<>'"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[character]));
 const apiUrl = (path) => `${API_BASE_URL}${path}`;
 
+function updateCurrencySymbols() {
+  $$(".logo-mark,.brand-mark").forEach((element) => { element.textContent = getLanguage() === "en" ? "$" : "₩"; });
+}
+
 let game = null;
-let speed = "turbo";
+let speed = "standard";
 let online = false;
 let roomState = null;
 let viewerId = "PLAYER-001";
@@ -57,6 +80,15 @@ let activeRankEffects = new Map();
 let soloRankMovements = new Map();
 let soloAssetStreaks = new Map();
 let soloLastAssets = new Map();
+let selectedAvatar = { kind: "meme", index: 0 };
+let currentMessageTarget = null;
+let lastLeaderNoticeId = null;
+let notificationHistory = [];
+let eliminationShown = false;
+let matchingTimer = null;
+let currencyInputsLanguage = null;
+let seenNoticeIds = new Set();
+let noticesInitialized = false;
 
 const myPlayer = () => game?.players.find((player) => player.id === viewerId);
 const playerSummary = () => online ? game.viewerSummary : getPlayerSummary(game, viewerId);
@@ -74,17 +106,51 @@ function topStockFor(playerId) {
   return best;
 }
 
+function portfolioFor(playerId) {
+  const player = game.players.find((candidate) => candidate.id === playerId);
+  if (!player?.holdings) return [];
+  return player.holdings.map((quantity, stockIndex) => {
+    if (quantity <= 0) return null;
+    const stock = game.stocks[stockIndex];
+    return { stockIndex, name: stock.name, ticker: stock.ticker, flag: stock.market.flag, quantity, value: quantity * currentPrice(game, stockIndex) };
+  }).filter(Boolean).sort((a, b) => b.value - a.value);
+}
+
 function decorateLocalRanking(ranking) {
   return ranking.map((entry) => ({
     ...entry,
+    avatar: game.players.find((player) => player.id === entry.playerId)?.avatar,
+    performance: game.players.find((player) => player.id === entry.playerId)?.performance || [],
     movement: soloRankMovements.get(entry.playerId) || 0,
     assetRiseStreak: soloAssetStreaks.get(entry.playerId) || 0,
     topStock: topStockFor(entry.playerId),
+    portfolio: portfolioFor(entry.playerId),
   }));
 }
 
 const displayRanking = () => online ? game.displayRanking : decorateLocalRanking(getRanking(game, { display: true, viewerId }));
 const actualRanking = () => online ? game.actualRanking : decorateLocalRanking(getRanking(game, { display: false, viewerId }));
+
+function initializeCurrencyInputs() {
+  if (!game || currencyInputsLanguage === getLanguage()) return;
+  currencyInputsLanguage = getLanguage();
+  const english = getLanguage() === "en";
+  for (const [selector, won] of [["#loan-amount", 1_000_000], ["#bond-amount", 500_000]]) {
+    const input = $(selector);
+    input.value = currencyInputValue(won);
+    input.min = english ? "0.01" : "100000";
+    input.step = english ? "0.01" : "100000";
+  }
+  $("#limit-price").value = currencyInputValue(currentPrice(game, selectedStock));
+  $("#limit-price").min = english ? "0.01" : "1";
+  $("#limit-price").step = english ? "0.01" : "1";
+}
+
+function deliverLocalRumor() {
+  game.messages ??= [];
+  const rumor = createRumor(game, game.turn, viewerId);
+  game.messages.push({ id: crypto.randomUUID(), fromId: rumor.senderId, fromName: rumor.senderName, toId: viewerId, text: rumor.text, createdAt: Date.now(), read: false, system: "rumor", stockIndex: rumor.stockIndex, direction: rumor.direction, startTurn: rumor.startTurn, endTurn: rumor.endTurn });
+}
 
 async function requestJson(path, options = {}) {
   const response = await fetch(apiUrl(path), {
@@ -112,9 +178,59 @@ function clearSession() {
 function showToast(message, type = "success") {
   const toast = document.createElement("div");
   toast.className = `toast ${type === "error" ? "error" : ""}`;
-  toast.textContent = message;
+  toast.textContent = displayText(message);
   $("#toast-region").append(toast);
   setTimeout(() => toast.remove(), 3200);
+}
+
+function avatarPosition(index) {
+  const col = index % 4;
+  const row = Math.floor(index / 4);
+  return `${(col / 3) * 100}% ${(row / 2) * 100}%`;
+}
+
+function applyAvatar(element, avatar) {
+  if (!element) return;
+  element.classList.add("profile-image");
+  element.style.backgroundImage = "";
+  element.style.backgroundPosition = "center";
+  if (avatar?.kind === "upload") {
+    element.classList.remove("meme");
+    element.style.backgroundImage = `url(${avatar.data})`;
+    element.style.backgroundSize = "cover";
+  } else {
+    element.classList.add("meme");
+    element.style.backgroundSize = "400% 300%";
+    element.style.backgroundPosition = avatarPosition(avatar?.index || 0);
+  }
+}
+
+function avatarMarkup(avatar, className = "") {
+  if (avatar?.kind === "upload") return `<span class="profile-image ${className}" style="background-image:url('${avatar.data}');background-size:cover"></span>`;
+  return `<span class="profile-image meme ${className}" style="background-position:${avatarPosition(avatar?.index || 0)}"></span>`;
+}
+
+function renderProfilePicker() {
+  const uploaded = selectedAvatar.kind === "upload"
+    ? `<button class="profile-option uploaded is-active" style="background-image:url('${selectedAvatar.data}')" aria-label="Uploaded profile"></button>`
+    : "";
+  $("#profile-picker").innerHTML = uploaded + Array.from({ length: 10 }, (_, index) => `<button class="profile-option ${selectedAvatar.kind === "meme" && selectedAvatar.index === index ? "is-active" : ""}" data-profile-index="${index}" style="background-position:${avatarPosition(index)}" aria-label="Profile ${index + 1}"></button>`).join("");
+}
+
+function resizeUploadedAvatar(file) {
+  return new Promise((resolve, reject) => {
+    if (!file || !/^image\/(png|jpeg|webp)$/.test(file.type)) return reject(new Error("PNG, JPG 또는 WebP 이미지를 선택하세요."));
+    const image = new Image();
+    image.onload = () => {
+      const canvas = document.createElement("canvas"); canvas.width = 96; canvas.height = 96;
+      const ctx = canvas.getContext("2d");
+      const side = Math.min(image.width, image.height); const sx = (image.width - side) / 2; const sy = (image.height - side) / 2;
+      ctx.drawImage(image, sx, sy, side, side, 0, 0, 96, 96);
+      resolve({ kind: "upload", data: canvas.toDataURL("image/jpeg", 0.78) });
+    };
+    image.onerror = () => reject(new Error("이미지를 읽을 수 없습니다."));
+    image.src = URL.createObjectURL(file);
+  });
 }
 
 function safeAction(action, successMessage) {
@@ -130,12 +246,14 @@ function safeAction(action, successMessage) {
 }
 
 function beginSoloGame() {
-  const nickname = $("#nickname").value.trim() || "플레이어";
+  const nickname = $("#nickname").value.trim() || (getLanguage() === "en" ? "Player" : "플레이어");
   speed = $("#game-speed").value;
   online = false;
   roomState = null;
   viewerId = "PLAYER-001";
-  game = createGame({ nickname, seed: Date.now() });
+  game = createGame({ nickname, seed: Date.now(), language: getLanguage(), avatar: selectedAvatar });
+  game.messages = [];
+  deliverLocalRumor();
   selectedStock = 0;
   tradeSide = "buy";
   paused = false;
@@ -145,8 +263,11 @@ function beginSoloGame() {
   soloRankMovements = new Map();
   soloAssetStreaks = new Map();
   soloLastAssets = new Map(getRanking(game, { display: false }).map((entry) => [entry.playerId, entry.assets]));
+  currencyInputsLanguage = null;
+  seenNoticeIds = new Set();
   $("#start-screen").classList.add("is-hidden");
   $("#app-shell").classList.remove("is-hidden");
+  initializeCurrencyInputs();
   setupTurnClock();
   renderAll();
   requestAnimationFrame(drawChart);
@@ -156,7 +277,7 @@ async function createOnlineRoom() {
   try {
     const payload = await requestJson("/api/rooms", {
       method: "POST",
-      body: JSON.stringify({ nickname: $("#nickname").value, speed: $("#game-speed").value }),
+      body: JSON.stringify({ nickname: $("#nickname").value, speed: $("#game-speed").value, language: getLanguage(), avatar: selectedAvatar }),
     });
     online = true;
     saveSession(payload.state.room.code, payload.token);
@@ -176,7 +297,7 @@ async function joinOnlineRoom() {
   try {
     const payload = await requestJson(`/api/rooms/${encodeURIComponent(code)}/join`, {
       method: "POST",
-      body: JSON.stringify({ nickname: $("#nickname").value }),
+      body: JSON.stringify({ nickname: $("#nickname").value, avatar: selectedAvatar }),
     });
     online = true;
     saveSession(code, payload.token);
@@ -185,6 +306,19 @@ async function joinOnlineRoom() {
   } catch (error) {
     showToast(error.message, "error");
   }
+}
+
+async function startMatchmaking() {
+  try {
+    const payload = await requestJson("/api/matchmaking", {
+      method: "POST",
+      body: JSON.stringify({ nickname: $("#nickname").value, speed: $("#game-speed").value, language: getLanguage(), avatar: selectedAvatar }),
+    });
+    online = true;
+    saveSession(payload.state.room.code, payload.token);
+    applyServerState(payload.state);
+    connectToRoom(payload.state.room.code, payload.token);
+  } catch (error) { showToast(error.message, "error"); }
 }
 
 function connectToRoom(code, token) {
@@ -203,8 +337,19 @@ function connectToRoom(code, token) {
 function applyServerState(state) {
   online = true;
   roomState = state.room;
+  setLanguage(state.room.language || "ko");
+  updateCurrencySymbols();
   viewerId = state.viewer.playerId;
   speed = state.room.speed;
+  if (state.room.status === "matching") {
+    game = null;
+    $("#start-screen").classList.add("is-hidden");
+    $("#lobby-screen").classList.add("is-hidden");
+    $("#app-shell").classList.add("is-hidden");
+    $("#matchmaking-screen").classList.remove("is-hidden");
+    renderMatching(state);
+    return;
+  }
   if (state.room.status === "waiting") {
     game = null;
     $("#start-screen").classList.add("is-hidden");
@@ -226,6 +371,9 @@ function applyServerState(state) {
     }, 2400);
   }
   game = incomingGame;
+  initializeCurrencyInputs();
+  clearInterval(matchingTimer); matchingTimer = null;
+  $("#matchmaking-screen").classList.add("is-hidden");
   $("#start-screen").classList.add("is-hidden");
   $("#lobby-screen").classList.add("is-hidden");
   $("#app-shell").classList.remove("is-hidden");
@@ -237,19 +385,34 @@ function applyServerState(state) {
   }
   paused = false;
   renderAll();
+  handleLeaderNotice();
+  handleGameNotices();
+  if (game.elimination && !eliminationShown) showElimination();
   if (game.finished && !resultShown) {
     resultShown = true;
     showResults();
   }
 }
 
+function renderMatching(state) {
+  const seconds = Math.max(0, Math.ceil((state.room.matchDeadline - Date.now()) / 1000));
+  $("#matching-countdown").textContent = seconds;
+  $("#matching-player-count").textContent = phrase("matchingCount", { count: state.room.memberCount });
+  localizeDocument($("#matchmaking-screen"));
+  if (!matchingTimer) matchingTimer = setInterval(() => {
+    if (!roomState?.matchDeadline) return;
+    $("#matching-countdown").textContent = Math.max(0, Math.ceil((roomState.matchDeadline - Date.now()) / 1000));
+  }, 200);
+}
+
 function renderLobby(state) {
   $("#room-code").textContent = state.room.code;
   $("#lobby-count").textContent = `${state.room.memberCount} / ${state.room.capacity}명`;
   $("#lobby-members").innerHTML = state.room.members.map((member) => `
-    <div class="lobby-member"><span class="member-avatar">${escapeHtml(member.nickname.slice(0, 1))}</span><span><b>${escapeHtml(member.nickname)}${member.isHost ? " · 방장" : ""}</b><small>${member.playerId}</small></span><em class="${member.connected ? "" : "offline"}">${member.connected ? "ONLINE" : "RECONNECTING"}</em></div>`).join("");
+    <div class="lobby-member">${avatarMarkup(member.avatar, "member-avatar")}<span><b>${escapeHtml(member.nickname)}${member.isHost ? " · 방장" : ""}</b><small>${member.playerId}</small></span><em class="${member.connected ? "" : "offline"}">${member.connected ? "ONLINE" : "RECONNECTING"}</em></div>`).join("");
   $("#start-match-button").classList.toggle("is-hidden", !state.viewer.isHost);
   $("#lobby-note").textContent = state.viewer.isHost ? "준비되면 시작하세요. 빈자리는 즉시 AI가 채웁니다." : "방장이 게임을 시작할 때까지 기다려주세요.";
+  localizeDocument($("#lobby-screen"));
 }
 
 async function startOnlineMatch() {
@@ -349,6 +512,11 @@ function endCurrentTurn() {
   const result = safeAction(() => advanceTurn(game));
   if (!result) return;
   const afterRanking = getRanking(game, { display: false, viewerId });
+  const rankingBlind = game.turn % 10 === 0 || game.rankBlindTurn === game.turn;
+  if (!rankingBlind && beforeRanking[0] && afterRanking[0] && beforeRanking[0].playerId !== afterRanking[0].playerId) {
+    game.leaderNotice = { id: crypto.randomUUID(), nickname: afterRanking[0].nickname, kind: "changed", createdAt: Date.now() };
+    handleLeaderNotice();
+  }
   soloRankMovements = new Map(afterRanking.map((entry) => [entry.playerId, (beforeRanks.get(entry.playerId) || entry.rank) - entry.rank]));
   soloAssetStreaks = new Map(afterRanking.map((entry) => {
     const previous = soloLastAssets.get(entry.playerId) ?? entry.assets;
@@ -362,8 +530,10 @@ function endCurrentTurn() {
     renderAll();
     showResults();
   } else {
+    handleSoloTurnEvents(result);
     setupTurnClock();
     renderAll();
+    if (myPlayer()?.eliminated && !eliminationShown) showElimination();
   }
 }
 
@@ -379,6 +549,9 @@ function renderAll() {
   renderFinance();
   renderItems();
   renderLogs();
+  renderMessageBadges();
+  if (!$("#message-modal").classList.contains("is-hidden")) renderMessages();
+  localizeDocument($("#app-shell"));
   requestAnimationFrame(drawChart);
 }
 
@@ -404,6 +577,17 @@ function stockChange(index) {
   const current = currentPrice(game, index);
   const previous = stock.prices[game.turn - 2];
   return current / previous - 1;
+}
+
+function volumeSignal(candles, index) {
+  if (!candles?.[index] || index < 3) return null;
+  const previous = candles.slice(Math.max(0, index - 5), index).map((candle) => candle.volume).filter(Number.isFinite);
+  if (previous.length < 3) return null;
+  const average = previous.reduce((sum, volume) => sum + volume, 0) / previous.length;
+  const ratio = candles[index].volume / Math.max(1, average);
+  if (ratio >= 1.65) return { type: "surge", ratio };
+  if (ratio <= 0.62) return { type: "drop", ratio };
+  return null;
 }
 
 function renderMarket() {
@@ -450,8 +634,13 @@ function renderSelectedStock() {
   $("#stat-low").textContent = money(Math.min(...visibleSeries), true);
   const candle = stock.candles?.[game.turn - 1];
   $("#stat-volume").textContent = candle ? `${candle.volume.toLocaleString("ko-KR")}주` : "-";
+  const allCandles = [...(stock.historyCandles || []), ...(stock.candles || []).slice(0, game.turn)];
+  const signal = volumeSignal(allCandles, allCandles.length - 1);
+  const volumeAlert = $("#volume-alert");
+  volumeAlert.className = `volume-alert ${signal?.type || ""} ${signal ? "" : "is-hidden"}`;
+  volumeAlert.textContent = signal ? (signal.type === "surge" ? `▲ ${getLanguage() === "en" ? "VOLUME SURGE" : "거래량 폭등"}` : `▼ ${getLanguage() === "en" ? "VOLUME DROP" : "거래량 폭락"}`) : "";
   $("#stat-owned").textContent = `${myPlayer().holdings[selectedStock].toLocaleString()}주`;
-  $("#limit-price").value ||= price;
+  $("#limit-price").value ||= currencyInputValue(price);
 }
 
 function renderAssets() {
@@ -465,7 +654,8 @@ function renderAssets() {
 
   $("#player-name").textContent = copied?.nickname || player.nickname;
   $("#player-id").textContent = copied?.id || player.id;
-  $("#avatar-text").textContent = (copied?.nickname || player.nickname).slice(0, 1);
+  $("#avatar-text").textContent = "";
+  applyAvatar($("#my-profile-button"), player.avatar);
   $("#identity-card").classList.toggle("is-copied", Boolean(copied));
   $("#my-rank").textContent = `${displayedRank}위`;
   $("#my-rank").title = displayedRank !== actualRank ? `실제 순위 ${actualRank}위` : "";
@@ -528,7 +718,7 @@ function activateTab(tabName) {
 
 function jumpToHoldingStock(stockIndex, side = null) {
   selectedStock = Number(stockIndex);
-  $("#limit-price").value = currentPrice(game, selectedStock);
+  $("#limit-price").value = currencyInputValue(currentPrice(game, selectedStock));
   $("#trade-quantity").value = 1;
   if (side) setTradeSide(side);
   activateTab("trade");
@@ -548,7 +738,8 @@ function jumpToHoldingStock(stockIndex, side = null) {
 }
 
 function renderRanking() {
-  const ranking = displayRanking();
+  const query = $("#rank-search").value.trim().toLowerCase();
+  const ranking = displayRanking().filter((entry) => !query || entry.nickname.toLowerCase().includes(query) || entry.playerId.toLowerCase().includes(query));
   const blockedByItem = game.rankBlindTurn === game.turn;
   const checkpoint = game.turn % 10 === 0 && !game.finished;
   $("#rank-status").textContent = blockedByItem ? "통신 차단" : checkpoint ? `T${String(game.turn - 1).padStart(2, "0")} 기준` : game.finished ? "최종" : "실시간";
@@ -561,26 +752,57 @@ function renderRanking() {
     return `
     <button class="rank-row ${entry.playerId === viewerId ? "is-me" : ""} ${effect ? `rank-${effect}` : ""} ${streak >= 2 ? "is-hot-streak" : ""}" data-player-id="${entry.playerId}" aria-label="${escapeHtml(entry.nickname)} 상세 정보">
       <span class="rank-number">${String(entry.rank).padStart(2, "0")}</span>
+      ${avatarMarkup(entry.avatar, "rank-avatar")}
       <span class="rank-person"><b>${escapeHtml(entry.nickname)} ${streak >= 2 ? `<em class="streak-mark">연속 ${streak}↑</em>` : ""}</b><small>${entry.playerId}</small></span>
       <span class="rank-assets-wrap"><i class="rank-move ${movement > 0 ? "up" : movement < 0 ? "down" : ""}">${movement > 0 ? `▲${movement}` : movement < 0 ? `▼${Math.abs(movement)}` : ""}</i><span class="rank-assets ${entry.assets < 0 ? "negative" : ""}">${money(entry.assets, true)}</span></span>
+      <span class="rank-message-button" data-message-player="${entry.playerId}" title="쪽지 보내기">✉</span>
     </button>`;
   }).join("");
 }
 
 function openRankDetail(playerId) {
   const entries = [...actualRanking(), ...displayRanking()];
-  const entry = entries.find((candidate) => candidate.playerId === playerId);
+  let entry = entries.find((candidate) => candidate.playerId === playerId);
+  if (!entry && playerId === viewerId && myPlayer()) {
+    const player = myPlayer();
+    entry = { playerId, nickname: player.nickname, avatar: player.avatar, rank: player.eliminationRank || CONFIG.playerCount, assets: playerSummary().assets, performance: player.performance || [], portfolio: portfolioFor(playerId), topStock: topStockFor(playerId), assetRiseStreak: 0 };
+  }
   if (!entry) return;
   $("#rank-detail-title").textContent = `${entry.rank}위 플레이어 정보`;
   $("#rank-detail-avatar").textContent = entry.nickname.slice(0, 1);
+  applyAvatar($("#rank-detail-avatar"), entry.avatar);
   $("#rank-detail-name").textContent = entry.nickname;
   $("#rank-detail-id").textContent = entry.playerId;
   $("#rank-detail-rank").textContent = `${entry.rank}위`;
-  $("#rank-detail-stock").innerHTML = entry.topStock
-    ? `<button class="rank-stock-jump" data-rank-stock="${entry.topStock.stockIndex}"><span>가장 많이 보유한 종목 · 클릭해서 차트 보기</span><strong>${entry.topStock.flag} ${escapeHtml(entry.topStock.name)}</strong><b>${entry.topStock.ticker}</b><small>${entry.topStock.quantity.toLocaleString("ko-KR")}주 · 평가액 ${money(entry.topStock.value)}</small></button>`
+  $("#rank-detail-assets").textContent = money(entry.assets);
+  const portfolio = entry.portfolio || (entry.topStock ? [entry.topStock] : []);
+  $("#rank-detail-stock").innerHTML = portfolio.length
+    ? `<span class="portfolio-heading">보유 종목 · 클릭해서 차트 보기</span>${portfolio.map((holding, index) => `<button class="rank-stock-jump ${index === 0 ? "is-largest" : ""}" data-rank-stock="${holding.stockIndex}"><strong>${holding.flag} ${escapeHtml(holding.name)}</strong><b>${holding.ticker}</b><small>${holding.quantity.toLocaleString("ko-KR")}주 · 평가액 ${money(holding.value)}</small></button>`).join("")}`
     : `<span>가장 많이 보유한 종목</span><strong>보유 종목 없음</strong><small>현재 공개할 주식 포지션이 없습니다.</small>`;
   $("#rank-detail-streak").textContent = entry.assetRiseStreak >= 2 ? `자산이 ${entry.assetRiseStreak}턴 연속 상승 중입니다.` : "연속 자산 상승 기록이 없습니다.";
   $("#rank-detail-modal").classList.remove("is-hidden");
+  $("#rank-detail-message").dataset.messagePlayer = entry.playerId;
+  $("#rank-detail-message").classList.toggle("is-hidden", entry.playerId === viewerId);
+  drawHistoryChart($("#rank-history-chart"), entry.performance || [], "rank");
+  drawHistoryChart($("#asset-history-chart"), entry.performance || [], "assets");
+  localizeDocument($("#rank-detail-modal"));
+}
+
+function drawHistoryChart(canvas, points, field = "assets") {
+  if (!canvas || !points.length) return;
+  const rect = canvas.getBoundingClientRect();
+  const width = Math.max(220, rect.width || 260); const height = Math.max(100, rect.height || 120); const dpr = Math.min(devicePixelRatio || 1, 2);
+  canvas.width = width * dpr; canvas.height = height * dpr;
+  const ctx = canvas.getContext("2d"); ctx.scale(dpr, dpr); ctx.clearRect(0, 0, width, height);
+  const values = points.map((point) => Number(point[field]));
+  const min = Math.min(...values); const max = Math.max(...values); const range = Math.max(1, max - min);
+  const x = (index) => 8 + index / Math.max(1, points.length - 1) * (width - 16);
+  const y = (value) => field === "rank" ? 8 + (value - min) / range * (height - 20) : 8 + (max - value) / range * (height - 20);
+  ctx.strokeStyle = "rgba(255,255,255,.08)"; ctx.lineWidth = 1;
+  for (let line = 0; line < 4; line += 1) { const py = 8 + line / 3 * (height - 20); ctx.beginPath(); ctx.moveTo(8, py); ctx.lineTo(width - 8, py); ctx.stroke(); }
+  ctx.beginPath(); points.forEach((point, index) => index ? ctx.lineTo(x(index), y(point[field])) : ctx.moveTo(x(index), y(point[field])));
+  ctx.strokeStyle = field === "rank" ? "#d9ff43" : "#ff5b62"; ctx.lineWidth = 2; ctx.stroke();
+  const last = points.at(-1); ctx.fillStyle = ctx.strokeStyle; ctx.beginPath(); ctx.arc(x(points.length - 1), y(last[field]), 3, 0, Math.PI * 2); ctx.fill();
 }
 
 function renderTradePanel() {
@@ -590,7 +812,7 @@ function renderTradePanel() {
   $("#order-total").textContent = money(price * quantity);
   $("#trade-submit").textContent = `${tradeSide === "buy" ? "매수" : "매도"} 주문`;
   $("#trade-submit").className = `button trade-submit ${tradeSide}`;
-  const disabledReason = player.frozenTurn === game.turn || player.tradeLockTurn === game.turn || game.finished;
+  const disabledReason = player.eliminated || player.frozenTurn === game.turn || player.tradeLockTurn === game.turn || game.finished;
   $("#trade-submit").disabled = disabledReason;
   $("#holdings-mini").innerHTML = `<span>보유 수량 <b>${player.holdings[selectedStock].toLocaleString()}주</b></span><span>평가액 <b>${money(player.holdings[selectedStock] * price)}</b></span><span>주문 가능 현금 <b>${money(player.cash)}</b></span>`;
 }
@@ -602,30 +824,31 @@ function renderOrders() {
     <div class="order-row">
       <div><b>${escapeHtml(game.stocks[order.stockIndex].name)}</b><br><span>${order.side === "buy" ? "예약매수" : "예약매도"} ${order.quantity}주</span></div>
       <strong>${money(order.limitPrice)}</strong>
-      <button data-cancel-order="${order.id}" aria-label="예약 취소">취소</button>
+      <button data-cancel-order="${order.id}" aria-label="예약 취소" ${myPlayer().eliminated ? "disabled" : ""}>취소</button>
     </div>`).join("");
 }
 
 function renderFinance() {
   const player = myPlayer();
-  $("#borrow-button").disabled = game.finished || playerSummary().assets < 0;
-  $("#repay-button").disabled = game.finished || player.debt <= 0;
-  $("#bond-button").disabled = game.finished || player.frozenTurn === game.turn || player.tradeLockTurn === game.turn;
+  $("#borrow-button").disabled = game.finished || player.eliminated || playerSummary().assets < 0;
+  $("#repay-button").disabled = game.finished || player.eliminated || player.debt <= 0;
+  $("#bond-button").disabled = game.finished || player.eliminated || player.frozenTurn === game.turn || player.tradeLockTurn === game.turn;
 }
 
 const itemIcons = ["◈", "↗", "↘", "▦", "◎", "#", "×"];
 function renderItems() {
   const summary = playerSummary();
+  const eliminated = myPlayer().eliminated;
   $("#special-gate").classList.toggle("is-locked", !summary.specialEligible);
   $("#random-gate").classList.toggle("is-locked", !summary.randomEligible);
   $("#special-items").innerHTML = SPECIAL_ITEMS.map((item, index) => {
     const turnBlocked = game.turn === CONFIG.totalTurns && ["future-price", "rising-stock", "falling-stock", "trade-freeze"].includes(item.id);
-    return `<button class="item-card" data-special-item="${item.id}" ${!summary.specialEligible || game.finished || turnBlocked ? "disabled" : ""}>
+    return `<button class="item-card" data-special-item="${item.id}" ${!summary.specialEligible || game.finished || eliminated || turnBlocked ? "disabled" : ""}>
       <span class="item-icon">${itemIcons[index]}</span><strong>${item.name}</strong><small>${item.description}</small><em>자산의 ${item.rate * 100}%</em>
     </button>`;
   }).join("");
   $("#random-items").innerHTML = RANDOM_ITEMS.map((item, index) => `
-    <button class="item-card" data-random-item="${item.id}" ${!summary.randomEligible || game.finished ? "disabled" : ""}>
+    <button class="item-card" data-random-item="${item.id}" ${!summary.randomEligible || game.finished || eliminated ? "disabled" : ""}>
       <span class="item-icon">${index ? "⟳" : "?"}</span><strong>${item.name}</strong><small>${item.description}</small><em>현재 월급 1회분</em>
     </button>`).join("");
 }
@@ -634,9 +857,10 @@ function renderLogs() {
   $("#log-list").innerHTML = game.logs.map((log) => {
     const amount = Number(log.amountDelta);
     const hasAmount = Number.isFinite(amount) && amount !== 0;
+    const localizedMessage = displayText(log.message);
     const message = Number.isInteger(log.stockIndex)
-      ? `<button class="log-stock-link" data-log-stock="${log.stockIndex}">${escapeHtml(log.message)}</button>`
-      : `<span>${escapeHtml(log.message)}</span>`;
+      ? `<button class="log-stock-link" data-log-stock="${log.stockIndex}">${escapeHtml(localizedMessage)}</button>`
+      : `<span>${escapeHtml(localizedMessage)}</span>`;
     return `<div class="log-row ${log.type}"><time>T${String(log.turn).padStart(2, "0")}</time><i></i>${message}${hasAmount ? `<b class="log-amount ${amount > 0 ? "increase" : "decrease"}">${amount > 0 ? "+" : ""}${money(amount)}</b>` : ""}</div>`;
   }).join("");
 }
@@ -674,7 +898,7 @@ async function submitLimitOrder() {
     stockIndex: selectedStock,
     side: $("#limit-side").value,
     quantity: Number($("#limit-quantity").value),
-    limitPrice: Number($("#limit-price").value),
+    limitPrice: wonFromCurrencyInput($("#limit-price").value),
   };
   if (online) {
     try { await sendAction("limit-order", details, "예약 주문을 등록했습니다."); }
@@ -793,6 +1017,18 @@ function drawChart() {
     const barWidth = Math.max(1, Math.min(9, step * 0.62));
     ctx.fillStyle = `${color}66`;
     ctx.fillRect(x(index) - barWidth / 2, volumeY(candle.volume), barWidth, Math.max(1, volumeBottom - volumeY(candle.volume)));
+    if (index >= history.length) {
+      const signal = volumeSignal(candles, index);
+      if (signal) {
+        const cx = x(index); const markerY = Math.max(volumeTop - 3, volumeY(candle.volume) - 4);
+        ctx.fillStyle = signal.type === "surge" ? "#ff5b62" : "#36a6ff";
+        ctx.beginPath();
+        if (signal.type === "surge") { ctx.moveTo(cx, markerY - 5); ctx.lineTo(cx - 3.5, markerY + 1); ctx.lineTo(cx + 3.5, markerY + 1); }
+        else { ctx.moveTo(cx, markerY + 5); ctx.lineTo(cx - 3.5, markerY - 1); ctx.lineTo(cx + 3.5, markerY - 1); }
+        ctx.closePath(); ctx.fill();
+        if (index === candles.length - 1) { ctx.font = "600 7px IBM Plex Mono"; ctx.textAlign = "center"; ctx.fillText(signal.type === "surge" ? "VOL SURGE" : "VOL DROP", cx, Math.max(8, markerY - 8)); }
+      }
+    }
   });
 
   const boundaryX = pad.left + step * history.length;
@@ -844,9 +1080,211 @@ function showResults() {
   $("#result-modal").classList.remove("is-hidden");
 }
 
+function handleLeaderNotice() {
+  const notice = game?.leaderNotice;
+  if (!notice || notice.id === lastLeaderNoticeId) return;
+  lastLeaderNoticeId = notice.id;
+  if (game.turn % 10 === 0 || game.rankBlindTurn === game.turn) return;
+  const text = phrase(notice.kind === "reclaimed" ? "leaderReclaimed" : "leaderChanged", { name: notice.nickname });
+  receiveGameNotice({ id: notice.id, text, createdAt: notice.createdAt, icon: "♛", type: "leader" });
+}
+
+function receiveGameNotice(notice, delay = 0) {
+  notificationHistory.unshift(notice);
+  notificationHistory = notificationHistory.slice(0, 30);
+  $("#notice-unread").textContent = notificationHistory.length;
+  $("#notice-unread").classList.remove("is-hidden");
+  setTimeout(() => {
+    $("#leader-announcement span").textContent = notice.icon || "!";
+    $("#leader-announcement-text").textContent = notice.text;
+    $("#leader-announcement").classList.remove("is-hidden");
+    setTimeout(() => $("#leader-announcement").classList.add("is-hidden"), 2300);
+  }, delay);
+}
+
+function handleGameNotices() {
+  if (!noticesInitialized) {
+    (game.notices || []).filter((notice) => notice.turn < game.turn).forEach((notice) => seenNoticeIds.add(notice.id));
+    noticesInitialized = true;
+  }
+  const fresh = (game.notices || []).filter((notice) => !seenNoticeIds.has(notice.id));
+  fresh.forEach((notice, index) => {
+    seenNoticeIds.add(notice.id);
+    receiveGameNotice(notice, index * 2500);
+  });
+}
+
+function handleSoloTurnEvents(result) {
+  if ([11, 21, 31].includes(game.turn) && !myPlayer().eliminated) deliverLocalRumor();
+  if ([15, 25, 35].includes(game.turn)) {
+    receiveGameNotice({ id: crypto.randomUUID(), type: "salary-reminder", icon: getLanguage() === "en" ? "$" : "₩", text: getLanguage() === "en" ? "Five turns until payday." : "월급날까지 5턴 남았습니다.", turn: game.turn, createdAt: Date.now() });
+  }
+  if (result.eliminated) {
+    const nickname = result.eliminated.nickname;
+    receiveGameNotice({ id: crypto.randomUUID(), type: "elimination", icon: "☠", text: getLanguage() === "en" ? `${nickname} went broke and was eliminated.` : `${nickname}플레이어가 깡통을 찼습니다.`, turn: game.turn, createdAt: Date.now() }, [15, 25, 35].includes(game.turn) ? 2500 : 0);
+  }
+}
+
+function renderMessageBadges() {
+  if (!game) return;
+  const unread = online ? (game.unreadMessages || 0) : (game.messages || []).filter((message) => message.toId === viewerId && !message.read).length;
+  $("#mail-unread").textContent = unread;
+  $("#mail-unread").classList.toggle("is-hidden", unread <= 0);
+}
+
+function playerById(playerId) { return game?.players.find((player) => player.id === playerId); }
+
+function conversationIds(messages = game?.messages || []) {
+  const latest = new Map();
+  for (const message of messages) {
+    const partnerId = message.fromId === viewerId ? message.toId : message.toId === viewerId ? message.fromId : null;
+    if (partnerId) latest.set(partnerId, Math.max(latest.get(partnerId) || 0, message.createdAt || 0));
+  }
+  return [...latest].sort((a, b) => b[1] - a[1]).map(([partnerId]) => partnerId);
+}
+
+function messageContact(partnerId, messages) {
+  if (partnerId === "RUMOR") {
+    const rumor = [...messages].reverse().find((message) => message.fromId === "RUMOR");
+    return { id: "RUMOR", nickname: rumor?.fromName || (getLanguage() === "en" ? "Market Whisper" : "찌라시"), rumor: true, isHuman: false };
+  }
+  return playerById(partnerId);
+}
+
+function markThreadRead(targetId) {
+  if (!targetId) return;
+  if (online) sendAction("mark-messages-read", { targetId }).catch(() => {});
+  else (game.messages || []).forEach((message) => { if (message.toId === viewerId && message.fromId === targetId) message.read = true; });
+  renderMessageBadges();
+}
+
+function openMessages(targetId = null) {
+  if (!game) return;
+  const messages = game.messages || [];
+  const existing = conversationIds(messages);
+  currentMessageTarget = targetId || existing[0] || null;
+  $("#message-recipient-panel").classList.add("is-hidden");
+  renderMessages();
+  $("#message-modal").classList.remove("is-hidden");
+  markThreadRead(currentMessageTarget);
+  localizeDocument($("#message-modal"));
+}
+
+function renderMessages() {
+  const messages = game.messages || [];
+  const ids = conversationIds(messages);
+  if (currentMessageTarget && !ids.includes(currentMessageTarget)) ids.unshift(currentMessageTarget);
+  const contacts = ids.map((id) => messageContact(id, messages)).filter(Boolean);
+  $("#message-contacts").innerHTML = contacts.length ? contacts.map((player) => {
+    const unread = messages.filter((message) => message.fromId === player.id && message.toId === viewerId && !message.read).length;
+    const avatar = player.rumor ? `<span class="rank-avatar rumor-avatar">?</span>` : avatarMarkup(player.avatar, "rank-avatar");
+    return `<button class="message-contact ${player.rumor ? "rumor" : ""} ${player.id === currentMessageTarget ? "is-active" : ""}" data-message-contact="${player.id}">${avatar}<span><b>${escapeHtml(player.nickname)}</b><small>${player.rumor ? (getLanguage() === "en" ? "PRIVATE MARKET TIP" : "비공개 시장 정보") : player.isHuman ? "PLAYER" : "AI TRADER"}</small></span>${unread ? `<em>${unread}</em>` : ""}</button>`;
+  }).join("") : `<div class="message-empty">${getLanguage() === "en" ? "No sent or received messages yet." : "아직 주고받은 쪽지가 없습니다."}</div>`;
+  const thread = messages.filter((message) => (message.fromId === viewerId && message.toId === currentMessageTarget) || (message.fromId === currentMessageTarget && message.toId === viewerId));
+  $("#message-thread").innerHTML = thread.length ? thread.map((message) => `<div class="message-bubble ${message.fromId === viewerId ? "mine" : ""} ${message.system === "rumor" ? "rumor" : ""}">${escapeHtml(message.text)}<small>${new Date(message.createdAt).toLocaleTimeString(getLanguage() === "en" ? "en-US" : "ko-KR", { hour: "2-digit", minute: "2-digit" })}${message.ai ? " · AI" : message.system === "rumor" ? ` · ${getLanguage() === "en" ? `valid through turn ${message.endTurn}` : `${message.endTurn}턴 이내 정보`}` : ""}</small></div>`).join("") : `<div class="message-empty">${currentMessageTarget ? (getLanguage() === "en" ? "Start a new conversation." : "첫 쪽지를 보내 대화를 시작하세요.") : (getLanguage() === "en" ? "Select a conversation or send a new message." : "대화를 선택하거나 새 쪽지를 보내세요.")}</div>`;
+  $("#message-thread").scrollTop = $("#message-thread").scrollHeight;
+  const replyBlocked = !currentMessageTarget || currentMessageTarget === "RUMOR";
+  $("#message-input").disabled = replyBlocked;
+  $("#message-send").disabled = replyBlocked;
+}
+
+function renderMessageRecipients() {
+  const query = $("#message-recipient-search").value.trim().toLowerCase();
+  const recipients = game.players.filter((player) => player.id !== viewerId && !player.eliminated && (!query || player.nickname.toLowerCase().includes(query) || player.id.toLowerCase().includes(query)));
+  $("#message-recipient-list").innerHTML = recipients.map((player) => `<button class="message-recipient" data-message-recipient="${player.id}">${avatarMarkup(player.avatar, "rank-avatar")}<span><b>${escapeHtml(player.nickname)}</b><small>${player.isHuman ? "PLAYER" : "AI TRADER"} · ${player.id}</small></span></button>`).join("");
+}
+
+function createLocalAiReply(target) {
+  const owned = target.holdings.map((quantity, stockIndex) => ({ quantity, stockIndex })).filter((entry) => entry.quantity > 0);
+  if (owned.length && Math.random() < 0.72) {
+    const stock = game.stocks[owned[Math.floor(Math.random() * owned.length)].stockIndex];
+    const ko = [`${stock.name}? 나도 조금 담아봤는데 아직 손에 땀나네.`, `${stock.name}은 내가 산 것 중 제일 신경 쓰여. 다음 봉은 좀 보려고.`, `솔직히 ${stock.name} 산 건 반쯤 감이었어. 그래도 바로 던질 생각은 없어.`, `아까 ${stock.name} 좀 샀는데 거래량이 영 수상하더라.`, `${stock.name} 담고 나니 오히려 확신이 없어졌어. 원래 주식이 그렇잖아.`];
+    const en = [`${stock.name}? I picked some up, but it still makes me nervous.`, `${stock.name} is the position I keep checking. I want to see the next candle.`, `Buying ${stock.name} was half instinct. I'm not dumping it yet.`, `I bought some ${stock.name}; the volume looked suspicious.`, `The moment I bought ${stock.name}, my confidence disappeared. That's trading.`];
+    const options = getLanguage() === "en" ? en : ko; return options[Math.floor(Math.random() * options.length)];
+  }
+  const ko = ["요즘 장이 사람 마음 가지고 노는 것 같지 않아?", "난 이번 턴엔 괜히 손대지 말고 지켜보려고.", "수익 났을 때 팔기가 손절보다 더 어렵더라.", "차트 오래 본다고 답이 나오는 건 아닌데 자꾸 보게 돼.", "남들 다 확신할 때가 제일 불안하지 않아?", "일단 살아남고 보자. 기회는 다음 턴에도 오니까."];
+  const en = ["Feels like the market is playing with everyone's head.", "I'm thinking of doing nothing this turn and just watching.", "Taking profit is harder than cutting a loss.", "Staring longer doesn't give me answers, but I keep doing it.", "I get uneasy when everybody sounds certain.", "Survive first. There will be another setup next turn."];
+  const options = getLanguage() === "en" ? en : ko; return options[Math.floor(Math.random() * options.length)];
+}
+
+async function sendDirectMessage() {
+  const text = $("#message-input").value.trim();
+  if (!text || !currentMessageTarget) return;
+  $("#message-input").value = "";
+  if (online) {
+    try { await sendAction("send-message", { targetId: currentMessageTarget, text }); }
+    catch (error) { showToast(error.message, "error"); }
+    return;
+  }
+  game.messages ??= [];
+  game.messages.push({ id: crypto.randomUUID(), fromId: viewerId, toId: currentMessageTarget, text, createdAt: Date.now(), read: true });
+  renderMessages();
+  const target = playerById(currentMessageTarget);
+  if (target && !target.isHuman) setTimeout(() => {
+    const reply = createLocalAiReply(target);
+    game.messages.push({ id: crypto.randomUUID(), fromId: target.id, toId: viewerId, text: reply, createdAt: Date.now(), read: false, ai: true });
+    renderMessages(); renderMessageBadges();
+  }, 700);
+}
+
+function openNotifications() {
+  $("#notifications-list").innerHTML = notificationHistory.length
+    ? notificationHistory.map((notice) => `<div class="notice-row"><b>${escapeHtml(notice.icon || "!")}</b> ${escapeHtml(notice.text)}<small>${new Date(notice.createdAt).toLocaleTimeString()}</small></div>`).join("")
+    : `<div class="notice-row">${getLanguage() === "en" ? "No notifications yet." : "아직 알림이 없습니다."}</div>`;
+  $("#notifications-modal").classList.remove("is-hidden");
+  $("#notice-unread").classList.add("is-hidden");
+  localizeDocument($("#notifications-modal"));
+}
+
+async function loadHallOfFame() {
+  try {
+    const data = await requestJson("/api/hall-of-fame");
+    $("#hall-of-fame-list").innerHTML = data.entries.length ? data.entries.map((entry, index) => `<div class="hall-row"><span>${index + 1}</span>${avatarMarkup(entry.avatar, "rank-avatar")}<b>${escapeHtml(entry.nickname)}</b><small>${money(entry.assets, true)}</small><i class="movement ${entry.movement > 0 ? "up" : entry.movement < 0 ? "down" : ""}">${entry.movement > 0 ? `▲${entry.movement}` : entry.movement < 0 ? `▼${Math.abs(entry.movement)}` : "-"}</i></div>`).join("") : `<p>${getLanguage() === "en" ? "No completed games yet." : "아직 완료된 게임이 없습니다."}</p>`;
+  } catch { $("#hall-of-fame-list").innerHTML = ""; }
+}
+
+async function openBoard() {
+  $("#board-modal").classList.remove("is-hidden");
+  try {
+    const data = await requestJson("/api/board");
+    $("#board-posts").innerHTML = data.posts.map((post) => `<article class="board-post"><p>${escapeHtml(post.text)}</p><small>ANONYMOUS · ${new Date(post.createdAt).toLocaleString()}</small></article>`).join("");
+  } catch (error) { showToast(error.message, "error"); }
+  localizeDocument($("#board-modal"));
+}
+
+async function submitBoardPost() {
+  const text = $("#board-input").value.trim(); if (!text) return;
+  try { await requestJson("/api/board", { method: "POST", body: JSON.stringify({ text }) }); $("#board-input").value = ""; await openBoard(); }
+  catch (error) { showToast(error.message, "error"); }
+}
+
+function showElimination() {
+  const data = online ? game.elimination : (() => {
+    const player = myPlayer(); if (!player?.eliminated) return null;
+    return { turn: player.eliminatedTurn, rank: player.eliminationRank, quote: player.eliminationQuote, stats: player.stats, performance: player.performance, assets: getPlayerSummary(game, viewerId), topStock: topStockFor(viewerId) };
+  })();
+  if (!data) return;
+  eliminationShown = true;
+  $("#elimination-title").textContent = getLanguage() === "en" ? `${myPlayer().nickname}, you were eliminated.` : `${myPlayer().nickname} 플레이어가 시장에서 탈락했습니다.`;
+  $("#elimination-rank").textContent = data.rank;
+  $("#elimination-turn").textContent = `TURN ${data.turn}`;
+  const stats = [["매수", data.stats.buys], ["매도", data.stats.sells], ["아이템", data.stats.items], ["대출", data.stats.loans], ["채권", data.stats.bonds]];
+  $("#elimination-stats").innerHTML = stats.map(([label, value]) => `<div><b>${value}</b><small>${label}</small></div>`).join("");
+  const activity = (game.logs || []).filter((log) => ["buy", "sell", "item", "loan", "bond"].includes(log.type)).slice(0, 12);
+  $("#elimination-activity").innerHTML = activity.length
+    ? activity.map((log) => `<div><span>T${String(log.turn).padStart(2, "0")}</span><b>${escapeHtml(displayText(log.message))}</b>${Number.isFinite(log.amountDelta) ? `<em class="${log.amountDelta > 0 ? "increase" : "decrease"}">${log.amountDelta > 0 ? "+" : "-"}${money(Math.abs(log.amountDelta))}</em>` : ""}</div>`).join("")
+    : `<p>${getLanguage() === "en" ? "No trades or finance activity recorded." : "기록된 거래·금융 활동이 없습니다."}</p>`;
+  $("#elimination-quote").textContent = `“${data.quote}”`;
+  $("#elimination-modal").classList.remove("is-hidden");
+  drawHistoryChart($("#elimination-chart"), data.performance || [], "assets");
+  localizeDocument($("#elimination-modal"));
+}
+
 function resetToStart() {
   clearInterval(timerHandle);
+  clearInterval(matchingTimer);
   timerHandle = null;
+  matchingTimer = null;
   eventStream?.close();
   eventStream = null;
   clearSession();
@@ -857,23 +1295,46 @@ function resetToStart() {
   lastCountdownNumber = null;
   rankAnimationTurnSeen = 0;
   activeRankEffects = new Map();
+  eliminationShown = false;
+  lastLeaderNoticeId = null;
+  notificationHistory = [];
+  seenNoticeIds = new Set();
+  noticesInitialized = false;
+  currencyInputsLanguage = null;
+  currentMessageTarget = null;
   game = null;
   $("#result-modal").classList.add("is-hidden");
   $("#rules-modal").classList.add("is-hidden");
   $("#holdings-modal").classList.add("is-hidden");
+  $("#message-modal").classList.add("is-hidden");
+  $("#notifications-modal").classList.add("is-hidden");
+  $("#elimination-modal").classList.add("is-hidden");
+  $("#matchmaking-screen").classList.add("is-hidden");
   $("#lobby-screen").classList.add("is-hidden");
   $("#app-shell").classList.add("is-hidden");
   $("#final-countdown").classList.add("is-hidden");
   $("#start-screen").classList.remove("is-hidden");
+  loadHallOfFame();
+  localizeDocument($("#start-screen"));
 }
 
-$("#start-button").addEventListener("click", createOnlineRoom);
+$("#start-button").addEventListener("click", startMatchmaking);
+$("#private-room-button").addEventListener("click", createOnlineRoom);
 $("#join-room-button").addEventListener("click", joinOnlineRoom);
 $("#solo-button").addEventListener("click", beginSoloGame);
-$("#nickname").addEventListener("keydown", (event) => { if (event.key === "Enter") createOnlineRoom(); });
+$("#nickname").addEventListener("keydown", (event) => { if (event.key === "Enter") startMatchmaking(); });
+$("#language-choice").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-language]"); if (!button) return;
+  $$("[data-language]", $("#language-choice")).forEach((candidate) => candidate.classList.toggle("is-active", candidate === button));
+  setLanguage(button.dataset.language); loadHallOfFame();
+  updateCurrencySymbols();
+});
+$("#profile-picker").addEventListener("click", (event) => { const button = event.target.closest("[data-profile-index]"); if (!button) return; selectedAvatar = { kind: "meme", index: Number(button.dataset.profileIndex) }; renderProfilePicker(); });
+$("#profile-upload").addEventListener("change", async (event) => { try { selectedAvatar = await resizeUploadedAvatar(event.target.files[0]); renderProfilePicker(); showToast("프로필 사진을 적용했습니다."); } catch (error) { showToast(error.message, "error"); } });
 $("#room-code-input").addEventListener("input", (event) => { event.target.value = event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""); });
 $("#room-code-input").addEventListener("keydown", (event) => { if (event.key === "Enter") joinOnlineRoom(); });
 $("#start-match-button").addEventListener("click", startOnlineMatch);
+$("#cancel-matchmaking").addEventListener("click", leaveOnlineRoom);
 $("#leave-room-button").addEventListener("click", leaveOnlineRoom);
 $("#room-code").addEventListener("click", async () => {
   try { await navigator.clipboard.writeText($("#room-code").textContent); showToast("방 코드를 복사했습니다."); }
@@ -898,7 +1359,7 @@ $("#stock-list").addEventListener("click", (event) => {
   const row = event.target.closest("[data-stock-index]");
   if (!row) return;
   selectedStock = Number(row.dataset.stockIndex);
-  $("#limit-price").value = currentPrice(game, selectedStock);
+  $("#limit-price").value = currencyInputValue(currentPrice(game, selectedStock));
   renderMarket(); renderSelectedStock(); renderTradePanel(); requestAnimationFrame(drawChart);
 });
 $$('.chart-type-toggle button').forEach((button) => button.addEventListener("click", () => {
@@ -919,14 +1380,14 @@ $("#order-list").addEventListener("click", (event) => {
   else safeAction(() => cancelOrder(game, button.dataset.cancelOrder), "예약 주문을 취소했습니다.");
 });
 $("#borrow-button").addEventListener("click", () => online
-  ? sendAction("borrow", { amount: Number($("#loan-amount").value) }, "대출이 실행되었습니다.").catch((error) => showToast(error.message, "error"))
-  : safeAction(() => borrow(game, Number($("#loan-amount").value)), "대출이 실행되었습니다."));
+  ? sendAction("borrow", { amount: wonFromCurrencyInput($("#loan-amount").value) }, "대출이 실행되었습니다.").catch((error) => showToast(error.message, "error"))
+  : safeAction(() => borrow(game, wonFromCurrencyInput($("#loan-amount").value)), "대출이 실행되었습니다."));
 $("#repay-button").addEventListener("click", () => online
-  ? sendAction("repay", { amount: Number($("#loan-amount").value) }, "대출을 상환했습니다.").catch((error) => showToast(error.message, "error"))
-  : safeAction(() => repay(game, Number($("#loan-amount").value)), "대출을 상환했습니다."));
+  ? sendAction("repay", { amount: wonFromCurrencyInput($("#loan-amount").value) }, "대출을 상환했습니다.").catch((error) => showToast(error.message, "error"))
+  : safeAction(() => repay(game, wonFromCurrencyInput($("#loan-amount").value)), "대출을 상환했습니다."));
 $("#bond-button").addEventListener("click", () => online
-  ? sendAction("bond", { amount: Number($("#bond-amount").value) }, "채권을 매수했습니다.").catch((error) => showToast(error.message, "error"))
-  : safeAction(() => buyBond(game, Number($("#bond-amount").value)), "채권을 매수했습니다."));
+  ? sendAction("bond", { amount: wonFromCurrencyInput($("#bond-amount").value) }, "채권을 매수했습니다.").catch((error) => showToast(error.message, "error"))
+  : safeAction(() => buyBond(game, wonFromCurrencyInput($("#bond-amount").value)), "채권을 매수했습니다."));
 $("#special-items").addEventListener("click", (event) => {
   const button = event.target.closest("[data-special-item]");
   if (button) openItemModal(button.dataset.specialItem);
@@ -937,9 +1398,25 @@ $("#random-items").addEventListener("click", (event) => {
 });
 $("#item-confirm").addEventListener("click", confirmItem);
 $("#ranking-list").addEventListener("click", (event) => {
+  const message = event.target.closest("[data-message-player]");
+  if (message) { event.stopPropagation(); openMessages(message.dataset.messagePlayer); return; }
   const row = event.target.closest("[data-player-id]");
   if (row) openRankDetail(row.dataset.playerId);
 });
+$("#rank-search").addEventListener("input", renderRanking);
+$("#my-profile-button").addEventListener("click", () => openRankDetail(viewerId));
+$("#rank-detail-message").addEventListener("click", (event) => openMessages(event.currentTarget.dataset.messagePlayer));
+$("#mailbox-button").addEventListener("click", () => openMessages());
+$("#notifications-button").addEventListener("click", openNotifications);
+$("#message-contacts").addEventListener("click", (event) => { const contact = event.target.closest("[data-message-contact]"); if (!contact) return; currentMessageTarget = contact.dataset.messageContact; renderMessages(); markThreadRead(currentMessageTarget); });
+$("#message-new").addEventListener("click", () => { $("#message-recipient-panel").classList.toggle("is-hidden"); $("#message-recipient-search").value = ""; renderMessageRecipients(); $("#message-recipient-search").focus(); });
+$("#message-recipient-search").addEventListener("input", renderMessageRecipients);
+$("#message-recipient-list").addEventListener("click", (event) => { const recipient = event.target.closest("[data-message-recipient]"); if (!recipient) return; currentMessageTarget = recipient.dataset.messageRecipient; $("#message-recipient-panel").classList.add("is-hidden"); renderMessages(); $("#message-input").focus(); });
+$("#message-send").addEventListener("click", sendDirectMessage);
+$("#message-input").addEventListener("keydown", (event) => { if (event.key === "Enter") sendDirectMessage(); });
+$("#developer-board-button").addEventListener("click", openBoard);
+$("#board-submit").addEventListener("click", submitBoardPost);
+$("#observe-button").addEventListener("click", () => $("#elimination-modal").classList.add("is-hidden"));
 $("#open-holdings-button").addEventListener("click", openHoldingsModal);
 $("#net-assets").addEventListener("click", openHoldingsModal);
 $("#asset-stock-button").addEventListener("click", openHoldingsModal);
@@ -962,10 +1439,16 @@ $("#rank-detail-stock").addEventListener("click", (event) => {
 });
 $("[data-close-holdings]").addEventListener("click", () => $("#holdings-modal").classList.add("is-hidden"));
 $("[data-close-rank-detail]").addEventListener("click", () => $("#rank-detail-modal").classList.add("is-hidden"));
+$("[data-close-message]").addEventListener("click", () => $("#message-modal").classList.add("is-hidden"));
+$("[data-close-notifications]").addEventListener("click", () => $("#notifications-modal").classList.add("is-hidden"));
+$("[data-close-board]").addEventListener("click", () => $("#board-modal").classList.add("is-hidden"));
 $("#rules-modal").addEventListener("click", (event) => { if (event.target.id === "rules-modal") event.currentTarget.classList.add("is-hidden"); });
 $("#item-modal").addEventListener("click", (event) => { if (event.target.id === "item-modal") event.currentTarget.classList.add("is-hidden"); });
 $("#rank-detail-modal").addEventListener("click", (event) => { if (event.target.id === "rank-detail-modal") event.currentTarget.classList.add("is-hidden"); });
 $("#holdings-modal").addEventListener("click", (event) => { if (event.target.id === "holdings-modal") event.currentTarget.classList.add("is-hidden"); });
+$("#message-modal").addEventListener("click", (event) => { if (event.target.id === "message-modal") event.currentTarget.classList.add("is-hidden"); });
+$("#notifications-modal").addEventListener("click", (event) => { if (event.target.id === "notifications-modal") event.currentTarget.classList.add("is-hidden"); });
+$("#board-modal").addEventListener("click", (event) => { if (event.target.id === "board-modal") event.currentTarget.classList.add("is-hidden"); });
 window.addEventListener("resize", () => requestAnimationFrame(drawChart));
 $("#price-chart").addEventListener("mousemove", (event) => {
   const chart = event.currentTarget._chart;
@@ -988,6 +1471,10 @@ document.addEventListener("keydown", (event) => {
     $("#item-modal").classList.add("is-hidden");
     $("#rank-detail-modal").classList.add("is-hidden");
     $("#holdings-modal").classList.add("is-hidden");
+    $("#message-modal").classList.add("is-hidden");
+    $("#notifications-modal").classList.add("is-hidden");
+    $("#board-modal").classList.add("is-hidden");
+    if (eliminationShown) $("#elimination-modal").classList.add("is-hidden");
   }
   if (event.code === "Space" && game && !online && !["INPUT", "SELECT"].includes(document.activeElement.tagName)) {
     event.preventDefault();
@@ -997,4 +1484,8 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
+renderProfilePicker();
+setLanguage("ko");
+updateCurrencySymbols();
+loadHallOfFame();
 resumeOnlineSession();

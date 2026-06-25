@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const dist = join(root, "dist");
-const publicFiles = ["index.html", "styles.css", "app.js", "engine.js"];
+const publicFiles = ["index.html", "styles.css", "app.js", "engine.js", "i18n.js"];
 
 async function loadLocalEnv() {
   const file = join(root, ".env");
@@ -27,8 +27,9 @@ if (apiBaseUrl && !/^https?:\/\//.test(apiBaseUrl)) {
 await rm(dist, { recursive: true, force: true });
 await mkdir(dist, { recursive: true });
 await Promise.all(publicFiles.map((file) => copyFile(join(root, file), join(dist, file))));
+await mkdir(join(dist, "assets"), { recursive: true });
+await copyFile(join(root, "assets", "stock-meme-avatars.png"), join(dist, "assets", "stock-meme-avatars.png"));
 await writeFile(join(dist, "config.js"), `export const API_BASE_URL = ${JSON.stringify(apiBaseUrl)};\n`, "utf8");
 await copyFile(join(root, "index.html"), join(dist, "404.html"));
 
 console.log(`Build complete: dist (${apiBaseUrl ? `API ${apiBaseUrl}` : "same-origin API"})`);
-

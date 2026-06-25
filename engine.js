@@ -11,11 +11,11 @@ export const CONFIG = Object.freeze({
 });
 
 const MARKETS = [
-  { code: "US", name: "미국", flag: "🇺🇸", drift: 0.004, volatility: 0.045 },
-  { code: "KR", name: "한국", flag: "🇰🇷", drift: 0.003, volatility: 0.052 },
-  { code: "JP", name: "일본", flag: "🇯🇵", drift: 0.0035, volatility: 0.038 },
-  { code: "CN", name: "중국", flag: "🇨🇳", drift: 0.002, volatility: 0.058 },
-  { code: "EU", name: "유럽", flag: "🇪🇺", drift: 0.003, volatility: 0.041 },
+  { code: "US", name: "미국", nameEn: "USA", flag: "🇺🇸", drift: 0.004, volatility: 0.045 },
+  { code: "KR", name: "한국", nameEn: "Korea", flag: "🇰🇷", drift: 0.003, volatility: 0.052 },
+  { code: "JP", name: "일본", nameEn: "Japan", flag: "🇯🇵", drift: 0.0035, volatility: 0.038 },
+  { code: "CN", name: "중국", nameEn: "China", flag: "🇨🇳", drift: 0.002, volatility: 0.058 },
+  { code: "EU", name: "유럽", nameEn: "Europe", flag: "🇪🇺", drift: 0.003, volatility: 0.041 },
 ];
 
 const NAME_PREFIXES = [
@@ -26,8 +26,16 @@ const NAME_SUFFIXES = [
   "랩스", "모터스", "바이오", "에너지", "로직스", "리테일", "로보틱스", "파이낸스", "미디어", "머티리얼",
   "웍스", "네트웍스", "모빌리티", "시스템즈", "푸드", "항공", "테크", "헬스", "디지털", "인더스트리",
 ];
+const NAME_PREFIXES_EN = ["Neon", "Aurora", "Quantum", "Blue", "Nova", "Pixel", "Crest", "Zero", "Lumen", "Vector", "Atlas", "Metro", "Zen", "Echo", "Prime", "Silver", "Core", "Sky", "Terra", "Hive"];
+const NAME_SUFFIXES_EN = ["Labs", "Motors", "Bio", "Energy", "Logics", "Retail", "Robotics", "Finance", "Media", "Materials", "Works", "Networks", "Mobility", "Systems", "Foods", "Aero", "Tech", "Health", "Digital", "Industries"];
 const BOT_ADJECTIVES = ["고요한", "빠른", "집요한", "푸른", "영리한", "대담한", "차가운", "황금", "느긋한", "행운의"];
 const BOT_NOUNS = ["개미", "황소", "곰", "여우", "고래", "매", "토끼", "늑대", "부엉이", "거북이"];
+const BOT_ADJECTIVES_EN = ["Quiet", "Swift", "Relentless", "Blue", "Clever", "Bold", "Cold", "Golden", "Patient", "Lucky"];
+const BOT_NOUNS_EN = ["Ant", "Bull", "Bear", "Fox", "Whale", "Hawk", "Rabbit", "Wolf", "Owl", "Turtle"];
+const ELIMINATION_QUOTES = {
+  ko: ["시장은 내일도 열립니다. 살아남은 경험이 최고의 차트입니다.", "손실은 숫자지만 교훈은 자산입니다.", "바닥은 지나고 나서야 보입니다.", "몰빵보다 오래 살아남는 분산이 강합니다.", "좋은 매매는 다음 기회를 남겨둡니다."],
+  en: ["The market opens again tomorrow. Experience is your best chart.", "Loss is a number; the lesson is an asset.", "The bottom is only obvious in hindsight.", "Diversification survives longer than conviction alone.", "A good trade always leaves room for the next one."],
+};
 
 export function createRng(seed = Date.now()) {
   let state = Number(seed) >>> 0 || 0x6d2b79f5;
@@ -61,9 +69,11 @@ function roundPrice(value) {
   return Math.max(100, Math.round(value / 10) * 10);
 }
 
-function uniqueCompanyName(index) {
-  const prefix = NAME_PREFIXES[index % NAME_PREFIXES.length];
-  const suffix = NAME_SUFFIXES[Math.floor(index / NAME_PREFIXES.length) + (index * 7) % NAME_SUFFIXES.length];
+function uniqueCompanyName(index, language = "ko") {
+  const prefixes = language === "en" ? NAME_PREFIXES_EN : NAME_PREFIXES;
+  const suffixes = language === "en" ? NAME_SUFFIXES_EN : NAME_SUFFIXES;
+  const prefix = prefixes[index % prefixes.length];
+  const suffix = suffixes[Math.floor(index / prefixes.length) + (index * 7) % suffixes.length];
   return `${prefix} ${suffix}`;
 }
 
@@ -82,7 +92,7 @@ function createCandles(closes, market, rng) {
   });
 }
 
-function generateStock(index, rng) {
+function generateStock(index, rng, language = "ko") {
   const market = MARKETS[index % MARKETS.length];
   const base = rng.int(18, 240) * 1_000;
   const historyWithBase = [base];
@@ -105,24 +115,28 @@ function generateStock(index, rng) {
   return {
     id: `STK-${String(index + 1).padStart(2, "0")}`,
     ticker: `${market.code}${String(index + 1).padStart(2, "0")}`,
-    name: uniqueCompanyName(index),
-    market,
+    name: uniqueCompanyName(index, language),
+    market: language === "en" ? { ...market, name: market.nameEn } : market,
     year: rng.int(2001, 2025),
     history,
     historyCandles: allCandles.slice(0, history.length),
     prices,
     candles: allCandles.slice(history.length),
-    sector: rng.pick(["테크", "금융", "소비재", "헬스케어", "산업재", "에너지"]),
+    sector: rng.pick(language === "en" ? ["Tech", "Finance", "Consumer", "Healthcare", "Industrials", "Energy"] : ["테크", "금융", "소비재", "헬스케어", "산업재", "에너지"]),
   };
 }
 
-function makePlayer(index, nickname) {
+function makePlayer(index, nickname, rng, language = "ko") {
   const isHuman = index === 0;
   const botNumber = String(index).padStart(3, "0");
+  const botNickname = language === "en"
+    ? `${BOT_ADJECTIVES_EN[index % BOT_ADJECTIVES_EN.length]} ${BOT_NOUNS_EN[Math.floor(index / 3) % BOT_NOUNS_EN.length]} ${botNumber}`
+    : `${BOT_ADJECTIVES[index % BOT_ADJECTIVES.length]} ${BOT_NOUNS[Math.floor(index / 3) % BOT_NOUNS.length]} ${botNumber}`;
   return {
     id: isHuman ? "PLAYER-001" : `BOT-${botNumber}`,
-    nickname: isHuman ? nickname : `${BOT_ADJECTIVES[index % BOT_ADJECTIVES.length]} ${BOT_NOUNS[Math.floor(index / 3) % BOT_NOUNS.length]} ${botNumber}`,
+    nickname: isHuman ? nickname : botNickname,
     isHuman,
+    avatar: { kind: "meme", index: rng.int(0, 9) },
     cash: 0,
     salary: CONFIG.baseSalary,
     debt: 0,
@@ -134,6 +148,11 @@ function makePlayer(index, nickname) {
     copiedIdentity: null,
     fakeRank: null,
     eliminated: false,
+    eliminatedTurn: null,
+    eliminationRank: null,
+    eliminationQuote: null,
+    performance: [],
+    stats: { buys: 0, sells: 0, items: 0, loans: 0, bonds: 0 },
     lastTax: 0,
     lastInterest: 0,
   };
@@ -185,6 +204,7 @@ function money(value) {
 
 function createRanking(state) {
   return [...state.players]
+    .filter((player) => !player.eliminated)
     .map((player) => ({ playerId: player.id, nickname: player.nickname, assets: netWorth(player, state.stocks, state.turn) }))
     .sort((a, b) => b.assets - a.assets)
     .map((entry, index) => ({ ...entry, rank: index + 1 }));
@@ -198,12 +218,90 @@ export function getRanking(state, { display = true, viewerId = "PLAYER-001" } = 
   const human = state.players.find((player) => player.id === viewerId) ?? state.players[0];
   if (!display || !human.fakeRank || human.fakeRank.turn !== state.turn) return base;
   const currentIndex = base.findIndex((entry) => entry.playerId === human.id);
+  if (currentIndex < 0) return base;
   const [entry] = base.splice(currentIndex, 1);
   base.splice(Math.max(0, Math.min(base.length, human.fakeRank.rank - 1)), 0, entry);
   return base.map((item, index) => ({ ...item, rank: index + 1 }));
 }
 
-export function createGame({ nickname = "플레이어", seed = Date.now() } = {}) {
+function recordPerformance(state) {
+  const rankMap = new Map(createRanking(state).map((entry) => [entry.playerId, entry.rank]));
+  for (const player of state.players) {
+    const point = { turn: state.turn, rank: rankMap.get(player.id) ?? player.eliminationRank ?? CONFIG.playerCount, assets: netWorth(player, state.stocks, state.turn) };
+    if (player.performance.at(-1)?.turn === state.turn) player.performance[player.performance.length - 1] = point;
+    else player.performance.push(point);
+  }
+}
+
+function eliminateLowest(state) {
+  if (state.turn < 11) return null;
+  const ranking = createRanking(state);
+  const entry = ranking.at(-1);
+  if (!entry) return null;
+  const player = state.players.find((candidate) => candidate.id === entry.playerId);
+  player.eliminated = true;
+  player.eliminatedTurn = state.turn;
+  player.eliminationRank = entry.rank;
+  player.eliminationQuote = ELIMINATION_QUOTES[state.language]?.[(state.turn + entry.rank) % ELIMINATION_QUOTES[state.language].length] ?? ELIMINATION_QUOTES.ko[0];
+  addLog(state, `${player.nickname} 플레이어가 ${state.turn}턴에 탈락했습니다.`, "elimination");
+  return { playerId: player.id, nickname: player.nickname, turn: state.turn, rank: entry.rank };
+}
+
+function textSeed(value) {
+  return [...String(value)].reduce((hash, character) => Math.imul(hash ^ character.charCodeAt(0), 16777619) >>> 0, 2166136261);
+}
+
+export function createRumor(state, startTurn = state.turn, recipientId = "PLAYER-001") {
+  const currentTurn = Math.max(1, Math.min(CONFIG.totalTurns, Number(startTurn) || state.turn));
+  const endTurn = Math.min(CONFIG.totalTurns, currentTurn + 7);
+  const rng = createRng(state.seed ^ Math.imul(currentTurn, 2654435761) ^ textSeed(recipientId));
+  const candidates = [];
+  for (const stock of state.stocks) {
+    for (let targetTurn = currentTurn + 1; targetTurn <= endTurn; targetTurn += 1) {
+      const current = stock.prices[currentTurn - 1];
+      const future = stock.prices[targetTurn - 1];
+      const change = future / current - 1;
+      candidates.push({ stock, targetTurn, change, score: Math.abs(change) * (0.75 + rng.next() * 0.5) });
+    }
+  }
+  const selected = candidates.sort((a, b) => b.score - a.score)[rng.int(0, Math.min(11, candidates.length - 1))];
+  const direction = selected.change >= 0 ? "up" : "down";
+  const country = `[${selected.stock.market.name}]`;
+  const stockName = `[${selected.stock.name}]`;
+  const koUp = [
+    `${country} 쪽에서 ${stockName} 물량을 조용히 모은다는 말이 돌아. 며칠 안에 위로 한번 튈 수도 있겠어.`,
+    `${country} 시장 아는 형 말로는 ${stockName} 분위기가 슬슬 달아오른대. 너무 늦기 전에 차트는 봐둬.`,
+    `${stockName}, ${country} 쪽 큰손들이 눈여겨본다더라. 곧 위쪽으로 꿈틀거릴 수 있다는 얘기야.`,
+  ];
+  const koDown = [
+    `${country} 쪽 ${stockName}에서 물량을 빼는 사람이 있다는 소문이야. 며칠 안에 아래로 흔들릴 수 있어.`,
+    `${stockName} 말이야, ${country} 시장에서 분위기가 좀 싸하대. 가까운 시일 안에 밀릴 수도 있으니 조심해.`,
+    `${country} 쪽 아는 사람이 ${stockName}은 당분간 무겁다고 하더라. 아래로 한번 꺾일지도 몰라.`,
+  ];
+  const enUp = [
+    `Word is that someone is quietly accumulating ${stockName} over in ${country}. It may pop sometime in the next few days.`,
+    `A contact watching ${country} says ${stockName} is starting to warm up. Might be worth keeping the chart open.`,
+    `Some bigger hands in ${country} are apparently watching ${stockName}. It could start leaning upward before long.`,
+  ];
+  const enDown = [
+    `Rumor has it that money is slipping out of ${stockName} in ${country}. It may wobble lower in the next few days.`,
+    `Something feels off around ${stockName} in ${country}. People say it could get pushed down before long.`,
+    `A contact in ${country} says ${stockName} feels heavy. Wouldn't be shocked to see it roll over soon.`,
+  ];
+  const templates = state.language === "en" ? (direction === "up" ? enUp : enDown) : (direction === "up" ? koUp : koDown);
+  return {
+    senderId: "RUMOR",
+    senderName: state.language === "en" ? "Market Whisper" : "찌라시",
+    text: templates[rng.int(0, templates.length - 1)],
+    stockIndex: state.stocks.indexOf(selected.stock),
+    direction,
+    targetTurn: selected.targetTurn,
+    startTurn: currentTurn,
+    endTurn,
+  };
+}
+
+export function createGame({ nickname = "플레이어", seed = Date.now(), language = "ko", avatar = null } = {}) {
   const rng = createRng(seed);
   const state = {
     version: 1,
@@ -211,16 +309,19 @@ export function createGame({ nickname = "플레이어", seed = Date.now() } = {}
     rng,
     turn: 1,
     finished: false,
-    stocks: Array.from({ length: CONFIG.stockCount }, (_, index) => generateStock(index, rng)),
-    players: Array.from({ length: CONFIG.playerCount }, (_, index) => makePlayer(index, nickname.trim() || "플레이어")),
+    language: language === "en" ? "en" : "ko",
+    stocks: Array.from({ length: CONFIG.stockCount }, (_, index) => generateStock(index, rng, language)),
+    players: Array.from({ length: CONFIG.playerCount }, (_, index) => makePlayer(index, nickname.trim() || "플레이어", rng, language)),
     rankingSnapshot: [],
     finalRanking: [],
     rankBlindTurn: 0,
     logs: [],
     reveal: null,
   };
+  if (avatar) state.players[0].avatar = avatar;
   state.players.forEach((player) => paySalary(state, player, "게임 시작 월급"));
   addLog(state, "100명의 참가자가 입장했습니다. 주식 배틀그라운드 시작!", "system");
+  recordPerformance(state);
   return state;
 }
 
@@ -240,8 +341,13 @@ function getPlayer(state, playerId = "PLAYER-001") {
 
 function ensureTradeAllowed(state, player) {
   if (state.finished) throw new Error("게임이 종료되었습니다.");
+  if (player.eliminated) throw new Error("탈락한 플레이어는 거래할 수 없습니다.");
   if (player.frozenTurn === state.turn) throw new Error("이번 턴 거래가 정지되었습니다.");
   if (player.tradeLockTurn === state.turn) throw new Error("랜덤 교체 후 이번 턴에는 거래할 수 없습니다.");
+}
+
+function ensureActivePlayer(player) {
+  if (player.eliminated) throw new Error("탈락한 플레이어는 더 이상 행동할 수 없습니다.");
 }
 
 export function buyStock(state, stockIndex, quantity, playerId) {
@@ -254,6 +360,7 @@ export function buyStock(state, stockIndex, quantity, playerId) {
   if (player.cash < cost) throw new Error("현금이 부족합니다.");
   player.cash -= cost;
   player.holdings[stockIndex] += qty;
+  player.stats.buys += 1;
   if (player.isHuman) addLog(state, `${state.stocks[stockIndex].name} ${qty.toLocaleString()}주 매수`, "buy", player.id, { stockIndex, amountDelta: -cost });
   return cost;
 }
@@ -268,6 +375,7 @@ export function sellStock(state, stockIndex, quantity, playerId) {
   const proceeds = currentPrice(state, stockIndex) * qty;
   player.holdings[stockIndex] -= qty;
   player.cash += proceeds;
+  player.stats.sells += 1;
   if (player.isHuman) addLog(state, `${state.stocks[stockIndex].name} ${qty.toLocaleString()}주 매도`, "sell", player.id, { stockIndex, amountDelta: proceeds });
   return proceeds;
 }
@@ -293,6 +401,7 @@ export function placeLimitOrder(state, { stockIndex, quantity, limitPrice, side 
 
 export function cancelOrder(state, orderId, playerId) {
   const player = getPlayer(state, playerId);
+  ensureActivePlayer(player);
   const index = player.orders.findIndex((order) => order.id === orderId);
   if (index < 0) throw new Error("예약 주문을 찾을 수 없습니다.");
   player.orders.splice(index, 1);
@@ -329,6 +438,7 @@ function executeOrders(state, player) {
 
 export function borrow(state, amount, playerId) {
   const player = getPlayer(state, playerId);
+  ensureActivePlayer(player);
   const value = Math.floor(Number(amount));
   if (!Number.isFinite(value) || value <= 0) throw new Error("대출 금액을 입력하세요.");
   if (netWorth(player, state.stocks, state.turn) < 0) throw new Error("자산이 음수이면 신규 대출을 받을 수 없습니다.");
@@ -337,6 +447,7 @@ export function borrow(state, amount, playerId) {
   const upfrontInterest = Math.round(value * CONFIG.loanInterest);
   player.debt += value;
   player.cash += value - upfrontInterest;
+  player.stats.loans += 1;
   player.lastInterest = upfrontInterest;
   if (player.isHuman) addLog(state, `대출 ${money(value)} 실행 · 선이자 ${money(upfrontInterest)} 차감`, "loan", player.id, { amountDelta: value - upfrontInterest });
   return { value, upfrontInterest };
@@ -344,6 +455,7 @@ export function borrow(state, amount, playerId) {
 
 export function repay(state, amount, playerId) {
   const player = getPlayer(state, playerId);
+  ensureActivePlayer(player);
   const value = Math.min(player.debt, Math.floor(Number(amount)));
   if (!Number.isFinite(value) || value <= 0) throw new Error("상환 금액을 입력하세요.");
   if (player.cash < value) throw new Error("상환할 현금이 부족합니다.");
@@ -360,6 +472,7 @@ export function buyBond(state, amount, playerId) {
   if (!Number.isFinite(principal) || principal < 100_000) throw new Error("채권은 10만원 이상 구매할 수 있습니다.");
   if (player.cash < principal) throw new Error("현금이 부족합니다.");
   player.cash -= principal;
+  player.stats.bonds += 1;
   player.bonds.push({
     id: `BOND-${state.turn}-${Date.now()}-${player.bonds.length}`,
     principal,
@@ -410,6 +523,7 @@ function chargeItemCost(state, player, rate) {
 
 export function useSpecialItem(state, itemId, options = {}, playerId) {
   const player = getPlayer(state, playerId);
+  ensureActivePlayer(player);
   const item = SPECIAL_ITEMS.find((candidate) => candidate.id === itemId);
   if (!item) throw new Error("아이템을 찾을 수 없습니다.");
   if (state.finished) throw new Error("게임이 종료되었습니다.");
@@ -446,6 +560,7 @@ export function useSpecialItem(state, itemId, options = {}, playerId) {
   }
 
   const cost = chargeItemCost(state, player, item.rate);
+  player.stats.items += 1;
   if (itemId === "rank-blackout") state.rankBlindTurn = state.turn;
   if (itemId === "identity-copy") player.copiedIdentity = prepared;
   if (itemId === "fake-rank") player.fakeRank = prepared;
@@ -457,12 +572,14 @@ export function useSpecialItem(state, itemId, options = {}, playerId) {
 
 export function useRandomItem(state, itemId, playerId) {
   const player = getPlayer(state, playerId);
+  ensureActivePlayer(player);
   if (netWorth(player, state.stocks, state.turn) < player.salary * 2) {
     throw new Error("랜덤 아이템은 자산이 월급의 2배 이상일 때 구매할 수 있습니다.");
   }
   const cost = player.salary;
   if (player.cash < cost) throw new Error(`아이템 비용 ${money(cost)}을 낼 현금이 부족합니다.`);
   player.cash -= cost;
+  player.stats.items += 1;
   let result;
   if (itemId === "salary-roll") {
     const ratio = 0.3 + state.rng.next() * 1.2;
@@ -526,6 +643,7 @@ function botAction(state, player) {
 
 function checkpoint(state) {
   for (const player of state.players) {
+    if (player.eliminated) continue;
     if (player.debt > 0) {
       const distress = netWorth(player, state.stocks, state.turn) < 0;
       const rate = CONFIG.loanInterest + (distress ? 0.05 : 0);
@@ -541,13 +659,18 @@ function checkpoint(state) {
 export function advanceTurn(state) {
   if (state.finished) throw new Error("게임이 종료되었습니다.");
 
-  for (const player of state.players.filter((player) => !player.isHuman)) botAction(state, player);
+  for (const player of state.players.filter((player) => !player.isHuman && !player.eliminated)) botAction(state, player);
   state.rankingSnapshot = createRanking(state);
 
   if (state.turn === CONFIG.totalTurns) {
     checkpoint(state);
     state.finished = true;
-    state.finalRanking = createRanking(state);
+    const active = createRanking(state);
+    const eliminated = state.players.filter((player) => player.eliminated)
+      .sort((a, b) => (b.eliminatedTurn - a.eliminatedTurn) || (b.eliminationRank - a.eliminationRank))
+      .map((player) => ({ playerId: player.id, nickname: player.nickname, assets: netWorth(player, state.stocks, state.turn) }));
+    state.finalRanking = [...active, ...eliminated].map((entry, index) => ({ ...entry, rank: index + 1 }));
+    recordPerformance(state);
     addLog(state, "40턴 종료. 최종 순위가 확정되었습니다.", "system");
     return { finished: true, ranking: state.finalRanking };
   }
@@ -555,12 +678,14 @@ export function advanceTurn(state) {
   if (state.turn % 10 === 0) checkpoint(state);
   state.turn += 1;
   state.reveal = null;
-  state.players.forEach((player) => {
+  state.players.filter((player) => !player.eliminated).forEach((player) => {
     matureBonds(state, player);
     executeOrders(state, player);
   });
+  const eliminated = eliminateLowest(state);
+  recordPerformance(state);
   addLog(state, `${state.turn}턴 시작`, "turn");
-  return { finished: false, turn: state.turn };
+  return { finished: false, turn: state.turn, eliminated };
 }
 
 export function turnDurationSeconds(turn, speed = "standard") {

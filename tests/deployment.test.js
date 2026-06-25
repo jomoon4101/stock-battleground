@@ -16,7 +16,6 @@ test("npm scripts와 Vercel dist·SPA 설정이 존재한다", async () => {
 
 test("환경변수 예시는 이름만 포함하고 Supabase 변수는 사용하지 않는다", async () => {
   const env = await readFile(`${root}/.env.example`, "utf8");
-  for (const name of ["VITE_API_BASE_URL", "PORT", "ALLOWED_ORIGINS"]) assert.match(env, new RegExp(`^${name}=$`, "m"));
+  for (const name of ["VITE_API_BASE_URL", "PORT", "ALLOWED_ORIGINS", "DATA_ROOT"]) assert.match(env, new RegExp(`^${name}=$`, "m"));
   assert.doesNotMatch(env, /VITE_SUPABASE_URL|VITE_SUPABASE_ANON_KEY/);
 });
-

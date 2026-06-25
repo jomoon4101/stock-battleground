@@ -23,28 +23,36 @@
       </div>
       <p class="start-copy">시장을 읽고, 자산을 숨기고, 마지막 벨까지 살아남으세요.<br>빈자리는 99명의 AI 트레이더가 채웁니다.</p>
       <div class="start-form">
+        <div class="language-choice" id="language-choice"><button class="is-active" data-language="ko">한국어</button><button data-language="en">English</button></div>
         <label for="nickname">트레이더 닉네임</label>
         <input id="nickname" maxlength="14" value="용감한 개미" autocomplete="off">
+        <div class="profile-setup">
+          <label>프로필 이미지</label>
+          <div class="profile-picker" id="profile-picker"></div>
+          <label class="profile-upload-button" for="profile-upload">사진 업로드<input id="profile-upload" type="file" accept="image/png,image/jpeg,image/webp"></label>
+        </div>
         <label for="game-speed">게임 속도</label>
         <select id="game-speed">
-          <option value="turbo">터보 테스트 · 약 18분</option>
-          <option value="fast">빠른 게임 · 약 45분</option>
           <option value="standard">공식 규칙 · 정확히 100분</option>
+          <option value="fast">빠른 게임 · 약 45분</option>
+          <option value="turbo">터보 테스트 · 약 18분</option>
         </select>
         <button class="button button-primary button-xl" id="start-button">
-          <span>온라인 방 만들기</span><span aria-hidden="true">→</span>
+          <span>게임 시작</span><span aria-hidden="true">→</span>
         </button>
+        <button class="button button-secondary private-room-button" id="private-room-button">친구 방 만들기</button>
         <div class="join-form">
           <input id="room-code-input" maxlength="6" placeholder="방 코드 6자리" autocomplete="off" spellcheck="false">
           <button class="button button-secondary" id="join-room-button">방 참가</button>
         </div>
-        <button class="solo-link" id="solo-button">혼자서 테스트하기</button>
+        <button class="button solo-button" id="solo-button">혼자서 <strong>테스트</strong>하기</button>
       </div>
       <div class="start-meta">
         <span><i></i> 서버 시뮬레이션 준비</span>
         <span>SEASON 01 / PROTOTYPE</span>
       </div>
       <p class="service-disclaimer">본 서비스는 가상 주식 시뮬레이션 게임이며, 실제 투자 자문이나 금융 거래 서비스를 제공하지 않습니다.</p>
+      <button class="developer-board-button" id="developer-board-button">일개미(개발자)에게 일시키기 <span>익명 게시판 →</span></button>
     </div>
     <aside class="start-rules">
       <span class="rule-number">01</span>
@@ -56,7 +64,12 @@
       <span class="rule-number">03</span>
       <strong>40턴 뒤 단 한 명</strong>
       <p>순자산이 가장 많은 플레이어가 승리합니다.</p>
+      <div class="hall-of-fame"><span class="section-kicker">HALL OF FAME</span><h3>명예의 전당</h3><div id="hall-of-fame-list"></div></div>
     </aside>
+  </section>
+
+  <section class="matchmaking-screen is-hidden" id="matchmaking-screen">
+    <div class="matchmaking-card"><span class="section-kicker">AUTO MATCHMAKING</span><div class="matching-spinner"></div><h2 id="matching-title">플레이어를 찾고 있습니다</h2><strong id="matching-countdown">5</strong><p id="matching-player-count">1 / 100명 참가</p><small>5초 뒤 빈자리는 AI 트레이더가 채웁니다.</small><button class="button button-secondary" id="cancel-matchmaking">매칭 취소</button></div>
   </section>
 
   <section class="lobby-screen is-hidden" id="lobby-screen" aria-labelledby="lobby-title">
@@ -139,6 +152,7 @@
             <div class="chart-controls">
               <div class="chart-type-toggle"><button class="is-active" data-chart-type="line">선차트</button><button data-chart-type="candle">봉차트</button></div>
               <span class="turn-marker" id="chart-turn-marker">현재 T01</span>
+              <strong class="volume-alert is-hidden" id="volume-alert"></strong>
             </div>
           </div>
           <div class="chart-wrap">
@@ -219,9 +233,10 @@
 
       <aside class="right-rail">
         <section class="identity-card" id="identity-card">
-          <div class="avatar"><span id="avatar-text">용</span><i></i></div>
+          <button class="avatar profile-avatar" id="my-profile-button" aria-label="내 프로필"><span id="avatar-text"></span><i></i></button>
           <div><span>MY TRADER</span><strong id="player-name">용감한 개미</strong><small id="player-id">PLAYER-001</small></div>
           <div class="my-rank"><span>현재 순위</span><b id="my-rank">-</b></div>
+          <div class="identity-actions"><button id="mailbox-button">✉<em id="mail-unread" class="is-hidden">0</em></button><button id="notifications-button">♟<em id="notice-unread" class="is-hidden">0</em></button></div>
         </section>
 
         <section class="panel asset-panel">
@@ -245,6 +260,7 @@
             <div><span class="section-kicker">LIVE RANKING</span><h2>생존 순위</h2></div>
             <span id="rank-status" class="rank-status">실시간</span>
           </div>
+          <label class="rank-search"><span>⌕</span><input id="rank-search" placeholder="플레이어 검색" autocomplete="off"></label>
           <div class="rank-table-head"><span>순위 / 플레이어</span><span>순자산</span></div>
           <div class="ranking-list" id="ranking-list"></div>
         </section>
@@ -296,7 +312,32 @@
       <div class="rank-detail-player"><span id="rank-detail-avatar">?</span><div><strong id="rank-detail-name">-</strong><small id="rank-detail-id">-</small></div><b id="rank-detail-rank">-위</b></div>
       <div class="top-stock-card" id="rank-detail-stock"></div>
       <p id="rank-detail-streak"></p>
+      <div class="player-history-summary"><span>현재 순자산 <b id="rank-detail-assets">-</b></span><button class="button button-secondary" id="rank-detail-message">쪽지 보내기</button></div>
+      <div class="history-chart-grid"><div><span>턴별 순위</span><canvas id="rank-history-chart"></canvas></div><div><span>자산 등락</span><canvas id="asset-history-chart"></canvas></div></div>
     </div>
+  </div>
+
+  <div class="leader-announcement is-hidden" id="leader-announcement"><span>♛</span><strong id="leader-announcement-text"></strong></div>
+
+  <div class="modal-backdrop is-hidden" id="message-modal" role="dialog" aria-modal="true" aria-labelledby="message-title">
+    <div class="modal message-modal-card">
+      <button class="modal-close" data-close-message aria-label="닫기">×</button><span class="section-kicker">DIRECT MESSAGE</span>
+      <div class="message-title-row"><h2 id="message-title">쪽지함</h2><button class="button button-secondary" id="message-new">쪽지 보내기</button></div>
+      <div class="message-recipient-panel is-hidden" id="message-recipient-panel"><input id="message-recipient-search" placeholder="받는 플레이어 검색" autocomplete="off"><div id="message-recipient-list"></div></div>
+      <div class="message-layout"><div class="message-contacts" id="message-contacts"></div><div class="message-thread"><div id="message-thread"></div><div class="message-compose"><input id="message-input" maxlength="240" placeholder="쪽지 내용을 입력하세요"><button class="button button-primary" id="message-send">전송</button></div></div></div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop is-hidden" id="notifications-modal" role="dialog" aria-modal="true" aria-labelledby="notifications-title">
+    <div class="modal notifications-card"><button class="modal-close" data-close-notifications aria-label="닫기">×</button><span class="section-kicker">NOTICES</span><h2 id="notifications-title">알림</h2><div id="notifications-list"></div></div>
+  </div>
+
+  <div class="modal-backdrop is-hidden" id="board-modal" role="dialog" aria-modal="true" aria-labelledby="board-title">
+    <div class="modal board-card"><button class="modal-close" data-close-board aria-label="닫기">×</button><span class="section-kicker">ANONYMOUS BOARD</span><h2 id="board-title">일개미에게 일시키기</h2><div class="board-compose"><textarea id="board-input" maxlength="500" placeholder="개발자에게 시킬 일을 익명으로 남겨주세요."></textarea><button class="button button-primary" id="board-submit">익명 등록</button></div><div id="board-posts" class="board-posts"></div></div>
+  </div>
+
+  <div class="modal-backdrop is-hidden" id="elimination-modal" role="dialog" aria-modal="true" aria-labelledby="elimination-title">
+    <div class="modal elimination-card"><span class="section-kicker">ELIMINATED</span><h2 id="elimination-title">시장에서 탈락했습니다</h2><div class="elimination-rank"><span>탈락 순위</span><strong id="elimination-rank">100</strong><small id="elimination-turn">TURN 11</small></div><div id="elimination-stats" class="elimination-stats"></div><canvas id="elimination-chart"></canvas><div class="elimination-activity"><strong>주요 거래 기록</strong><div id="elimination-activity"></div></div><blockquote id="elimination-quote"></blockquote><button class="button button-secondary" id="observe-button">남은 게임 관전하기</button></div>
   </div>
 
   <div class="modal-backdrop is-hidden" id="holdings-modal" role="dialog" aria-modal="true" aria-labelledby="holdings-title">
