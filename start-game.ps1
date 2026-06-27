@@ -43,7 +43,7 @@ if (-not $lanAddress) {
     }
 }
 
-Write-Host "주식 배틀그라운드 서버가 실행 중입니다." -ForegroundColor Green
+Write-Host "주식 서바이벌 서버가 실행 중입니다." -ForegroundColor Green
 Write-Host "내 PC: $localUrl"
 if ($lanAddress) {
     Write-Host "같은 와이파이 참가 주소: http://${lanAddress}:4173/" -ForegroundColor Cyan

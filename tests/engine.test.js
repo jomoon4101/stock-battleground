@@ -6,21 +6,24 @@ import {
   useRandomItem, useSpecialItem,
 } from "../engine.js";
 
-test("100명 플레이어, 30개 OHLC·거래량 종목을 생성한다", () => {
+test("30명과 국가별 3~5개 OHLC·거래량 종목을 생성한다", () => {
   const game = createGame({ nickname: "테스터", seed: 42 });
-  assert.equal(game.players.length, 100);
-  assert.equal(game.stocks.length, 30);
-  assert.equal(game.players.filter((player) => !player.isHuman).length, 99);
-  assert.equal(game.stocks[0].candles.length, 41);
+  assert.equal(game.players.length, 30);
+  assert.ok(game.stocks.length >= 15 && game.stocks.length <= 25);
+  assert.equal(game.players.filter((player) => !player.isHuman).length, 29);
+  assert.equal(game.stocks[0].candles.length, 26);
   assert.equal(game.stocks[0].historyCandles.length, 18);
   assert.ok(game.stocks[0].candles.every((candle) => candle.high >= Math.max(candle.open, candle.close) && candle.low <= Math.min(candle.open, candle.close) && candle.volume > 0));
+  for (const market of ["US", "KR", "JP", "CN", "EU"]) assert.ok(game.stocks.filter((stock) => stock.market.code === market).length >= 3 && game.stocks.filter((stock) => stock.market.code === market).length <= 5);
+  assert.ok(game.stocks.every((stock) => stock.icon && stock.sectorKey));
+  assert.ok(currentPrice(game, 0) >= 1_800 && currentPrice(game, 0) <= 24_000);
 });
 
-test("게임 속도 합계가 약 18분·45분·100분이다", () => {
-  const total = (speed) => Array.from({ length: 40 }, (_, index) => turnDurationSeconds(index + 1, speed)).reduce((a, b) => a + b, 0);
-  assert.equal(total("turbo"), 1_056);
-  assert.equal(total("fast"), 2_700);
-  assert.equal(total("standard"), 6_000);
+test("25턴 게임 모드 합계가 약 11분·27분·60분이다", () => {
+  const total = (speed) => Array.from({ length: 25 }, (_, index) => turnDurationSeconds(index + 1, speed)).reduce((a, b) => a + b, 0);
+  assert.equal(total("turbo"), 633);
+  assert.equal(total("fast"), 1_620);
+  assert.equal(total("standard"), 3_600);
   assert.equal(turnDurationSeconds(10, "standard"), 420);
 });
 
@@ -73,11 +76,11 @@ test("특별·랜덤 아이템과 표시 순위를 적용한다", () => {
   assert.equal(result.cost, salary);
 });
 
-test("40턴 후 최종 순위를 확정한다", () => {
+test("25턴 후 최종 순위를 확정한다", () => {
   const game = createGame({ seed: 14 });
-  for (let count = 0; count < 40; count += 1) advanceTurn(game);
+  for (let count = 0; count < 25; count += 1) advanceTurn(game);
   assert.equal(game.finished, true);
-  assert.equal(game.finalRanking.length, 100);
+  assert.equal(game.finalRanking.length, 30);
 });
 
 test("영어 게임은 종목·봇·시장 데이터를 영어로 생성한다", () => {
@@ -87,7 +90,7 @@ test("영어 게임은 종목·봇·시장 데이터를 영어로 생성한다",
   assert.doesNotMatch(game.stocks[0].name, /[가-힣]/);
   assert.doesNotMatch(game.players[1].nickname, /[가-힣]/);
   assert.doesNotMatch(game.stocks[0].market.name, /[가-힣]/);
-  assert.equal(game.players.length, 100);
+  assert.equal(game.players.length, 30);
   assert.ok(game.players.every((player) => player.avatar.kind === "meme"));
 });
 
@@ -101,7 +104,14 @@ test("11턴부터 최하위 한 명을 탈락시키고 행동을 차단한다", 
   assert.equal(game.players[0].eliminatedTurn, 11);
   assert.ok(game.players[0].performance.length >= 11);
   assert.throws(() => borrow(game, 100_000), /탈락한 플레이어/);
-  assert.equal(getRanking(game, { display: false }).length, 99);
+  assert.equal(getRanking(game, { display: false }).length, 29);
+});
+
+test("방 시드가 바뀌면 가상 기업 이름과 국가별 종목 수가 달라진다", () => {
+  const first = createGame({ seed: 501 });
+  const second = createGame({ seed: 502 });
+  assert.notDeepEqual(first.stocks.map((stock) => stock.name), second.stocks.map((stock) => stock.name));
+  assert.equal(new Set(first.stocks.map((stock) => stock.name)).size, first.stocks.length);
 });
 
 test("찌라시는 7턴 안의 실제 방향을 나라·종목과 함께 모호하게 알려준다", () => {

@@ -30,7 +30,7 @@ test("언어·프로필·쪽지·명예의 전당·탈락 UI와 밈 스프라이
   assert.match(app, /Array\.from\(\{ length: 10 \}/);
   assert.match(app, /data-message-player/);
   assert.match(app, /drawHistoryChart/);
-  assert.match(i18n, /START GAME/);
+  assert.match(i18n, /MULTIPLAYER/);
   assert.ok(avatar.length > 100_000);
 });
 
@@ -40,8 +40,19 @@ test("대화형 쪽지함·거래량 신호·달러 환산·게임 알림 계약
   assert.match(app, /const USD_KRW_RATE = 1_500/);
   assert.match(app, /conversationIds/);
   assert.match(app, /volumeSignal/);
-  assert.match(server, /\[11, 21, 31\]/);
-  assert.match(server, /\[15, 25, 35\]/);
+  assert.match(server, /\[11, 21\]/);
+  assert.match(server, /room\.game\.turn === 15/);
   assert.match(server, /깡통을 찼습니다/);
   assert.match(server, /\["waiting", "running"\]/);
+});
+
+test("모바일 메인·게임 모드·하단 메뉴·글자 크기·방 코드 UI가 존재한다", async () => {
+  const [html, app, styles] = await Promise.all([readFile(`${root}/index.html`, "utf8"), readFile(`${root}/app.js`, "utf8"), readFile(`${root}/styles.css`, "utf8")]);
+  for (const id of ["game-mode-buttons", "font-controls", "font-increase", "font-decrease", "game-room-code", "game-bottom-nav", "stock-count-title", "selected-stock-icon"]) assert.match(html, new RegExp(`id="${id}"`));
+  assert.match(html, /주식 서바이벌/);
+  assert.match(html, /jomoon@gmail\.com/);
+  assert.match(app, /randomNickname/);
+  assert.match(app, /stockStreak/);
+  assert.match(styles, /@media \(max-width: 520px\)/);
+  assert.match(styles, /position: fixed; left: 0; right: 0; bottom: 0/);
 });

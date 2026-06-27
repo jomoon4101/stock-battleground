@@ -3,16 +3,16 @@ const textOriginals = new WeakMap();
 const attributeOriginals = new WeakMap();
 
 const EN = {
-  "주식": "STOCK", "배틀그라운드": "BATTLEGROUND", "시장을 읽고, 자산을 숨기고, 마지막 벨까지 살아남으세요.": "Read the market, protect your assets, and survive until the final bell.",
-  "빈자리는 99명의 AI 트레이더가 채웁니다.": "AI traders fill every remaining seat.", "트레이더 닉네임": "Trader nickname", "게임 속도": "Game speed",
-  "프로필 이미지": "Profile image", "사진 업로드": "Upload photo", "공식 규칙 · 정확히 100분": "Official rules · exactly 100 min", "빠른 게임 · 약 45분": "Fast game · about 45 min", "터보 테스트 · 약 18분": "Turbo test · about 18 min",
-  "게임 시작": "START GAME", "친구 방 만들기": "Create private room", "방 코드 6자리": "6-digit room code", "방 참가": "Join room", "혼자서": "Solo", "테스트": "TEST", "하기": "mode",
+  "주식": "STOCK", "서바이벌": "SURVIVAL", "시장을 읽고, 자산을 숨기고, 마지막 벨까지 살아남으세요.": "Read the market, protect your assets, and survive until the final bell.",
+  "빈자리는 최대 29명의 AI 트레이더가 채웁니다.": "Up to 29 AI traders fill every remaining seat.", "트레이더 닉네임": "Trader nickname", "게임 모드": "Game mode",
+  "프로필 이미지": "Profile image", "사진 업로드": "Upload photo", "공식 게임": "Official", "빠른 게임": "Fast", "터보 게임": "Turbo", "약 60분": "About 60 min", "약 27분": "About 27 min", "약 11분": "About 11 min",
+  "멀티게임": "MULTIPLAYER", "방 만들기": "Create room", "방 코드 6자리": "6-digit room code", "방 참가": "Join room", "혼자서 테스트하기": "Solo test",
   "본 서비스는 가상 주식 시뮬레이션 게임이며, 실제 투자 자문이나 금융 거래 서비스를 제공하지 않습니다.": "This is a virtual stock simulation game. It does not provide investment advice or real financial transaction services.",
   "일개미(개발자)에게 일시키기": "Put the worker ant (developer) to work", "익명 게시판 →": "Anonymous board →", "매 10턴은 블라인드 라운드": "Every 10th turn is blind", "순위가 잠기고 추가 5분이 주어집니다.": "Rankings lock and extra time is added.",
-  "정보도 자산입니다": "Information is an asset", "미래 가격과 타인의 행동을 아이템으로 통제하세요.": "Use items to control future information and rival actions.", "40턴 뒤 단 한 명": "One winner after 40 turns", "순자산이 가장 많은 플레이어가 승리합니다.": "The trader with the highest net worth wins.", "명예의 전당": "Hall of Fame",
+  "정보도 자산입니다": "Information is an asset", "미래 가격과 타인의 행동을 아이템으로 통제하세요.": "Use items to control future information and rival actions.", "25턴 뒤 최후의 생존자": "Last survivor after 25 turns", "순자산이 가장 많은 플레이어가 승리합니다.": "The trader with the highest net worth wins.", "명예의 전당": "Hall of Fame",
   "플레이어 대기실": "Player Lobby", "친구에게 아래 방 코드를 알려주세요. 방장이 시작하면 남은 자리는 AI가 채웁니다.": "Share the room code. AI fills the remaining seats when the host starts.", "서버 연결됨": "Server connected", "나가기": "Leave", "AI를 채우고 게임 시작": "Fill with AI and start", "방장이 게임 시작을 준비하고 있습니다.": "The host is preparing the match.",
   "플레이어를 찾고 있습니다": "Finding players", "5초 뒤 빈자리는 AI 트레이더가 채웁니다.": "AI traders fill empty seats after 5 seconds.", "매칭 취소": "Cancel matchmaking",
-  "일반 라운드": "Standard round", "순위 차트 블라인드": "Ranking chart blinded", "이 라운드에는 직전 턴의 순위와 자산만 표시됩니다.": "Only the previous turn's rank and assets are shown.", "익명 종목 30": "30 anonymous stocks", "종목 검색": "Search stocks", "전체 시장": "All markets", "미국": "USA", "한국": "Korea", "일본": "Japan", "중국": "China", "유럽": "Europe", "종목": "Stock", "현재가": "Price", "변동": "Change",
+  "일반 라운드": "Standard round", "순위 차트 블라인드": "Ranking chart blinded", "이 라운드에는 직전 턴의 순위와 자산만 표시됩니다.": "Only the previous turn's rank and assets are shown.", "익명 종목": "Anonymous stocks", "종목 검색": "Search stocks", "전체 시장": "All markets", "미국": "USA", "한국": "Korea", "일본": "Japan", "중국": "China", "유럽": "Europe", "종목": "Stock", "현재가": "Price", "변동": "Change",
   "선차트": "Line", "봉차트": "Candles", "시가": "Open", "최고": "High", "최저": "Low", "거래량": "Volume", "보유": "Owned", "즉시 거래": "Instant trade", "예약 주문": "Limit orders", "대출·채권": "Loan & bonds", "아이템": "Items", "매수": "Buy", "매도": "Sell", "주문 수량": "Quantity", "최대": "MAX", "예상 주문 금액": "Estimated total", "매수 주문": "Buy order", "매도 주문": "Sell order",
   "대출 잔액": "Loan balance", "보유 채권": "Bonds", "대출": "Borrow", "상환": "Repay", "채권 매수": "Buy bond", "특별 아이템": "Special items", "랜덤 아이템": "Random items", "실시간 기록": "Live activity",
   "내 자산": "My assets", "보유 종목 보기 →": "View portfolio →", "현금": "Cash", "목록 보기": "View list", "채권": "Bonds", "월급": "Salary", "예상 세율": "Estimated tax", "생존 순위": "Survival ranking", "플레이어 검색": "Search players", "순위 / 플레이어": "Rank / Player", "순자산": "Net worth", "현재 순위": "Current rank",
@@ -28,11 +28,11 @@ Object.assign(EN, {
   "예약 주문은 다음 턴부터 조건 충족 시 체결되며, 거래 정지 아이템의 영향을 받지 않습니다.": "Limit orders can fill from the next turn and are not affected by a trading freeze.",
   "한도: 월급의 10배 · 선이자 10%": "Limit: 10× salary · 10% upfront interest", "10턴 만기 · 확정 수익 5%": "10-turn maturity · fixed 5% return",
   "자산 ≥ 월급 × 10": "Assets ≥ salary × 10", "자산 ≥ 월급 × 2": "Assets ≥ salary × 2", "내 프로필": "My profile", "주식": "Stocks",
-  "40턴 · 3가지 속도": "40 turns · 3 speeds", "터보 약 18분, 빠른 게임 45분, 공식 게임 100분입니다. 모든 모드의 게임 규칙은 같습니다.": "Turbo is about 18 min, Fast is 45 min, and Official is 100 min. Every mode uses the same rules.",
+  "25턴 · 3가지 모드": "25 turns · 3 modes", "터보 약 11분, 빠른 게임 27분, 공식 게임 60분입니다. 모든 모드의 게임 규칙은 같습니다.": "Turbo is about 11 min, Fast is 27 min, and Official is 60 min. Every mode uses the same rules.",
   "월급과 세금": "Salary and tax", "시작 및 10턴 종료마다 월급을 받습니다. 순자산 구간에 따라 5~30%가 자동 납부됩니다.": "Salary is paid at the start and after every 10 turns. A 5–30% tax is automatically deducted by net-worth bracket.",
   "월급의 10배까지 가능합니다. 실행 즉시 선이자 10%, 10턴마다 이자 10%가 발생합니다.": "You may borrow up to 10× salary. A 10% upfront charge and 10% interest every 10 turns apply.",
   "최소 10만원, 10턴 만기, 확정 수익 5%입니다. 원금은 순자산에 포함됩니다.": "Minimum $66.67, 10-turn maturity, fixed 5% return. Principal counts toward net worth.",
-  "블라인드 턴": "Blind turns", "10·20·30·40턴에는 직전 턴 순위와 자산만 보입니다. 아이템으로도 차단할 수 있습니다.": "On turns 10, 20, 30 and 40, only the previous turn's rank and assets are visible. Items can also block rankings.",
+  "블라인드 턴": "Blind turns", "10·20턴에는 직전 턴 순위와 자산만 보입니다. 아이템으로도 차단할 수 있습니다.": "On turns 10 and 20, only the previous turn's rank and assets are visible. Items can also block rankings.",
   "음수 자산": "Negative assets", "신규 대출과 아이템이 막히며 월급 20% 감소, 정기 대출이자 5% 가산 페널티가 적용됩니다.": "New loans and items are blocked, salary falls 20%, and periodic loan interest gains a 5% penalty.",
   "프로토타입의 시세는 실제 기업을 노출하지 않는 합성 역사 패턴입니다. 국가별 변동성·추세·충격 구간을 조합해 매 게임 새로 생성됩니다.": "Prototype prices are synthetic historical patterns that do not expose real companies. Each game combines regional volatility, trends and shock periods.",
   "보유 종목 · 클릭해서 차트 보기": "Holdings · click to view chart", "현재 공개할 주식 포지션이 없습니다.": "There are no stock positions to display.", "평가액": "Value", "보유 수량": "Owned quantity", "주문 가능 현금": "Available cash",
@@ -42,7 +42,7 @@ Object.assign(EN, {
   "신분 위장": "Identity copy", "선택 플레이어의 ID·닉네임을 이번 턴 복사": "Copy a player's ID and nickname for this turn", "순위 조작": "Fake rank", "이번 턴 표시 순위를 원하는 위치로 변경": "Move your displayed rank for this turn",
   "거래 정지": "Trading freeze", "선택 플레이어의 이번 턴 수동 거래 정지": "Stop a player's manual trading for this turn", "연봉 룰렛": "Salary roulette", "월급을 현재의 30~150%로 변경": "Change salary to 30–150% of its current value",
   "포트폴리오 셔플": "Portfolio shuffle", "모든 주식을 무작위 종목으로 교체하고 이번 턴 거래 잠금": "Randomize all holdings and lock trading for this turn",
-  "공개할 종목": "Stock to reveal", "대상 플레이어": "Target player", "표시할 순위 (1~100)": "Displayed rank (1–100)", "추가 선택 없이 즉시 적용됩니다.": "Applies immediately without another selection.",
+  "공개할 종목": "Stock to reveal", "대상 플레이어": "Target player", "표시할 순위 (1~30)": "Displayed rank (1–30)", "추가 선택 없이 즉시 적용됩니다.": "Applies immediately without another selection.",
   "통신 차단": "SIGNAL BLOCKED", "최종": "FINAL", "실시간": "LIVE", "계속": "Resume", "블라인드 라운드 · 추가 시간": "Blind round · bonus time",
   "아이템으로 모든 플레이어의 실시간 순위가 차단되었습니다.": "An item has blocked live rankings for every player.", "방장": "Host", "준비되면 시작하세요. 빈자리는 즉시 AI가 채웁니다.": "Start when ready. AI fills every empty seat.", "방장이 게임을 시작할 때까지 기다려주세요.": "Wait for the host to start the game.",
   "매수 완료": "Buy complete", "매도 완료": "Sell complete", "예약 주문을 등록했습니다.": "Limit order placed.", "예약 주문을 취소했습니다.": "Limit order cancelled.", "대출이 실행되었습니다.": "Loan issued.", "대출을 상환했습니다.": "Loan repaid.", "채권을 매수했습니다.": "Bond purchased.",
@@ -53,12 +53,13 @@ Object.assign(EN, {
   "주요 거래 기록": "Key activity", "기록된 거래·금융 활동이 없습니다.": "No trades or finance activity recorded.",
   "받는 플레이어 검색": "Search recipient", "비공개 시장 정보": "Private market tip", "아직 주고받은 쪽지가 없습니다.": "No sent or received messages yet.",
   "첫 쪽지를 보내 대화를 시작하세요.": "Start a new conversation.", "대화를 선택하거나 새 쪽지를 보내세요.": "Select a conversation or send a new message.", "거래량 폭등": "VOLUME SURGE", "거래량 폭락": "VOLUME DROP",
+  "글자": "Text", "글자 작게": "Smaller text", "글자 크게": "Larger text", "시장": "Market", "차트": "Chart", "거래": "Trade", "자산": "Assets", "순위": "Rank", "쪽지": "Messages", "일개미(개발자) 메일 :": "Developer ant email:",
   "매수": "Buy", "매도": "Sell", "아이템": "Item", "대출": "Loan", "채권": "Bonds", "게임 상태를 읽지 못했습니다.": "Could not read the game state.", "온라인 세션이 없습니다.": "No online session is active.",
   "PNG, JPG 또는 WebP 이미지를 선택하세요.": "Choose a PNG, JPG or WebP image.", "이미지를 읽을 수 없습니다.": "Could not read the image.", "작업을 완료하지 못했습니다.": "Could not complete the action.", "서버 요청을 처리하지 못했습니다.": "The server could not process the request.",
 });
 
 const PATTERNS = [
-  [/^(\d+) \/ 100명 참가$/, "$1 / 100 players"], [/^(\d+)개 종목$/, "$1 stocks"], [/^(\d+)위$/, "#$1"], [/^(\d+)주$/, "$1 shares"],
+  [/^(\d+) \/ 30명 참가$/, "$1 / 30 players"], [/^(\d+)개 종목$/, "$1 stocks"], [/^(\d+)위$/, "#$1"], [/^(\d+)주$/, "$1 shares"],
   [/^(\d+)턴 시작$/, "Turn $1 started"], [/게임 시작 월급/g, "Starting salary"], [/월급/g, "salary"], [/지급/g, "paid"], [/세금/g, "tax"], [/자동 납부/g, "automatically deducted"],
   [/매수/g, "bought"], [/매도/g, "sold"], [/예약/g, "limit "], [/체결/g, "filled"], [/대출/g, "loan"], [/상환/g, "repaid"], [/채권/g, "bond"], [/만기/g, "matured"], [/입금/g, "credited"], [/사용/g, "used"], [/탈락했습니다/g, "was eliminated"],
   [/플레이어가 (\d+)턴에/g, "player on turn $1"], [/자산이 (\d+)턴 연속 상승 중입니다\./g, "Assets have risen for $1 consecutive turns."],
@@ -111,7 +112,7 @@ export function phrase(key, values = {}) {
   const table = {
     leaderReclaimed: { ko: `${values.name} 플레이어가 1위를 탈환했습니다.`, en: `${values.name} has reclaimed first place.` },
     leaderChanged: { ko: `${values.name} 플레이어가 1위로 변경되었습니다.`, en: `${values.name} has moved into first place.` },
-    matchingCount: { ko: `${values.count} / 100명 참가`, en: `${values.count} / 100 players joined` },
+    matchingCount: { ko: `${values.count} / 30명 참가`, en: `${values.count} / 30 players joined` },
     aiFill: { ko: "5초 뒤 빈자리는 AI 트레이더가 채웁니다.", en: "AI traders fill empty seats after 5 seconds." },
   };
   return table[key]?.[language] || key;

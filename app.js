@@ -51,9 +51,22 @@ const displayText = (value) => {
 const percent = (value) => `${value >= 0 ? "+" : ""}${(value * 100).toFixed(2)}%`;
 const escapeHtml = (value) => String(value).replace(/[&<>'"]/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[character]));
 const apiUrl = (path) => `${API_BASE_URL}${path}`;
+const NICKNAME_WORDS = ["존버", "상한가", "떡상", "물타기", "풀매수", "단타", "급등", "반등", "배당", "차트", "몰빵", "손절", "매집", "불타기", "저점"];
+const NICKNAME_CREATURES = ["개미", "황소", "곰", "여우", "고래", "사마귀", "잠자리", "딱정벌레", "부엉이", "거북이", "매", "늑대", "토끼", "하이에나", "꿀벌"];
+const randomItem = (items) => items[Math.floor(Math.random() * items.length)];
+const randomNickname = () => `${randomItem(NICKNAME_WORDS)}${randomItem(NICKNAME_CREATURES)}`;
 
 function updateCurrencySymbols() {
   $$(".logo-mark,.brand-mark").forEach((element) => { element.textContent = getLanguage() === "en" ? "$" : "₩"; });
+}
+
+function applyFontScale(nextScale = uiScale) {
+  uiScale = Math.max(0.85, Math.min(1.2, Math.round(nextScale * 20) / 20));
+  document.body.style.zoom = String(uiScale);
+  localStorage.setItem("stock-survival-font-scale", String(uiScale));
+  $("#font-decrease").disabled = uiScale <= 0.85;
+  $("#font-increase").disabled = uiScale >= 1.2;
+  requestAnimationFrame(() => { if (game) drawChart(); });
 }
 
 let game = null;
@@ -89,6 +102,7 @@ let matchingTimer = null;
 let currencyInputsLanguage = null;
 let seenNoticeIds = new Set();
 let noticesInitialized = false;
+let uiScale = Math.max(0.85, Math.min(1.2, Number(localStorage.getItem("stock-survival-font-scale")) || 1));
 
 const myPlayer = () => game?.players.find((player) => player.id === viewerId);
 const playerSummary = () => online ? game.viewerSummary : getPlayerSummary(game, viewerId);
@@ -569,6 +583,8 @@ function renderHeader() {
   $("#pause-button").title = paused ? "계속" : "일시정지";
   $("#pause-button").classList.toggle("is-hidden", online);
   $(".connection").innerHTML = `<i></i> ${online ? `ROOM ${roomState.code}` : "SOLO"}`;
+  $("#game-room-code b").textContent = online ? roomState.code : "SOLO";
+  $("#game-room-code small").textContent = online ? "OPEN · ROOM" : "OFFLINE";
 }
 
 function stockChange(index) {
@@ -577,6 +593,19 @@ function stockChange(index) {
   const current = currentPrice(game, index);
   const previous = stock.prices[game.turn - 2];
   return current / previous - 1;
+}
+
+function stockStreak(index) {
+  const prices = game.stocks[index].prices.slice(0, game.turn);
+  if (prices.length < 4) return { direction: null, count: 0 };
+  let direction = null; let count = 0;
+  for (let cursor = prices.length - 1; cursor > 0; cursor -= 1) {
+    const nextDirection = prices[cursor] > prices[cursor - 1] ? "up" : prices[cursor] < prices[cursor - 1] ? "down" : null;
+    if (!nextDirection || (direction && nextDirection !== direction)) break;
+    direction ??= nextDirection;
+    count += 1;
+  }
+  return { direction: count >= 3 ? direction : null, count };
 }
 
 function volumeSignal(candles, index) {
@@ -593,7 +622,8 @@ function volumeSignal(candles, index) {
 function renderMarket() {
   const search = $("#stock-search").value.trim().toLowerCase();
   const market = $("#market-filter").value;
-  const rows = game.stocks.map((stock, index) => ({ stock, index, change: stockChange(index) }))
+  $("#stock-count-title").textContent = getLanguage() === "en" ? `${game.stocks.length} Anonymous Stocks` : `익명 종목 ${game.stocks.length}`;
+  const rows = game.stocks.map((stock, index) => ({ stock, index, change: stockChange(index), streak: stockStreak(index) }))
     .filter(({ stock }) => (market === "ALL" || stock.market.code === market) && (!search || stock.name.toLowerCase().includes(search) || stock.ticker.toLowerCase().includes(search)))
     .sort((a, b) => {
       let comparison = 0;
@@ -608,9 +638,9 @@ function renderMarket() {
     const icon = $("i", button);
     if (icon) icon.textContent = active ? (stockSort.direction === "asc" ? "↑" : "↓") : "↕";
   });
-  $("#stock-list").innerHTML = rows.map(({ stock, index, change }) => `
+  $("#stock-list").innerHTML = rows.map(({ stock, index, change, streak }) => `
     <button class="stock-row ${index === selectedStock ? "is-active" : ""}" data-stock-index="${index}" role="option" aria-selected="${index === selectedStock}">
-      <span class="stock-identity"><span class="flag">${stock.market.flag}</span><span><b>${escapeHtml(stock.name)}</b><small>${stock.ticker} · ${stock.sector}</small></span></span>
+      <span class="stock-identity"><span class="stock-sector-icon" title="${escapeHtml(stock.sector)}">${stock.icon || "◆"}</span><span><b class="${streak.direction ? `streak-${streak.direction}` : ""}">${escapeHtml(stock.name)}</b><small>${stock.market.flag} ${stock.ticker} · ${stock.sector}${streak.direction ? ` · ${streak.count}${getLanguage() === "en" ? "-turn streak" : "턴 연속"}` : ""}</small></span></span>
       <span class="stock-price">${money(currentPrice(game, index), true)}</span>
       <span class="stock-change ${change >= 0 ? "up" : ""}">${percent(change)}</span>
     </button>`).join("");
@@ -620,10 +650,14 @@ function renderSelectedStock() {
   const stock = game.stocks[selectedStock];
   const price = currentPrice(game, selectedStock);
   const change = stockChange(selectedStock);
+  const streak = stockStreak(selectedStock);
   const visibleSeries = [...(stock.history || []), ...stock.prices.slice(0, game.turn)];
   $("#selected-flag").textContent = stock.market.flag;
+  $("#selected-stock-icon").textContent = stock.icon || "◆";
+  $("#selected-stock-icon").title = stock.sector;
   $("#selected-ticker").textContent = `${stock.ticker} · ${stock.sector.toUpperCase()}`;
   $("#selected-name").textContent = stock.name;
+  $("#selected-name").className = streak.direction ? `streak-${streak.direction}` : "";
   $("#selected-price").textContent = money(price);
   $("#selected-change").textContent = percent(change);
   $("#selected-change").classList.toggle("down", change < 0);
@@ -922,7 +956,7 @@ function openItemModal(itemId) {
     const ranking = actualRanking();
     options = `<label class="item-option-label" for="item-target">대상 플레이어</label><select id="item-target">${ranking.filter((entry) => entry.playerId !== viewerId).map((entry) => `<option value="${entry.playerId}">${entry.rank}위 · ${escapeHtml(entry.nickname)} · ${money(entry.assets, true)}</option>`).join("")}</select>`;
   } else if (itemId === "fake-rank") {
-    options = `<label class="item-option-label" for="item-rank">표시할 순위 (1~100)</label><input id="item-rank" type="number" min="1" max="100" value="1">`;
+    options = `<label class="item-option-label" for="item-rank">표시할 순위 (1~${CONFIG.playerCount})</label><input id="item-rank" type="number" min="1" max="${CONFIG.playerCount}" value="1">`;
   }
   $("#item-options").innerHTML = options || `<p class="helper">추가 선택 없이 즉시 적용됩니다.</p>`;
   $("#item-modal").classList.remove("is-hidden");
@@ -1115,13 +1149,13 @@ function handleGameNotices() {
 }
 
 function handleSoloTurnEvents(result) {
-  if ([11, 21, 31].includes(game.turn) && !myPlayer().eliminated) deliverLocalRumor();
-  if ([15, 25, 35].includes(game.turn)) {
+  if ([11, 21].includes(game.turn) && !myPlayer().eliminated) deliverLocalRumor();
+  if (game.turn === 15) {
     receiveGameNotice({ id: crypto.randomUUID(), type: "salary-reminder", icon: getLanguage() === "en" ? "$" : "₩", text: getLanguage() === "en" ? "Five turns until payday." : "월급날까지 5턴 남았습니다.", turn: game.turn, createdAt: Date.now() });
   }
   if (result.eliminated) {
     const nickname = result.eliminated.nickname;
-    receiveGameNotice({ id: crypto.randomUUID(), type: "elimination", icon: "☠", text: getLanguage() === "en" ? `${nickname} went broke and was eliminated.` : `${nickname}플레이어가 깡통을 찼습니다.`, turn: game.turn, createdAt: Date.now() }, [15, 25, 35].includes(game.turn) ? 2500 : 0);
+    receiveGameNotice({ id: crypto.randomUUID(), type: "elimination", icon: "☠", text: getLanguage() === "en" ? `${nickname} went broke and was eliminated.` : `${nickname}플레이어가 깡통을 찼습니다.`, turn: game.turn, createdAt: Date.now() }, game.turn === 15 ? 2500 : 0);
   }
 }
 
@@ -1329,6 +1363,11 @@ $("#language-choice").addEventListener("click", (event) => {
   setLanguage(button.dataset.language); loadHallOfFame();
   updateCurrencySymbols();
 });
+$("#game-mode-buttons").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-speed]"); if (!button) return;
+  $("#game-speed").value = button.dataset.speed;
+  $$('[data-speed]', $("#game-mode-buttons")).forEach((candidate) => candidate.classList.toggle("is-active", candidate === button));
+});
 $("#profile-picker").addEventListener("click", (event) => { const button = event.target.closest("[data-profile-index]"); if (!button) return; selectedAvatar = { kind: "meme", index: Number(button.dataset.profileIndex) }; renderProfilePicker(); });
 $("#profile-upload").addEventListener("change", async (event) => { try { selectedAvatar = await resizeUploadedAvatar(event.target.files[0]); renderProfilePicker(); showToast("프로필 사진을 적용했습니다."); } catch (error) { showToast(error.message, "error"); } });
 $("#room-code-input").addEventListener("input", (event) => { event.target.value = event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""); });
@@ -1339,6 +1378,22 @@ $("#leave-room-button").addEventListener("click", leaveOnlineRoom);
 $("#room-code").addEventListener("click", async () => {
   try { await navigator.clipboard.writeText($("#room-code").textContent); showToast("방 코드를 복사했습니다."); }
   catch { showToast("방 코드를 직접 복사해주세요.", "error"); }
+});
+$("#game-room-code").addEventListener("click", async () => {
+  if (!online || !roomState?.code) { showToast(getLanguage() === "en" ? "Solo game has no room code." : "솔로 게임에는 방 코드가 없습니다."); return; }
+  try { await navigator.clipboard.writeText(roomState.code); showToast(getLanguage() === "en" ? `Room code ${roomState.code} copied.` : `방 코드 ${roomState.code}를 복사했습니다.`); }
+  catch { showToast(getLanguage() === "en" ? `Room code: ${roomState.code}` : `방 코드: ${roomState.code}`); }
+});
+$("#font-decrease").addEventListener("click", () => applyFontScale(uiScale - 0.05));
+$("#font-increase").addEventListener("click", () => applyFontScale(uiScale + 0.05));
+$("#game-bottom-nav").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-nav-target]"); if (!button || !game) return;
+  const target = button.dataset.navTarget;
+  if (target === "messages") { openMessages(); return; }
+  if (target === "rules") { $("#rules-modal").classList.remove("is-hidden"); return; }
+  if (target === "trade") activateTab("trade");
+  const selector = { market: ".market-panel", chart: ".chart-panel", trade: ".trade-panel", assets: ".asset-panel", ranking: ".ranking-panel" }[target];
+  $(selector)?.scrollIntoView({ behavior: "smooth", block: "start" });
 });
 $("#new-game-button").addEventListener("click", leaveOnlineRoom);
 $("#restart-button").addEventListener("click", leaveOnlineRoom);
@@ -1484,8 +1539,10 @@ document.addEventListener("keydown", (event) => {
   }
 });
 
+$("#nickname").value = randomNickname();
 renderProfilePicker();
 setLanguage("ko");
 updateCurrencySymbols();
+applyFontScale();
 loadHallOfFame();
 resumeOnlineSession();

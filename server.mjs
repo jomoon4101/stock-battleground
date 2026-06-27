@@ -337,7 +337,7 @@ function joinRoom(room, nickname, avatar) {
   room.members.push(member);
   if (room.status === "running") {
     initializeRankTracking(room);
-    if ([1, 11, 21, 31].includes(room.game.turn)) deliverRumor(room, member);
+    if ([1, 11, 21].includes(room.game.turn)) deliverRumor(room, member);
   }
   room.updatedAt = Date.now();
   broadcast(room);
@@ -361,7 +361,7 @@ function leaveRoom(room, member) {
 }
 
 function launchRoom(room) {
-  const game = createGame({ nickname: room.members[0].nickname, seed: Date.now(), language: room.language, avatar: room.members[0].avatar });
+  const game = createGame({ nickname: room.members[0].nickname, seed: randomBytes(4).readUInt32LE(0), language: room.language, avatar: room.members[0].avatar });
   room.members.forEach((joined, index) => {
     const player = game.players[index];
     player.id = joined.playerId;
@@ -438,13 +438,13 @@ function addRoomNotice(room, type, text, icon) {
 }
 
 function handleTurnEvents(room, result) {
-  if ([11, 21, 31].includes(room.game.turn)) {
+  if ([11, 21].includes(room.game.turn)) {
     room.members.forEach((member) => {
       const player = room.game.players.find((candidate) => candidate.id === member.playerId);
       if (player && !player.eliminated) deliverRumor(room, member);
     });
   }
-  if ([15, 25, 35].includes(room.game.turn)) {
+  if (room.game.turn === 15) {
     addRoomNotice(room, "salary-reminder", room.language === "en" ? "Five turns until payday." : "월급날까지 5턴 남았습니다.", room.language === "en" ? "$" : "₩");
   }
   if (result.eliminated) {
@@ -723,5 +723,5 @@ setInterval(() => {
 }, 20_000).unref();
 
 server.listen(port, "0.0.0.0", () => {
-  console.log(`주식 배틀그라운드 온라인 서버: http://127.0.0.1:${port}`);
+  console.log(`주식 서바이벌 온라인 서버: http://127.0.0.1:${port}`);
 });

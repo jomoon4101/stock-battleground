@@ -1,7 +1,9 @@
 export const CONFIG = Object.freeze({
-  playerCount: 100,
-  stockCount: 30,
-  totalTurns: 40,
+  playerCount: 30,
+  stockCount: 25,
+  stockMinPerMarket: 3,
+  stockMaxPerMarket: 5,
+  totalTurns: 25,
   baseSalary: 1_000_000,
   standardTurnSeconds: 120,
   checkpointBonusSeconds: 300,
@@ -32,6 +34,14 @@ const BOT_ADJECTIVES = ["고요한", "빠른", "집요한", "푸른", "영리한
 const BOT_NOUNS = ["개미", "황소", "곰", "여우", "고래", "매", "토끼", "늑대", "부엉이", "거북이"];
 const BOT_ADJECTIVES_EN = ["Quiet", "Swift", "Relentless", "Blue", "Clever", "Bold", "Cold", "Golden", "Patient", "Lucky"];
 const BOT_NOUNS_EN = ["Ant", "Bull", "Bear", "Fox", "Whale", "Hawk", "Rabbit", "Wolf", "Owl", "Turtle"];
+const SECTORS = [
+  { key: "tech", ko: "테크", en: "Tech", icon: "▣" },
+  { key: "finance", ko: "금융", en: "Finance", icon: "◉" },
+  { key: "consumer", ko: "소비재", en: "Consumer", icon: "🛒" },
+  { key: "health", ko: "헬스케어", en: "Healthcare", icon: "🏋" },
+  { key: "industrial", ko: "산업재", en: "Industrials", icon: "⚙" },
+  { key: "energy", ko: "에너지", en: "Energy", icon: "⚡" },
+];
 const ELIMINATION_QUOTES = {
   ko: ["시장은 내일도 열립니다. 살아남은 경험이 최고의 차트입니다.", "손실은 숫자지만 교훈은 자산입니다.", "바닥은 지나고 나서야 보입니다.", "몰빵보다 오래 살아남는 분산이 강합니다.", "좋은 매매는 다음 기회를 남겨둡니다."],
   en: ["The market opens again tomorrow. Experience is your best chart.", "Loss is a number; the lesson is an asset.", "The bottom is only obvious in hindsight.", "Diversification survives longer than conviction alone.", "A good trade always leaves room for the next one."],
@@ -69,12 +79,16 @@ function roundPrice(value) {
   return Math.max(100, Math.round(value / 10) * 10);
 }
 
-function uniqueCompanyName(index, language = "ko") {
+function uniqueCompanyName(language, rng, usedNames) {
   const prefixes = language === "en" ? NAME_PREFIXES_EN : NAME_PREFIXES;
   const suffixes = language === "en" ? NAME_SUFFIXES_EN : NAME_SUFFIXES;
-  const prefix = prefixes[index % prefixes.length];
-  const suffix = suffixes[Math.floor(index / prefixes.length) + (index * 7) % suffixes.length];
-  return `${prefix} ${suffix}`;
+  for (let attempt = 0; attempt < 120; attempt += 1) {
+    const name = `${rng.pick(prefixes)} ${rng.pick(suffixes)}`;
+    if (!usedNames.has(name)) { usedNames.add(name); return name; }
+  }
+  const fallback = `${rng.pick(prefixes)} ${rng.pick(suffixes)} ${usedNames.size + 1}`;
+  usedNames.add(fallback);
+  return fallback;
 }
 
 function createCandles(closes, market, rng) {
@@ -92,9 +106,8 @@ function createCandles(closes, market, rng) {
   });
 }
 
-function generateStock(index, rng, language = "ko") {
-  const market = MARKETS[index % MARKETS.length];
-  const base = rng.int(18, 240) * 1_000;
+function generateStock(index, marketIndex, market, rng, language, usedNames) {
+  const base = rng.int(18, 240) * 100;
   const historyWithBase = [base];
   for (let point = 0; point < 18; point += 1) {
     const priorChange = market.drift + normal(rng) * market.volatility * 0.7;
@@ -114,16 +127,28 @@ function generateStock(index, rng, language = "ko") {
   const allCandles = createCandles([...history, ...prices], market, rng);
   return {
     id: `STK-${String(index + 1).padStart(2, "0")}`,
-    ticker: `${market.code}${String(index + 1).padStart(2, "0")}`,
-    name: uniqueCompanyName(index, language),
+    ticker: `${market.code}${String(marketIndex + 1).padStart(2, "0")}`,
+    name: uniqueCompanyName(language, rng, usedNames),
     market: language === "en" ? { ...market, name: market.nameEn } : market,
     year: rng.int(2001, 2025),
     history,
     historyCandles: allCandles.slice(0, history.length),
     prices,
     candles: allCandles.slice(history.length),
-    sector: rng.pick(language === "en" ? ["Tech", "Finance", "Consumer", "Healthcare", "Industrials", "Energy"] : ["테크", "금융", "소비재", "헬스케어", "산업재", "에너지"]),
+    ...((sector) => ({ sector: language === "en" ? sector.en : sector.ko, sectorKey: sector.key, icon: sector.icon }))(rng.pick(SECTORS)),
   };
+}
+
+function generateStocks(rng, language) {
+  const usedNames = new Set();
+  const stocks = [];
+  for (const market of MARKETS) {
+    const count = rng.int(CONFIG.stockMinPerMarket, CONFIG.stockMaxPerMarket);
+    for (let marketIndex = 0; marketIndex < count; marketIndex += 1) {
+      stocks.push(generateStock(stocks.length, marketIndex, market, rng, language, usedNames));
+    }
+  }
+  return stocks;
 }
 
 function makePlayer(index, nickname, rng, language = "ko") {
@@ -160,7 +185,7 @@ function makePlayer(index, nickname, rng, language = "ko") {
 
 export function stockValue(player, stocks, turn) {
   const priceIndex = Math.min(turn - 1, CONFIG.totalTurns);
-  return player.holdings.reduce((total, quantity, index) => total + quantity * stocks[index].prices[priceIndex], 0);
+  return player.holdings.reduce((total, quantity, index) => total + (stocks[index] ? quantity * stocks[index].prices[priceIndex] : 0), 0);
 }
 
 export function bondValue(player) {
@@ -310,7 +335,7 @@ export function createGame({ nickname = "플레이어", seed = Date.now(), langu
     turn: 1,
     finished: false,
     language: language === "en" ? "en" : "ko",
-    stocks: Array.from({ length: CONFIG.stockCount }, (_, index) => generateStock(index, rng, language)),
+    stocks: generateStocks(rng, language),
     players: Array.from({ length: CONFIG.playerCount }, (_, index) => makePlayer(index, nickname.trim() || "플레이어", rng, language)),
     rankingSnapshot: [],
     finalRanking: [],
@@ -320,7 +345,7 @@ export function createGame({ nickname = "플레이어", seed = Date.now(), langu
   };
   if (avatar) state.players[0].avatar = avatar;
   state.players.forEach((player) => paySalary(state, player, "게임 시작 월급"));
-  addLog(state, "100명의 참가자가 입장했습니다. 주식 배틀그라운드 시작!", "system");
+  addLog(state, `${CONFIG.playerCount}명의 참가자가 입장했습니다. 주식 서바이벌 시작!`, "system");
   recordPerformance(state);
   return state;
 }
@@ -551,7 +576,7 @@ export function useSpecialItem(state, itemId, options = {}, playerId) {
     prepared = { turn: state.turn, id: target.id, nickname: target.nickname };
   } else if (itemId === "fake-rank") {
     const rank = Math.floor(Number(options.rank));
-    if (rank < 1 || rank > CONFIG.playerCount) throw new Error("순위는 1~100 사이여야 합니다.");
+    if (rank < 1 || rank > CONFIG.playerCount) throw new Error(`순위는 1~${CONFIG.playerCount} 사이여야 합니다.`);
     prepared = { turn: state.turn, rank };
   } else if (itemId === "trade-freeze") {
     const target = getPlayer(state, options.targetId);
@@ -663,7 +688,7 @@ export function advanceTurn(state) {
   state.rankingSnapshot = createRanking(state);
 
   if (state.turn === CONFIG.totalTurns) {
-    checkpoint(state);
+    if (state.turn % 10 === 0) checkpoint(state);
     state.finished = true;
     const active = createRanking(state);
     const eliminated = state.players.filter((player) => player.eliminated)
@@ -671,7 +696,7 @@ export function advanceTurn(state) {
       .map((player) => ({ playerId: player.id, nickname: player.nickname, assets: netWorth(player, state.stocks, state.turn) }));
     state.finalRanking = [...active, ...eliminated].map((entry, index) => ({ ...entry, rank: index + 1 }));
     recordPerformance(state);
-    addLog(state, "40턴 종료. 최종 순위가 확정되었습니다.", "system");
+    addLog(state, `${CONFIG.totalTurns}턴 종료. 최종 순위가 확정되었습니다.`, "system");
     return { finished: true, ranking: state.finalRanking };
   }
 
