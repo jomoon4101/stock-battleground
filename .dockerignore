@@ -1,5 +1,12 @@
 .git
 .DS_Store
+node_modules
+dist
+coverage
+.env
+.env.*
+!.env.example
 tests
 README.md
+WORK_COMPLETION_REPORT_*.md
 npm-debug.log
