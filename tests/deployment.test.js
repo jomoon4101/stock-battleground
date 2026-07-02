@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
@@ -38,4 +38,23 @@ test("Windows 게임 실행 도우미가 Node를 찾고 서버 수명을 유지�
   assert.match(script, /ProcessStartInfo/);
   assert.match(script, /serverProcess\.WaitForExit/);
   assert.match(script, /실행 도우미 진단을 통과했습니다/);
+});
+
+test("Render Docker 이미지가 서버·AI 대화·정적 자산 전체를 포함한다", async () => {
+  const requiredFiles = [
+    "server.mjs", "ai-chat.js", "app.js", "engine.js", "config.js", "i18n.js",
+    "index.html", "styles.css", "mobile-first.css", "assets", "data",
+  ];
+  const [dockerfile, dockerignore, ...requiredStats] = await Promise.all([
+    readFile(`${root}/Dockerfile`, "utf8"),
+    readFile(`${root}/.dockerignore`, "utf8"),
+    ...requiredFiles.map((name) => stat(`${root}/${name}`)),
+  ]);
+  assert.match(dockerfile, /FROM node:24-alpine/);
+  assert.match(dockerfile, /COPY package\*\.json \.\//);
+  assert.match(dockerfile, /RUN npm ci --omit=dev/);
+  assert.match(dockerfile, /COPY \. \./);
+  assert.match(dockerfile, /CMD \["node", "server\.mjs"\]/);
+  for (const name of requiredFiles) assert.doesNotMatch(dockerignore, new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "m"));
+  assert.equal(requiredStats.length, requiredFiles.length);
 });
