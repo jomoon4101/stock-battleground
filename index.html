@@ -3,12 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="30명이 25턴 동안 겨루는 실시간 주식 생존 게임">
+  <meta name="description" content="3~7명이 제한시간이 있는 턴제로 경쟁하는 주식 섹터 생존 게임">
   <title>주식 서바이벌</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23d51e2e'/%3E%3Cpath d='M12 45V18m0 27h40M17 39l10-11 8 6 14-17m-8 0h8v8' fill='none' stroke='white' stroke-width='5'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=Noto+Sans+KR:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=20260702-25">
+  <link rel="stylesheet" href="mobile-first.css?v=20260702-25">
 </head>
 <body>
   <div class="noise" aria-hidden="true"></div>
@@ -17,27 +19,38 @@
   <section class="start-screen" id="start-screen" aria-labelledby="start-title">
     <div class="start-grid"></div>
     <div class="start-card">
-      <div class="eyebrow">30 PLAYERS · 25 TURNS · ONE SURVIVOR</div>
+      <div class="language-choice hero-language" id="language-choice" data-no-i18n><button class="is-active" data-language="ko" aria-label="한국어">ko</button><button data-language="en" aria-label="English">En</button></div>
+      <div class="eyebrow">3–7 PLAYERS · SECTOR BATTLE · ONE SURVIVOR</div>
       <div class="logo-lockup">
-        <span class="logo-mark">₩</span>
-        <h1 id="start-title"><em>주식</em><br>서바이벌</h1>
+        <span class="logo-mark" aria-hidden="true"><svg viewBox="0 0 48 48" role="img"><path d="M8 36V12M8 36H40"/><path d="m12 31 8-9 7 5 12-15"/><path d="M32 12h7v7"/></svg></span>
+        <h1 id="start-title"><em>주식</em>서바이벌</h1>
       </div>
-      <p class="start-copy">시장을 읽고, 자산을 숨기고, 마지막 벨까지 살아남으세요.<br>빈자리는 최대 29명의 AI 트레이더가 채웁니다.</p>
+      <strong class="hero-slogan">정보는 힘이다, 전략은 생존이다!</strong>
+      <p class="start-copy">실전 투자 감각을 게임처럼 배우는 주식 생존 시뮬레이션</p>
+      <div class="hero-market-art" aria-hidden="true"><span class="hero-arrow">↗</span><span class="hero-bull">🐂</span><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="feature-grid" aria-label="주요 기능">
+        <article><span>▥</span><b>시장 분석</b><small>최신 이슈</small></article>
+        <article><span>✦</span><b>투자 전략</b><small>실전 노하우</small></article>
+        <article><span>◔</span><b>섹터 정보</b><small>생존 구역</small></article>
+        <article><span>♟</span><b>커뮤니티</b><small>정보 교류</small></article>
+      </div>
       <div class="start-form">
-        <div class="language-choice" id="language-choice"><button class="is-active" data-language="ko">한국어</button><button data-language="en">English</button></div>
         <label for="nickname">트레이더 닉네임</label>
         <input id="nickname" maxlength="14" value="용감한 개미" autocomplete="off">
-        <div class="profile-setup">
-          <label>프로필 이미지</label>
-          <div class="profile-picker" id="profile-picker"></div>
-          <label class="profile-upload-button" for="profile-upload">사진 업로드<input id="profile-upload" type="file" accept="image/png,image/jpeg,image/webp"></label>
+        <div class="profile-setup profile-compact-setup">
+          <label>프로필</label>
+          <button class="profile-open-button" id="profile-open-button" type="button" aria-haspopup="dialog" aria-controls="profile-modal">
+            <span class="profile-image meme profile-preview" id="profile-preview" aria-hidden="true"></span>
+            <span><b>프로필 선택</b><small>아이콘을 눌러 변경하거나 사진을 올리세요</small></span>
+            <i aria-hidden="true">›</i>
+          </button>
         </div>
         <label id="game-mode-label">게임 모드</label>
         <input id="game-speed" type="hidden" value="standard">
         <div class="game-mode-buttons" id="game-mode-buttons" aria-labelledby="game-mode-label">
-          <button class="is-active" data-speed="standard"><b>공식 게임</b><small>약 60분</small></button>
-          <button data-speed="fast"><b>빠른 게임</b><small>약 27분</small></button>
-          <button data-speed="turbo"><b>터보 게임</b><small>약 11분</small></button>
+          <button data-speed="quick"><b>빠른 게임</b><small>3명 · 10라운드 · 5섹터</small></button>
+          <button class="is-active" data-speed="standard"><b>기본 게임</b><small>5명 · 20라운드 · 8섹터</small></button>
+          <button data-speed="long"><b>장기 게임</b><small>7명 · 30라운드 · 11섹터</small></button>
         </div>
         <button class="button button-primary button-xl" id="start-button">
           <span>멀티게임</span><span aria-hidden="true">→</span>
@@ -49,30 +62,34 @@
         </div>
         <button class="solo-text-link" id="solo-button">혼자서 테스트하기</button>
       </div>
+      <section class="active-survivals" aria-labelledby="active-survival-title">
+        <header><h2 id="active-survival-title">🔥 서바이벌 진행중</h2><button id="active-survival-refresh" type="button" title="목록 새로고침" aria-label="목록 새로고침">↻</button></header>
+        <div id="active-survival-list" aria-live="polite"><p class="active-survival-empty">현재 진행 중인 서바이벌이 없습니다.</p></div>
+      </section>
       <div class="start-meta">
         <span><i></i> 서버 시뮬레이션 준비</span>
         <span>SEASON 01 / PROTOTYPE</span>
       </div>
       <p class="service-disclaimer">본 서비스는 가상 주식 시뮬레이션 게임이며, 실제 투자 자문이나 금융 거래 서비스를 제공하지 않습니다.</p>
       <button class="developer-board-button" id="developer-board-button">일개미(개발자)에게 일시키기 <span>익명 게시판 →</span></button>
-      <footer class="developer-email">일개미(개발자) 메일 : <a href="mailto:jomoon@gmail.com">jomoon@gmail.com</a></footer>
+      <footer class="developer-email">일개미(개발자) 메일 : <a href="mailto:jomoon4101@gmail.com">jomoon4101@gmail.com</a></footer>
     </div>
     <aside class="start-rules">
-      <span class="rule-number">01</span>
-      <strong>매 10턴은 블라인드 라운드</strong>
-      <p>순위가 잠기고 추가 5분이 주어집니다.</p>
-      <span class="rule-number">02</span>
-      <strong>정보도 자산입니다</strong>
-      <p>미래 가격과 타인의 행동을 아이템으로 통제하세요.</p>
-      <span class="rule-number">03</span>
-      <strong>25턴 뒤 최후의 생존자</strong>
-      <p>순자산이 가장 많은 플레이어가 승리합니다.</p>
+      <span class="rule-number">SURVIVAL GUIDE</span>
+      <strong>다음 라운드까지 살아남으세요</strong>
+      <p>차트와 정보를 읽고 위험 구역을 피해 생존 자산을 지키세요.</p>
+      <span class="rule-number">INTELLIGENCE</span>
+      <strong>정보마다 속도와 신뢰도가 다릅니다</strong>
+      <p>시장 정보, 분석 리포트, 미확인 첩보를 비교해 행동을 선택하세요.</p>
+      <span class="rule-number">LAST TRADER</span>
+      <strong>마지막 생존자가 승리합니다</strong>
+      <p>최대 라운드 또는 최후의 한 명이 남으면 게임이 종료됩니다.</p>
       <div class="hall-of-fame"><span class="section-kicker">HALL OF FAME</span><h3>명예의 전당</h3><div id="hall-of-fame-list"></div></div>
     </aside>
   </section>
 
   <section class="matchmaking-screen is-hidden" id="matchmaking-screen">
-    <div class="matchmaking-card"><span class="section-kicker">AUTO MATCHMAKING</span><div class="matching-spinner"></div><h2 id="matching-title">플레이어를 찾고 있습니다</h2><strong id="matching-countdown">5</strong><p id="matching-player-count">1 / 30명 참가</p><small>5초 뒤 빈자리는 AI 트레이더가 채웁니다.</small><button class="button button-secondary" id="cancel-matchmaking">매칭 취소</button></div>
+    <div class="matchmaking-card"><span class="section-kicker">AUTO MATCHMAKING</span><div class="matching-spinner"></div><h2 id="matching-title">플레이어를 찾고 있습니다</h2><strong id="matching-countdown">5</strong><p id="matching-player-count">1 / 5명 참가</p><small>5초 뒤 빈자리는 AI 트레이더가 채웁니다.</small><button class="button button-secondary" id="cancel-matchmaking">매칭 취소</button></div>
   </section>
 
   <section class="lobby-screen is-hidden" id="lobby-screen" aria-labelledby="lobby-title">
@@ -81,7 +98,7 @@
       <h2 id="lobby-title">플레이어 대기실</h2>
       <p>친구에게 아래 방 코드를 알려주세요. 방장이 시작하면 남은 자리는 AI가 채웁니다.</p>
       <button class="room-code" id="room-code" title="클릭해서 복사">------</button>
-      <div class="lobby-status"><span><i></i> 서버 연결됨</span><strong id="lobby-count">1 / 30명</strong></div>
+      <div class="lobby-status"><span><i></i> 서버 연결됨</span><strong id="lobby-count">1 / 5명</strong></div>
       <div class="lobby-members" id="lobby-members"></div>
       <div class="lobby-actions">
         <button class="button button-secondary" id="leave-room-button">나가기</button>
@@ -94,13 +111,13 @@
   <div class="app-shell is-hidden" id="app-shell">
     <header class="topbar">
       <button class="brand" id="new-game-button" aria-label="새 게임">
-        <span class="brand-mark">₩</span>
+        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M8 36V12M8 36H40"/><path d="m12 31 8-9 7 5 12-15"/><path d="M32 12h7v7"/></svg></span>
         <span><b>주식</b> 서바이벌<small>MARKET SURVIVAL</small></span>
       </button>
       <div class="round-status">
-        <div class="turn-badge"><span>TURN</span><b id="turn-number">01</b><small>/ 25</small></div>
+        <div class="turn-badge"><span>ROUND</span><b id="turn-number">01</b><small id="turn-total">/ 20</small></div>
         <div class="timer-wrap">
-          <div class="timer-line"><span id="round-label">일반 라운드</span><strong id="timer">02:00</strong></div>
+          <div class="timer-line"><span id="round-label">일반 라운드 · 제한시간</span><strong id="timer">01:30</strong></div>
           <div class="progress-track"><div id="turn-progress"></div></div>
         </div>
         <div class="final-countdown is-hidden" id="final-countdown" aria-live="assertive">
@@ -115,6 +132,16 @@
       </div>
     </header>
 
+    <section class="survival-status" id="survival-status" aria-label="생존 상태바">
+      <div><small>현재 라운드</small><strong id="survival-round">1 / 20</strong></div>
+      <div><small>생존 순위</small><strong id="survival-rank">-</strong></div>
+      <div><small>생존 자산</small><strong id="survival-assets">₩0</strong></div>
+      <div><small>보유 현금</small><strong id="survival-cash">₩0</strong></div>
+      <div class="risk"><small>생존 위험도</small><strong id="survival-risk">안전</strong></div>
+      <div><small>남은 시간</small><strong id="survival-time">01:30</strong></div>
+      <button class="end-turn-button" id="end-turn-button"><span>✓</span><b>턴 종료</b><small>행동 완료</small></button>
+    </section>
+
     <div class="blind-banner is-hidden" id="blind-banner">
       <span class="lock-icon">▣</span>
       <div><strong>순위 차트 블라인드</strong><small>이 라운드에는 직전 턴의 순위와 자산만 표시됩니다.</small></div>
@@ -123,34 +150,38 @@
     <main class="game-layout">
       <section class="panel market-panel">
         <div class="panel-header">
-          <div><span class="section-kicker">MARKET FEED</span><h2 id="stock-count-title">익명 종목</h2></div>
-          <span class="market-pulse"><i></i> OPEN</span>
+          <div><span class="section-kicker">SECTOR MARKET</span><h2 id="stock-count-title">주식 섹터</h2></div>
+          <div class="market-header-actions"><span class="market-pulse"><i></i> OPEN</span><div class="sector-rail-controls" aria-label="섹터 카드 이동"><button id="sector-scroll-prev" type="button" aria-label="이전 섹터">‹</button><button id="sector-scroll-next" type="button" aria-label="다음 섹터">›</button></div></div>
         </div>
         <div class="market-tools">
-          <label class="search-box"><span>⌕</span><input id="stock-search" placeholder="종목 검색" autocomplete="off"></label>
-          <select id="market-filter" aria-label="시장 필터">
-            <option value="ALL">전체 시장</option>
-            <option value="US">미국</option><option value="KR">한국</option><option value="JP">일본</option>
-            <option value="CN">중국</option><option value="EU">유럽</option>
-          </select>
+          <label class="search-box"><span>⌕</span><input id="stock-search" placeholder="섹터·회사 검색" autocomplete="off"></label>
         </div>
+        <article class="panel intel-panel" id="intel-panel">
+          <div class="panel-header"><div class="intel-title-block"><span class="section-kicker">SURVIVAL INTELLIGENCE</span><h2>생존 정보 센터</h2><button id="open-intel-messages">찌라시 쪽지함 →</button></div></div>
+          <div class="intel-cards" id="intel-cards"></div>
+        </article>
         <div class="stock-table-head">
-          <button data-sort-key="name">종목 <i>↕</i></button>
+          <button data-sort-key="name">섹터 <i>↕</i></button>
           <button data-sort-key="price">현재가 <i>↕</i></button>
           <button data-sort-key="change">변동 <i>↕</i></button>
         </div>
-        <div class="stock-list" id="stock-list" role="listbox" aria-label="주식 종목"></div>
+        <div class="stock-list" id="stock-list" role="list" aria-label="주식 섹터"></div>
       </section>
 
       <section class="workspace">
         <article class="panel chart-panel">
           <div class="chart-header">
             <div class="stock-title">
-              <span class="flag" id="selected-flag">🇺🇸</span>
               <span class="selected-stock-icon" id="selected-stock-icon">▣</span>
               <div><span id="selected-ticker">US01 · TECH</span><h2 id="selected-name">네온 랩스</h2></div>
             </div>
             <div class="quote"><strong id="selected-price">₩0</strong><span id="selected-change">+0.00%</span></div>
+          </div>
+          <div class="selected-position-grid">
+            <div><small>섹터</small><strong id="selected-sector">-</strong></div>
+            <div><small>내 보유 수량</small><strong id="selected-owned">0주</strong></div>
+            <div><small>평균 매수가</small><strong id="selected-average">-</strong></div>
+            <div><small>평가 손익</small><strong id="selected-pnl">-</strong></div>
           </div>
           <div class="chart-meta">
             <span id="selected-origin">HISTORICAL PATTERN · 2019</span>
@@ -175,7 +206,7 @@
 
         <article class="panel trade-panel">
           <div class="tabs" role="tablist">
-            <button class="tab is-active" data-tab="trade">즉시 거래</button>
+            <button class="tab is-active" data-tab="trade">행동 선택</button>
             <button class="tab" data-tab="orders">예약 주문 <span id="order-count">0</span></button>
             <button class="tab" data-tab="finance">대출·채권</button>
             <button class="tab" data-tab="items">아이템</button>
@@ -230,8 +261,13 @@
           </div>
         </article>
 
+        <article class="panel portfolio-panel" id="portfolio-panel">
+          <div class="panel-header"><div><span class="section-kicker">MY SURVIVAL BAG</span><h2>내 보유 종목</h2></div><strong id="portfolio-summary">0개 종목</strong></div>
+          <div class="portfolio-list" id="portfolio-list"><p>아직 보유한 종목이 없습니다. 종목을 선택해 매수해보세요.</p></div>
+        </article>
+
         <article class="panel log-panel">
-          <div class="panel-header compact"><div><span class="section-kicker">BATTLE LOG</span><h2>실시간 기록</h2></div></div>
+          <div class="panel-header compact"><div><span class="section-kicker">BATTLE LOG</span><h2>게임 로그</h2></div></div>
           <div class="log-list" id="log-list"></div>
         </article>
       </section>
@@ -242,11 +278,15 @@
           <div><span>MY TRADER</span><strong id="player-name">용감한 개미</strong><small id="player-id">PLAYER-001</small></div>
           <div class="my-rank"><span>현재 순위</span><b id="my-rank">-</b></div>
           <div class="identity-actions"><button id="mailbox-button">✉<em id="mail-unread" class="is-hidden">0</em></button><button id="notifications-button">♟<em id="notice-unread" class="is-hidden">0</em></button></div>
+          <div class="my-goal-panel">
+            <span id="my-goal-kicker">MY GOAL · 내 목표</span><strong id="my-goal-title">상위 순위 추월</strong><small id="my-goal-detail">다음 목표를 계산하고 있습니다.</small>
+            <i class="my-goal-progress"><b id="my-goal-progress"></b></i>
+          </div>
         </section>
 
         <section class="panel asset-panel">
           <div class="panel-header compact">
-            <button class="asset-title-button" id="open-holdings-button"><span class="section-kicker">NET ASSETS</span><h2>내 자산</h2><small>보유 종목 보기 →</small></button>
+            <button class="asset-title-button" id="open-holdings-button"><span class="section-kicker">NET ASSETS</span><h2>생존 자산</h2><small>보유 종목 보기 →</small></button>
             <span class="delta-badge" id="asset-delta">LIVE</span>
           </div>
           <button class="net-assets net-assets-trigger" id="net-assets">₩0</button>
@@ -260,26 +300,67 @@
           <div class="salary-row"><span>월급 <b id="salary">₩0</b></span><span>예상 세율 <b id="tax-rate">0%</b></span></div>
         </section>
 
+      </aside>
+    </main>
+    <section class="global-chat" id="global-chat" aria-label="전체 채팅">
+      <button class="global-chat-header" id="global-chat-toggle" type="button" aria-expanded="true"><span>●</span><strong>전체 채팅</strong><small>모든 생존자와 대화</small><em id="global-chat-unread" class="is-hidden">0</em><i>⌄</i></button>
+      <div class="global-chat-panel">
+        <div class="global-chat-messages" id="global-chat-messages" aria-live="polite"></div>
+        <div class="global-chat-compose"><input id="global-chat-input" maxlength="180" placeholder="전체 메시지 입력" autocomplete="off"><button id="global-chat-send" type="button">전송</button></div>
+      </div>
+    </section>
+    <nav class="game-bottom-nav" id="game-bottom-nav" aria-label="게임 메뉴">
+      <button data-nav-target="market"><span>▤</span><small>시장</small></button>
+      <button data-nav-target="ranking"><span>♜</span><small>순위</small></button>
+      <button data-nav-target="trade"><span>⇄</span><small>거래</small></button>
+      <button data-nav-target="assets"><span>◈</span><small>자산</small></button>
+      <button data-nav-target="messages"><span>✉</span><small>쪽지</small></button>
+      <button data-nav-target="rules"><span>?</span><small>규칙</small></button>
+    </nav>
+  </div>
+
+  <div class="modal-backdrop is-hidden" id="profile-modal" role="dialog" aria-modal="true" aria-labelledby="profile-modal-title">
+    <div class="modal profile-modal-card">
+      <button class="modal-close" data-close-profile aria-label="닫기">×</button>
+      <span class="section-kicker">TRADER PROFILE</span><h2 id="profile-modal-title">프로필 선택</h2>
+      <p>게임에서 사용할 프로필을 선택하세요.</p>
+      <div class="profile-picker profile-modal-picker" id="profile-picker"></div>
+      <label class="profile-upload-button" for="profile-upload">내 사진 업로드<input id="profile-upload" type="file" accept="image/png,image/jpeg,image/webp"></label>
+      <button class="button button-primary profile-confirm-button" id="profile-confirm" type="button">선택 완료</button>
+    </div>
+  </div>
+
+  <div class="modal-backdrop is-hidden" id="stock-detail-modal" role="dialog" aria-modal="true" aria-labelledby="stock-detail-title">
+    <div class="modal stock-detail-modal-card">
+      <button class="modal-close" data-close-stock-detail type="button" aria-label="닫기">×</button>
+      <div class="stock-detail-character">
+        <span class="sector-ceo" id="stock-detail-ceo" role="img" aria-label="선택 섹터 CEO"></span>
+        <div class="stock-detail-character-copy"><span class="section-kicker" id="stock-detail-sector">STOCK SECTOR</span><h2 id="stock-detail-title">종목 상세</h2><p id="stock-detail-description"></p><div class="stock-detail-actions"><button class="detail-buy" id="detail-buy" type="button">바로 매수</button><button class="detail-sell" id="detail-sell" type="button">바로 매도</button></div></div>
+      </div>
+      <div class="stock-detail-sector-switcher">
+        <div><span class="section-kicker">SECTOR SWITCH</span><strong>다른 섹터 선택</strong><small>거래할 섹터를 선택하세요.</small></div>
+        <div class="stock-detail-sector-list" id="stock-detail-sector-list" role="tablist" aria-label="거래 섹터 선택"></div>
+      </div>
+      <div class="stock-detail-body" id="stock-detail-body"></div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop is-hidden" id="ranking-modal" role="dialog" aria-modal="true" aria-labelledby="ranking-modal-title">
+    <div class="modal ranking-modal-card">
+      <button class="modal-close" data-close-ranking aria-label="닫기">×</button>
+      <span class="section-kicker">LIVE RANKING</span><h2 id="ranking-modal-title">생존 순위</h2>
+      <div id="ranking-modal-body">
         <section class="panel ranking-panel">
           <div class="panel-header compact">
-            <div><span class="section-kicker">LIVE RANKING</span><h2>생존 순위</h2></div>
+            <div><span class="section-kicker">SURVIVOR BOARD</span><h2>실시간 자산 순위</h2></div>
             <span id="rank-status" class="rank-status">실시간</span>
           </div>
           <label class="rank-search"><span>⌕</span><input id="rank-search" placeholder="플레이어 검색" autocomplete="off"></label>
           <div class="rank-table-head"><span>순위 / 플레이어</span><span>순자산</span></div>
           <div class="ranking-list" id="ranking-list"></div>
         </section>
-      </aside>
-    </main>
-    <nav class="game-bottom-nav" id="game-bottom-nav" aria-label="게임 메뉴">
-      <button data-nav-target="market"><span>▤</span><small>시장</small></button>
-      <button data-nav-target="chart"><span>⌁</span><small>차트</small></button>
-      <button data-nav-target="trade"><span>⇄</span><small>거래</small></button>
-      <button data-nav-target="assets"><span>◈</span><small>자산</small></button>
-      <button data-nav-target="ranking"><span>♜</span><small>순위</small></button>
-      <button data-nav-target="messages"><span>✉</span><small>쪽지</small></button>
-      <button data-nav-target="rules"><span>?</span><small>규칙</small></button>
-    </nav>
+      </div>
+    </div>
   </div>
 
   <div class="modal-backdrop is-hidden" id="rules-modal" role="dialog" aria-modal="true" aria-labelledby="rules-title">
@@ -287,14 +368,14 @@
       <button class="modal-close" data-close-modal aria-label="닫기">×</button>
       <span class="section-kicker">HOW TO SURVIVE</span><h2 id="rules-title">게임 규칙</h2>
       <div class="rules-grid">
-        <div><b>25턴 · 3가지 모드</b><p>터보 약 11분, 빠른 게임 27분, 공식 게임 60분입니다. 모든 모드의 게임 규칙은 같습니다.</p></div>
+        <div><b>3~7명 · 3가지 자동 모드</b><p>빠른 게임은 3명·10라운드·5섹터, 기본 게임은 5명·20라운드·8섹터, 장기 게임은 7명·30라운드·11섹터입니다.</p></div>
         <div><b>월급과 세금</b><p>시작 및 10턴 종료마다 월급을 받습니다. 순자산 구간에 따라 5~30%가 자동 납부됩니다.</p></div>
         <div><b>대출</b><p>월급의 10배까지 가능합니다. 실행 즉시 선이자 10%, 10턴마다 이자 10%가 발생합니다.</p></div>
         <div><b>채권</b><p>최소 10만원, 10턴 만기, 확정 수익 5%입니다. 원금은 순자산에 포함됩니다.</p></div>
         <div><b>블라인드 턴</b><p>10·20턴에는 직전 턴 순위와 자산만 보입니다. 아이템으로도 차단할 수 있습니다.</p></div>
         <div><b>음수 자산</b><p>신규 대출과 아이템이 막히며 월급 20% 감소, 정기 대출이자 5% 가산 페널티가 적용됩니다.</p></div>
       </div>
-      <p class="data-note">프로토타입의 시세는 실제 기업을 노출하지 않는 합성 역사 패턴입니다. 국가별 변동성·추세·충격 구간을 조합해 매 게임 새로 생성됩니다.</p>
+      <p class="data-note">프로토타입 시세는 실제 기업을 노출하지 않는 합성 섹터 패턴입니다. 섹터별 수익성·안정성·변동성을 조합해 매 게임 새로 생성됩니다.</p>
     </div>
   </div>
 
@@ -365,6 +446,6 @@
   </div>
 
   <div class="toast-region" id="toast-region" aria-live="polite"></div>
-  <script type="module" src="app.js"></script>
+  <script type="module" src="app.js?v=20260702-25"></script>
 </body>
 </html>

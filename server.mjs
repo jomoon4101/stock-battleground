@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { randomBytes, randomUUID } from "node:crypto";
 import {
   CONFIG,
+  GAME_MODES,
   advanceTurn,
   borrow,
   buyBond,
@@ -21,6 +22,7 @@ import {
   useRandomItem,
   useSpecialItem,
 } from "./engine.js";
+import { createAiChatLine, createAiConversationPlan } from "./ai-chat.js";
 
 const sourceRoot = fileURLToPath(new URL(".", import.meta.url));
 const root = process.env.STATIC_ROOT ? resolve(sourceRoot, process.env.STATIC_ROOT) : sourceRoot;
@@ -39,7 +41,12 @@ function saveJson(file, value) {
 let hallOfFame = loadJson(hallFile, []);
 let boardPosts = loadJson(boardFile, []);
 const boardRateLimits = new Map();
-const allowedOrigins = new Set(String(process.env.ALLOWED_ORIGINS || "").split(",").map((origin) => origin.trim()).filter(Boolean));
+const defaultAllowedOrigins = new Set([
+  "https://stock-survival.vercel.app",
+  "https://stock-battleground.vercel.app",
+]);
+const configuredOriginRules = String(process.env.ALLOWED_ORIGINS || "").split(",").map((origin) => origin.trim()).filter(Boolean);
+const reservedRoomPaths = new Set(["active", "matchmaking", "status"]);
 const testTurnMilliseconds = process.env.NODE_ENV === "test" ? Math.max(0, Number(process.env.TEST_TURN_MS) || 0) : 0;
 const types = {
   ".html": "text/html; charset=utf-8",
@@ -48,7 +55,19 @@ const types = {
   ".json": "application/json; charset=utf-8",
   ".svg": "image/svg+xml",
   ".png": "image/png",
+  ".webp": "image/webp",
 };
+
+function isAllowedOrigin(origin) {
+  if (!origin) return false;
+  if (defaultAllowedOrigins.has(origin)) return true;
+  return configuredOriginRules.some((rule) => {
+    if (rule === "*") return true;
+    if (!rule.includes("*")) return rule === origin;
+    const pattern = rule.split("*").map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join(".*");
+    return new RegExp(`^${pattern}$`, "i").test(origin);
+  });
+}
 
 function sendJson(response, status, payload) {
   const body = JSON.stringify(payload);
@@ -118,14 +137,14 @@ function memberFor(room, token) {
 function topHolding(game, playerId) {
   const player = game.players.find((candidate) => candidate.id === playerId);
   if (!player) return null;
-  const priceIndex = Math.min(game.turn - 1, CONFIG.totalTurns);
+  const priceIndex = Math.min(game.turn - 1, game.totalTurns ?? CONFIG.totalTurns);
   let best = null;
   player.holdings.forEach((quantity, stockIndex) => {
     if (quantity <= 0) return;
     const stock = game.stocks[stockIndex];
     const value = quantity * stock.prices[priceIndex];
     if (!best || value > best.value) {
-      best = { stockIndex, name: stock.name, ticker: stock.ticker, flag: stock.market.flag, quantity, value };
+      best = { stockIndex, name: stock.name, ticker: stock.ticker, quantity, value };
     }
   });
   return best;
@@ -134,12 +153,12 @@ function topHolding(game, playerId) {
 function portfolioFor(game, playerId) {
   const player = game.players.find((candidate) => candidate.id === playerId);
   if (!player) return [];
-  const priceIndex = Math.min(game.turn - 1, CONFIG.totalTurns);
+  const priceIndex = Math.min(game.turn - 1, game.totalTurns ?? CONFIG.totalTurns);
   return player.holdings.map((quantity, stockIndex) => {
     if (quantity <= 0) return null;
     const stock = game.stocks[stockIndex];
     const value = quantity * stock.prices[priceIndex];
-    return { stockIndex, name: stock.name, ticker: stock.ticker, flag: stock.market.flag, quantity, value };
+    return { stockIndex, name: stock.name, ticker: stock.ticker, quantity, value };
   }).filter(Boolean).sort((a, b) => b.value - a.value);
 }
 
@@ -205,9 +224,14 @@ function publicState(room, member) {
       matchDeadline: room.matchDeadline || null,
       createdAt: room.createdAt,
       memberCount: room.members.length,
-      capacity: CONFIG.playerCount,
+      capacity: room.playerCount,
+      totalTurns: room.totalTurns,
+      difficulty: room.difficulty,
       deadline: room.deadline,
+      turnEnded: room.readyPlayers.has(member.playerId),
       durationSeconds: room.game ? turnDurationSeconds(room.game.turn, room.speed) : 0,
+      readyCount: room.readyPlayers.size,
+      activeMemberCount: room.game ? room.members.filter((entry) => !room.game.players.find((player) => player.id === entry.playerId)?.eliminated).length : 0,
       members: room.members.map((entry) => ({
         playerId: entry.playerId,
         nickname: entry.nickname,
@@ -224,13 +248,16 @@ function publicState(room, member) {
   const game = room.game;
   const viewer = game.players.find((player) => player.id === member.playerId);
   if (!viewer) throw new Error("게임 참가자 정보를 찾을 수 없습니다.");
-  const revealedPriceCount = Math.min(game.turn, CONFIG.totalTurns + 1);
+  const revealedPriceCount = Math.min(game.turn, game.totalTurns + 1);
   const rankingBlocked = game.rankBlindTurn === game.turn;
   const checkpoint = game.turn % 10 === 0 && !game.finished;
   const visibleRanking = rankingBlocked ? [] : enrichRanking(room, getRanking(game, { display: true, viewerId: member.playerId }));
   base.game = {
     version: game.version,
     turn: game.turn,
+    totalTurns: game.totalTurns,
+    playerCount: game.playerCount,
+    difficulty: game.difficulty,
     finished: game.finished,
     stocks: game.stocks.map((stock) => ({
       ...stock,
@@ -245,8 +272,8 @@ function publicState(room, member) {
     actualRanking: rankingBlocked || checkpoint ? visibleRanking : enrichRanking(room, getRanking(game, { display: false, viewerId: member.playerId })),
     rankAnimationTurn: room.rankAnimationTurn,
     leaderNotice: room.leaderNotice,
-    notices: room.notices.slice(-30),
-    messages: room.messages.filter((message) => message.fromId === member.playerId || message.toId === member.playerId),
+    notices: room.notices.filter((notice) => !notice.playerId || notice.playerId === member.playerId).slice(-30),
+    messages: room.messages.filter((message) => message.toId === "ALL" || message.fromId === member.playerId || message.toId === member.playerId),
     unreadMessages: room.messages.filter((message) => message.toId === member.playerId && !message.read).length,
     activePlayerCount: game.players.filter((player) => !player.eliminated).length,
     elimination: viewer.eliminated ? {
@@ -278,13 +305,21 @@ function nextTurnDeadline(room) {
   return Date.now() + (testTurnMilliseconds || turnDurationSeconds(room.game.turn, room.speed) * 1000);
 }
 
-function createRoom({ nickname, speed, language, avatar }) {
+function createRoom({ nickname, speed, language, avatar, playerCount, difficulty }) {
   const code = roomCode();
   const token = randomUUID();
+  const safeSpeed = Object.hasOwn(GAME_MODES, speed) && speed !== "test" ? speed : process.env.NODE_ENV === "test" && speed === "test" ? "test" : "standard";
+  const mode = GAME_MODES[safeSpeed] || GAME_MODES.standard;
+  const safePlayerCount = safeSpeed === "test"
+    ? Math.max(CONFIG.playerMin, Math.min(CONFIG.playerMax, Math.floor(Number(playerCount) || mode.playerCount)))
+    : mode.playerCount;
   const member = { token, playerId: "PLAYER-001", nickname: cleanNickname(nickname), avatar: cleanAvatar(avatar), isHost: true };
   const room = {
     code,
-    speed: ["turbo", "fast", "standard", ...(process.env.NODE_ENV === "test" ? ["test"] : [])].includes(speed) ? speed : "standard",
+    speed: safeSpeed,
+    playerCount: safePlayerCount,
+    totalTurns: mode.totalTurns,
+    difficulty: safeSpeed === "test" && ["easy", "normal", "hard"].includes(difficulty) ? difficulty : mode.difficulty,
     language: cleanLanguage(language),
     status: "waiting",
     createdAt: Date.now(),
@@ -292,6 +327,7 @@ function createRoom({ nickname, speed, language, avatar }) {
     deadline: null,
     members: [member],
     clients: new Map(),
+    readyPlayers: new Set(),
     messages: [],
     notices: [],
     game: null,
@@ -302,7 +338,7 @@ function createRoom({ nickname, speed, language, avatar }) {
 
 function nextPlayerId(room) {
   const used = new Set(room.members.map((member) => member.playerId));
-  for (let index = 1; index <= CONFIG.playerCount; index += 1) {
+  for (let index = 1; index <= room.playerCount; index += 1) {
     const playerId = `PLAYER-${String(index).padStart(3, "0")}`;
     if (!used.has(playerId)) return playerId;
   }
@@ -311,7 +347,7 @@ function nextPlayerId(room) {
 
 function joinRoom(room, nickname, avatar) {
   if (!["waiting", "running"].includes(room.status)) throw new Error("참가할 수 있는 게임이 아닙니다.");
-  if (room.members.length >= CONFIG.playerCount) throw new Error("방이 가득 찼습니다.");
+  if (room.members.length >= room.playerCount) throw new Error("방이 가득 찼습니다.");
   const clean = cleanNickname(nickname);
   if (room.members.some((member) => member.nickname.toLowerCase() === clean.toLowerCase())) throw new Error("이미 사용 중인 닉네임입니다.");
   const token = randomUUID();
@@ -337,7 +373,7 @@ function joinRoom(room, nickname, avatar) {
   room.members.push(member);
   if (room.status === "running") {
     initializeRankTracking(room);
-    if ([1, 11, 21].includes(room.game.turn)) deliverRumor(room, member);
+    deliverRumor(room, member);
   }
   room.updatedAt = Date.now();
   broadcast(room);
@@ -348,6 +384,7 @@ function leaveRoom(room, member) {
   const response = room.clients.get(member.token);
   if (response) response.end();
   room.clients.delete(member.token);
+  room.readyPlayers.delete(member.playerId);
   room.members = room.members.filter((candidate) => candidate.token !== member.token);
   room.messages = room.messages.filter((message) => message.fromId !== member.playerId && message.toId !== member.playerId);
   if (room.game) {
@@ -361,7 +398,10 @@ function leaveRoom(room, member) {
 }
 
 function launchRoom(room) {
-  const game = createGame({ nickname: room.members[0].nickname, seed: randomBytes(4).readUInt32LE(0), language: room.language, avatar: room.members[0].avatar });
+  const game = createGame({
+    nickname: room.members[0].nickname, seed: randomBytes(4).readUInt32LE(0), language: room.language,
+    avatar: room.members[0].avatar, playerCount: room.playerCount, totalTurns: room.totalTurns, difficulty: room.difficulty,
+  });
   room.members.forEach((joined, index) => {
     const player = game.players[index];
     player.id = joined.playerId;
@@ -374,10 +414,12 @@ function launchRoom(room) {
   room.status = "running";
   room.notices = [];
   room.messages = [];
+  room.readyPlayers.clear();
   room.members.forEach((member) => deliverRumor(room, member));
   room.updatedAt = Date.now();
   room.deadline = nextTurnDeadline(room);
   broadcast(room);
+  scheduleAiConversation(room, { chance: 0.9, count: 2 });
 }
 
 function startRoom(room, member) {
@@ -387,6 +429,8 @@ function startRoom(room, member) {
 }
 
 function deliverRumor(room, member) {
+  const player = room.game.players.find((candidate) => candidate.id === member.playerId);
+  if (!player || player.eliminated) return false;
   const rumor = createRumor(room.game, room.game.turn, member.playerId);
   room.messages.push({
     id: randomUUID(), fromId: rumor.senderId, fromName: rumor.senderName, toId: member.playerId,
@@ -394,51 +438,98 @@ function deliverRumor(room, member) {
     direction: rumor.direction, startTurn: rumor.startTurn, endTurn: rumor.endTurn,
   });
   room.messages = room.messages.slice(-300);
+  return true;
 }
 
-function createAiReply(room, target) {
-  const owned = target.holdings.map((quantity, stockIndex) => ({ quantity, stockIndex })).filter((entry) => entry.quantity > 0);
-  const stockEntry = owned.length ? owned[Math.floor(Math.random() * owned.length)] : null;
-  if (stockEntry && Math.random() < 0.72) {
-    const stock = room.game.stocks[stockEntry.stockIndex];
-    const ko = [
-      `${stock.name}? 나도 조금 담아봤는데 아직은 손에 땀나네.`, `${stock.name}은 내가 산 것 중엔 제일 신경 쓰여. 다음 봉은 좀 보려고.`,
-      `솔직히 ${stock.name} 산 건 반쯤 감이었어. 그래도 바로 던질 생각은 없어.`, `${stock.name} 물려 있는 건 비밀이야. 차트가 한번쯤 살아나지 않을까?`,
-      `아까 ${stock.name} 좀 샀는데 거래량이 영 수상하더라.`, `${stock.name}은 내가 들고 있긴 한데 남한테 추천할 정도는 아니야.`,
-      `${stock.market.name} 쪽에선 ${stock.name}을 보고 있어. 나도 사놓고 계속 눈치 보는 중이야.`, `${stock.name} 담고 나니 오히려 확신이 없어졌어. 원래 주식이 그렇잖아.`,
-    ];
-    const en = [
-      `${stock.name}? I picked some up, but it still makes me nervous.`, `${stock.name} is the one position I keep checking. I want to see the next candle.`,
-      `Honestly, buying ${stock.name} was half instinct. I'm not dumping it yet, though.`, `Don't tell anyone, but I'm holding ${stock.name}. Maybe the chart wakes up.`,
-      `I bought a little ${stock.name} earlier. The volume looked kind of suspicious.`, `I do own ${stock.name}, but I'm not confident enough to recommend it.`,
-      `I've been watching ${stock.name} over in ${stock.market.name}. Bought some and now I'm second-guessing it.`, `The moment I bought ${stock.name}, my confidence disappeared. That's trading for you.`,
-    ];
-    const options = room.language === "en" ? en : ko;
-    return options[Math.floor(Math.random() * options.length)];
-  }
-  const ko = [
-    "요즘 장이 사람 마음 가지고 노는 것 같지 않아?", "난 이번 턴엔 괜히 손대지 말고 좀 지켜보려고.", "수익 났을 때 팔기가 손절보다 더 어렵더라.",
-    "차트 오래 본다고 답이 나오는 건 아닌데 자꾸 보게 돼.", "이번 판은 현금 들고 있는 사람도 꽤 무서울걸.", "남들 다 확신할 때가 제일 불안하지 않아?",
-    "나는 목표가보다 손절가부터 정해두는 편이야.", "한 종목만 보면 꼭 다른 데서 일이 터지더라.", "오늘 감이 좋긴 한데 그게 제일 위험한 신호일 수도 있어.",
-    "일단 살아남고 보자. 기회는 다음 턴에도 오니까.", "방금 주문 넣었다가 취소했어. 영 느낌이 안 와.", "뉴스보다 사람들 표정이 더 빠를 때가 있더라.",
-  ];
-  const en = [
-    "Feels like the market is playing with everyone's head today.", "I'm thinking of doing nothing this turn and just watching.", "Taking profit is somehow harder than cutting a loss.",
-    "Staring at the chart longer doesn't give me answers, but I keep doing it.", "Even the people sitting in cash look nervous this round.", "I get uneasy when everybody suddenly sounds certain.",
-    "I usually decide my exit before I think about the target.", "Every time I focus on one stock, something breaks somewhere else.", "My instinct feels good today, which might be the most dangerous signal.",
-    "Survive first. There will be another setup next turn.", "I just placed an order and cancelled it. Couldn't trust the feeling.", "Sometimes traders' faces move faster than the news.",
-  ];
-  const options = room.language === "en" ? en : ko;
-  return options[Math.floor(Math.random() * options.length)];
+function createAiReply(room, target, previousMessage = "", previousSpeakerName = "") {
+  const recentTexts = room.messages.filter((message) => message.ai).slice(-20).map((message) => message.text);
+  return createAiChatLine(room.game, target, {
+    language: room.language,
+    previousMessage,
+    previousSpeakerName,
+    phase: previousMessage ? 1 : 0,
+    recentTexts,
+  }).text;
 }
 
-function addRoomNotice(room, type, text, icon) {
-  room.notices.push({ id: randomUUID(), type, text, icon, turn: room.game.turn, createdAt: Date.now() });
-  room.notices = room.notices.slice(-30);
+function scheduleAiConversation(room, options = {}) {
+  if (room.status !== "running" || !room.game || room.game.finished) return false;
+  const aiPlayers = room.game.players.filter((player) => !player.isHuman && !player.eliminated);
+  if (!aiPlayers.length || (!options.force && Math.random() > Number(options.chance ?? 0.72))) return false;
+  const now = Date.now();
+  if (!options.force && now - Number(room.lastAiChatAt || 0) < 3_000) return false;
+  const recentTexts = room.messages
+    .filter((message) => message.system === "global")
+    .slice(-24)
+    .map((message) => message.text);
+  const plan = createAiConversationPlan(room.game, aiPlayers, {
+    language: room.language,
+    triggerMessage: options.triggerMessage || "",
+    triggerName: options.triggerName || "",
+    recentTexts,
+    count: options.count || 2 + Math.floor(Math.random() * 3),
+  });
+  if (!plan.length) return false;
+  room.lastAiChatAt = now;
+  plan.forEach((entry, index) => {
+    const timer = setTimeout(() => {
+      if (room.status !== "running" || room.game.finished || entry.speaker.eliminated) return;
+      room.messages.push({
+        id: randomUUID(), fromId: entry.speaker.id, fromName: entry.speaker.nickname, toId: "ALL",
+        text: entry.text, createdAt: Date.now(), read: true, system: "global", ai: true, aiConversation: true,
+        stockIndex: entry.stockIndex, claimDirection: entry.claimedRise ? "up" : "down",
+      });
+      room.messages = room.messages.slice(-300);
+      broadcast(room);
+    }, 650 + index * 820 + Math.floor(Math.random() * 260));
+    timer.unref?.();
+  });
+  return true;
+}
+
+function addRoomNotice(room, type, text, icon, playerId = null) {
+  room.notices.push({ id: randomUUID(), type, text, icon, playerId, turn: room.game.turn, createdAt: Date.now() });
+  room.notices = room.notices.slice(-(room.playerCount * 30));
 }
 
 function handleTurnEvents(room, result) {
-  if ([11, 21].includes(room.game.turn)) {
+  for (const event of result.holdingTaxEvents || []) {
+    if (!room.members.some((member) => member.playerId === event.playerId)) continue;
+    if (event.becameEligible) {
+      addRoomNotice(
+        room,
+        "holding-tax-eligible",
+        room.language === "en"
+          ? "Cash reached the holding-tax threshold. A 2% tax applies from round 11."
+          : "⚠️ 보유금이 2,000,000원을 넘어 11라운드부터 보유세 2%가 적용됩니다.",
+        "⚠️",
+        event.playerId,
+      );
+    }
+    if (event.tax > 0) {
+      addRoomNotice(
+        room,
+        "holding-tax",
+        room.language === "en"
+          ? `Holding tax applied: ${event.tax.toLocaleString("en-US")} won was deducted this round.`
+          : `💸 보유세 적용: 2,000,000원 이상 보유로 이번 라운드에 ${event.tax.toLocaleString("ko-KR")}원이 차감되었습니다.`,
+        "💸",
+        event.playerId,
+      );
+    }
+    if (event.becameExempt) {
+      addRoomNotice(
+        room,
+        "holding-tax-exempt",
+        room.language === "en"
+          ? "Cash fell to 2,000,000 won or less, so the holding tax no longer applies."
+          : "✅ 보유금이 2,000,000원 이하가 되어 보유세 대상에서 제외되었습니다.",
+        "✅",
+        event.playerId,
+      );
+    }
+  }
+  if (!result.finished) {
     room.members.forEach((member) => {
       const player = room.game.players.find((candidate) => candidate.id === member.playerId);
       if (player && !player.eliminated) deliverRumor(room, member);
@@ -453,6 +544,26 @@ function handleTurnEvents(room, result) {
   }
 }
 
+function activeRooms() {
+  return [...rooms.values()]
+    .filter((room) => room.status === "running"
+      && room.game
+      && !room.game.finished
+      && room.members.length < room.playerCount
+      && room.game.players.some((player) => !player.isHuman && !player.eliminated))
+    .sort((a, b) => b.updatedAt - a.updatedAt)
+    .map((room) => ({
+      code: room.code,
+      title: room.language === "en" ? `${room.members[0]?.nickname || room.code}'s Survival` : `${room.members[0]?.nickname || room.code}의 서바이벌`,
+      turn: room.game.turn,
+      participantCount: room.members.length,
+      capacity: room.playerCount,
+      totalTurns: room.totalTurns,
+      status: "running",
+      updatedAt: room.updatedAt,
+    }));
+}
+
 function sendMessage(room, fromId, targetId, rawText) {
   const text = String(rawText || "").trim().slice(0, 240);
   if (!text) throw new Error("쪽지 내용을 입력하세요.");
@@ -463,9 +574,10 @@ function sendMessage(room, fromId, targetId, rawText) {
   room.messages.push(message);
   room.messages = room.messages.slice(-300);
   if (!target.isHuman) {
+    const sender = room.game.players.find((player) => player.id === fromId);
     setTimeout(() => {
       if (room.status !== "running") return;
-      room.messages.push({ id: randomUUID(), fromId: targetId, toId: fromId, text: createAiReply(room, target), createdAt: Date.now(), read: false, ai: true });
+      room.messages.push({ id: randomUUID(), fromId: targetId, toId: fromId, text: createAiReply(room, target, text, sender?.nickname || ""), createdAt: Date.now(), read: false, ai: true });
       room.messages = room.messages.slice(-300);
       broadcast(room);
     }, 700 + Math.floor(Math.random() * 900)).unref?.();
@@ -473,11 +585,54 @@ function sendMessage(room, fromId, targetId, rawText) {
   return message;
 }
 
+function sendGlobalMessage(room, fromId, rawText) {
+  const text = String(rawText || "").trim().slice(0, 180);
+  if (!text) throw new Error("전체 채팅 내용을 입력하세요.");
+  const sender = room.game.players.find((player) => player.id === fromId && !player.eliminated);
+  if (!sender) throw new Error("전체 채팅에 참여할 플레이어를 찾을 수 없습니다.");
+  const message = { id: randomUUID(), fromId, fromName: sender.nickname, toId: "ALL", text, createdAt: Date.now(), read: true, system: "global" };
+  room.messages.push(message);
+  room.messages = room.messages.slice(-300);
+  scheduleAiConversation(room, { chance: 0.82, triggerMessage: text, triggerName: sender.nickname });
+  return message;
+}
+
+function advanceRoom(room, now = Date.now()) {
+  if (room.status !== "running" || !room.game || room.game.finished) return null;
+  const result = advanceTurn(room.game);
+  room.readyPlayers.clear();
+  updateRankTracking(room);
+  handleTurnEvents(room, result);
+  room.updatedAt = now;
+  if (result.finished) {
+    room.status = "finished";
+    room.deadline = null;
+    updateHallOfFame(room);
+    room.messages = [];
+  } else {
+    room.deadline = nextTurnDeadline(room);
+    scheduleAiConversation(room, { chance: 0.72 });
+  }
+  return result;
+}
+
 function applyAction(room, member, type, payload = {}) {
   if (room.status !== "running" || !room.game || room.game.finished) throw new Error("진행 중인 게임이 아닙니다.");
   const game = room.game;
   const playerId = member.playerId;
+  if (room.readyPlayers.has(playerId) && !["send-message", "send-global-message", "mark-messages-read", "end-turn"].includes(type)) {
+    throw new Error("이번 라운드 행동을 이미 종료했습니다.");
+  }
   switch (type) {
+    case "end-turn": {
+      room.readyPlayers.add(playerId);
+      const activeMemberIds = room.members
+        .filter((entry) => !game.players.find((player) => player.id === entry.playerId)?.eliminated)
+        .map((entry) => entry.playerId);
+      const allReady = activeMemberIds.length > 0 && activeMemberIds.every((id) => room.readyPlayers.has(id));
+      if (allReady) advanceRoom(room, Date.now());
+      return { ended: true, advanced: allReady };
+    }
     case "trade":
       return payload.side === "sell"
         ? sellStock(game, Number(payload.stockIndex), Number(payload.quantity), playerId)
@@ -496,6 +651,7 @@ function applyAction(room, member, type, payload = {}) {
     case "special-item": return useSpecialItem(game, String(payload.itemId), payload.options || {}, playerId);
     case "random-item": return useRandomItem(game, String(payload.itemId), playerId);
     case "send-message": return sendMessage(room, playerId, String(payload.targetId), payload.text);
+    case "send-global-message": return sendGlobalMessage(room, playerId, payload.text);
     case "mark-messages-read":
       room.messages.forEach((message) => {
         if (message.toId === playerId && (!payload.targetId || message.fromId === payload.targetId)) message.read = true;
@@ -506,7 +662,7 @@ function applyAction(room, member, type, payload = {}) {
 }
 
 function joinMatchingRoom(room, nickname, avatar) {
-  if (room.members.length >= CONFIG.playerCount) throw new Error("매칭이 가득 찼습니다.");
+  if (room.members.length >= room.playerCount) throw new Error("매칭이 가득 찼습니다.");
   const clean = cleanNickname(nickname);
   if (room.members.some((member) => member.nickname.toLowerCase() === clean.toLowerCase())) throw new Error("이미 사용 중인 닉네임입니다.");
   const token = randomUUID();
@@ -522,11 +678,18 @@ function joinMatchingRoom(room, nickname, avatar) {
 
 function enterMatchmaking(body) {
   const language = cleanLanguage(body.language);
-  const allowedSpeeds = ["turbo", "fast", "standard", ...(process.env.NODE_ENV === "test" ? ["test"] : [])];
+  const allowedSpeeds = ["quick", "standard", "long", ...(process.env.NODE_ENV === "test" ? ["test"] : [])];
   const speed = allowedSpeeds.includes(body.speed) ? body.speed : "standard";
-  let room = [...rooms.values()].find((candidate) => candidate.status === "matching" && candidate.language === language && candidate.speed === speed && candidate.members.length < CONFIG.playerCount && candidate.matchDeadline > Date.now());
+  const mode = GAME_MODES[speed] || GAME_MODES.standard;
+  const playerCount = speed === "test"
+    ? Math.max(CONFIG.playerMin, Math.min(CONFIG.playerMax, Math.floor(Number(body.playerCount) || mode.playerCount)))
+    : mode.playerCount;
+  const difficulty = speed === "test" && ["easy", "normal", "hard"].includes(body.difficulty) ? body.difficulty : mode.difficulty;
+  let room = [...rooms.values()].find((candidate) => candidate.status === "matching"
+    && candidate.language === language && candidate.speed === speed && candidate.playerCount === playerCount
+    && candidate.difficulty === difficulty && candidate.members.length < candidate.playerCount && candidate.matchDeadline > Date.now());
   if (!room) {
-    const created = createRoom({ ...body, language, speed });
+    const created = createRoom({ ...body, language, speed, playerCount, difficulty });
     room = created.room;
     room.status = "matching";
     room.matchDeadline = Date.now() + 5_000;
@@ -562,34 +725,56 @@ function addBoardPost(request, textValue) {
 
 async function handleApi(request, response, url) {
   const parts = url.pathname.split("/").filter(Boolean);
+  const pathname = url.pathname.length > 1 ? url.pathname.replace(/\/+$/, "") : url.pathname;
   try {
-    if (request.method === "GET" && url.pathname === "/api/health") {
+    // Fixed endpoints must be resolved before /api/rooms/:roomCode routes.
+    if (request.method === "GET" && pathname === "/api/health") {
       sendJson(response, 200, { ok: true, rooms: rooms.size, uptime: Math.round(process.uptime()) });
       return true;
     }
-    if (request.method === "GET" && url.pathname === "/api/hall-of-fame") {
+    if (request.method === "GET" && pathname === "/api/hall-of-fame") {
       sendJson(response, 200, { entries: hallOfFame });
       return true;
     }
-    if (request.method === "GET" && url.pathname === "/api/board") {
+    if (request.method === "GET" && pathname === "/api/rooms/active") {
+      sendJson(response, 200, { rooms: activeRooms() });
+      return true;
+    }
+    if (request.method === "GET" && pathname === "/api/board") {
       sendJson(response, 200, { posts: boardPosts });
       return true;
     }
-    if (request.method === "POST" && url.pathname === "/api/board") {
+    if (request.method === "POST" && pathname === "/api/board") {
       const body = await readJson(request);
       sendJson(response, 201, { post: addBoardPost(request, body.text) });
       return true;
     }
-    if (request.method === "POST" && url.pathname === "/api/matchmaking") {
+    if (request.method === "GET" && pathname === "/api/matchmaking") {
+      sendJson(response, 200, {
+        available: true,
+        modes: ["quick", "standard", "long"],
+        message: "매칭은 게임 시작 버튼을 누를 때만 요청됩니다.",
+      });
+      return true;
+    }
+    if (request.method === "POST" && pathname === "/api/matchmaking") {
       const body = await readJson(request);
+      if (!String(body?.nickname || "").trim()) {
+        sendJson(response, 422, { error: "매칭을 시작하려면 닉네임이 필요합니다." });
+        return true;
+      }
       const { room, member } = enterMatchmaking(body);
       sendJson(response, 201, { token: member.token, state: publicState(room, member) });
       return true;
     }
-    if (request.method === "POST" && url.pathname === "/api/rooms") {
+    if (request.method === "POST" && pathname === "/api/rooms") {
       const body = await readJson(request);
       const { room, member } = createRoom(body);
       sendJson(response, 201, { token: member.token, state: publicState(room, member) });
+      return true;
+    }
+    if (parts.length >= 3 && parts[0] === "api" && parts[1] === "rooms" && reservedRoomPaths.has(String(parts[2]).toLowerCase())) {
+      sendJson(response, 404, { error: "존재하지 않는 API 경로입니다." });
       return true;
     }
     if (request.method === "POST" && parts.length === 4 && parts[0] === "api" && parts[1] === "rooms" && parts[3] === "join") {
@@ -667,7 +852,7 @@ function serveStatic(request, response, url) {
 
 const server = createServer(async (request, response) => {
   const origin = request.headers.origin;
-  if (origin && (allowedOrigins.has("*") || allowedOrigins.has(origin))) {
+  if (isAllowedOrigin(origin)) {
     response.setHeader("Access-Control-Allow-Origin", origin);
     response.setHeader("Vary", "Origin");
     response.setHeader("Access-Control-Allow-Headers", "Content-Type, X-Session-Token");
@@ -694,18 +879,7 @@ setInterval(() => {
       continue;
     }
     if (room.status === "running" && room.deadline && now >= room.deadline) {
-      const result = advanceTurn(room.game);
-      updateRankTracking(room);
-      handleTurnEvents(room, result);
-      room.updatedAt = now;
-      if (result.finished) {
-        room.status = "finished";
-        room.deadline = null;
-        updateHallOfFame(room);
-        room.messages = [];
-      } else {
-        room.deadline = nextTurnDeadline(room);
-      }
+      advanceRoom(room, now);
       broadcast(room);
     }
     const maxAge = room.status === "finished" ? 2 * 60 * 60 * 1000 : 6 * 60 * 60 * 1000;

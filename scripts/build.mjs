@@ -1,11 +1,11 @@
-import { copyFile, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const dist = join(root, "dist");
-const publicFiles = ["index.html", "styles.css", "app.js", "engine.js", "i18n.js"];
+const publicFiles = ["index.html", "styles.css", "mobile-first.css", "app.js", "engine.js", "i18n.js", "ai-chat.js"];
 
 async function loadLocalEnv() {
   const file = join(root, ".env");
@@ -20,6 +20,7 @@ async function loadLocalEnv() {
 
 await loadLocalEnv();
 const apiBaseUrl = String(process.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
+const defaultRenderApiBaseUrl = "https://stock-battleground-server.onrender.com";
 if (apiBaseUrl && !/^https?:\/\//.test(apiBaseUrl)) {
   throw new Error("VITE_API_BASE_URL은 http:// 또는 https:// 주소여야 합니다.");
 }
@@ -28,8 +29,13 @@ await rm(dist, { recursive: true, force: true });
 await mkdir(dist, { recursive: true });
 await Promise.all(publicFiles.map((file) => copyFile(join(root, file), join(dist, file))));
 await mkdir(join(dist, "assets"), { recursive: true });
-await copyFile(join(root, "assets", "stock-meme-avatars.png"), join(dist, "assets", "stock-meme-avatars.png"));
-await writeFile(join(dist, "config.js"), `export const API_BASE_URL = ${JSON.stringify(apiBaseUrl)};\n`, "utf8");
+const assetFiles = (await readdir(join(root, "assets"))).filter((file) => file === "stock-meme-avatars.png" || /^sector-ceo-.+-v2\.webp$/.test(file));
+await Promise.all(assetFiles.map((file) => copyFile(join(root, "assets", file), join(dist, "assets", file))));
+await writeFile(
+  join(dist, "config.js"),
+  `export const API_BASE_URL = ${JSON.stringify(apiBaseUrl)};\nexport const DEFAULT_RENDER_API_BASE_URL = ${JSON.stringify(defaultRenderApiBaseUrl)};\n`,
+  "utf8",
+);
 await copyFile(join(root, "index.html"), join(dist, "404.html"));
 
 console.log(`Build complete: dist (${apiBaseUrl ? `API ${apiBaseUrl}` : "same-origin API"})`);
