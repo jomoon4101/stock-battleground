@@ -24,6 +24,9 @@ import {
 import { API_BASE_URL, DEFAULT_RENDER_API_BASE_URL } from "./config.js";
 import { getLanguage, localizeDocument, phrase, setLanguage, translateText } from "./i18n.js";
 import { createAiChatLine, createAiConversationPlan } from "./ai-chat.js?v=20260701-23";
+import { mountAppShell } from "./ui-shell.js";
+
+mountAppShell();
 
 const $ = (selector, parent = document) => parent.querySelector(selector);
 const $$ = (selector, parent = document) => [...parent.querySelectorAll(selector)];
@@ -83,15 +86,6 @@ function updateCurrencySymbols() {
   document.documentElement.dataset.currency = getLanguage() === "en" ? "usd" : "krw";
 }
 
-function applyFontScale(nextScale = uiScale) {
-  uiScale = Math.max(0.9, Math.min(1.25, Math.round(nextScale * 20) / 20));
-  document.body.style.zoom = String(uiScale);
-  localStorage.setItem("stock-survival-font-scale", String(uiScale));
-  $("#font-decrease").disabled = uiScale <= 0.9;
-  $("#font-increase").disabled = uiScale >= 1.25;
-  requestAnimationFrame(() => { if (game) drawChart(); });
-}
-
 let game = null;
 let speed = "standard";
 let online = false;
@@ -133,8 +127,6 @@ let seenRumorMessageIds = new Set();
 let seenGlobalChatIds = new Set();
 let globalChatCollapsed = false;
 let localAiConversationGeneration = 0;
-let uiScale = Math.max(0.9, Math.min(1.25, Number(localStorage.getItem("stock-survival-font-scale")) || 1));
-
 const myPlayer = () => game?.players.find((player) => player.id === viewerId);
 const playerSummary = () => online ? game.viewerSummary : getPlayerSummary(game, viewerId);
 
@@ -1022,7 +1014,7 @@ function openHoldingsModal() {
 
 function activateTab(tabName) {
   $$('.tab').forEach((tab) => tab.classList.toggle("is-active", tab.dataset.tab === tabName));
-  $$('.tab-content').forEach((content) => content.classList.toggle("is-active", content.id === `tab-${tabName}`));
+  $$('.tab-content').forEach((content) => content.classList.toggle("is-active", content.id === `trade-tab-${tabName}`));
 }
 
 function renderStockDetailSectorPicker() {
@@ -1798,8 +1790,6 @@ $("#portfolio-list").addEventListener("click", (event) => {
   if (card) jumpToHoldingStock(card.dataset.portfolioStock);
 });
 $("#open-intel-messages").addEventListener("click", () => openMessages());
-$("#font-decrease").addEventListener("click", () => applyFontScale(uiScale - 0.05));
-$("#font-increase").addEventListener("click", () => applyFontScale(uiScale + 0.05));
 $("#game-bottom-nav").addEventListener("click", (event) => {
   const button = event.target.closest("[data-nav-target]"); if (!button || !game) return;
   const target = button.dataset.navTarget;
@@ -2027,7 +2017,6 @@ initializeIntegratedLayout();
 renderProfilePicker();
 setLanguage("ko");
 updateCurrencySymbols();
-applyFontScale();
 loadHallOfFame();
 loadActiveRooms();
 activeRoomsTimer = setInterval(() => {
