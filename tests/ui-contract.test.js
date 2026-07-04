@@ -13,9 +13,26 @@ async function readMarkup() {
   return `${html}\n${uiShell}`;
 }
 
+test("앱 마운트 루트는 main 랜드마크를 중첩하지 않는다", async () => {
+  const html = await readFile(`${root}/index.html`, "utf8");
+  assert.match(html, /<div id="stock-survival-root"><\/div>/);
+  assert.doesNotMatch(html, /<main id="stock-survival-root"/);
+});
+
+test("통합 레이아웃 초기화가 전투 탭 콘텐츠를 상세 모달로 옮기지 않는다", async () => {
+  const app = await readFile(`${root}/app.js`, "utf8");
+  assert.doesNotMatch(app, /detailBody\.append\(panel\)/);
+  assert.doesNotMatch(app, /\["\.chart-panel", "\.trade-panel"\]/);
+  assert.match(app, /rankingBody\.append\(rankingPanel\)/);
+});
+
 test("앱이 참조하는 정적 ID가 HTML에 존재한다", async () => {
   const [html, app] = await Promise.all([readMarkup(), readFile(`${root}/app.js`, "utf8")]);
-  const ids = new Set([...html.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]));
+  const idMatches = [...html.matchAll(/\bid="([^"]+)"/g)];
+  const allIds = idMatches.map((match) => match[1]);
+  const duplicateIds = allIds.filter((id, index) => allIds.indexOf(id) !== index);
+  assert.deepEqual([...new Set(duplicateIds)], []);
+  const ids = new Set(allIds);
   const dynamic = new Set(["item-stock", "item-target", "item-rank"]);
   const used = new Set([...app.matchAll(/\$\("#([A-Za-z0-9_-]+)"\)/g)].map((match) => match[1]));
   assert.deepEqual([...used].filter((id) => !ids.has(id) && !dynamic.has(id)), []);

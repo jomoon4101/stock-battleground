@@ -276,11 +276,6 @@ function renderProfilePicker() {
 }
 
 function initializeIntegratedLayout() {
-  const detailBody = $("#stock-detail-body");
-  for (const selector of [".chart-panel", ".trade-panel"]) {
-    const panel = $(selector);
-    if (panel && detailBody) detailBody.append(panel);
-  }
   const rankingPanel = $(".ranking-panel");
   const rankingBody = $("#ranking-modal-body");
   if (rankingPanel && rankingBody) rankingBody.append(rankingPanel);

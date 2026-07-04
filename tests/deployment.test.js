@@ -13,6 +13,7 @@ test("npm scripts와 Vercel dist·SPA 설정이 존재한다", async () => {
   assert.ok(vercel.routes.some((route) => route.handle === "filesystem"));
   assert.ok(vercel.routes.some((route) => route.dest === "/index.html"));
   assert.match(build, /mobile-first\.css/);
+  assert.match(build, /publicFiles\s*=\s*\[[^\]]*"ui-shell\.js"/);
   assert.match(build, /sector-ceo-.+v2/);
 });
 
