@@ -127,6 +127,7 @@ let seenRumorMessageIds = new Set();
 let seenGlobalChatIds = new Set();
 let globalChatCollapsed = false;
 let localAiConversationGeneration = 0;
+const stockDetailPanelOrigins = new Map();
 const myPlayer = () => game?.players.find((player) => player.id === viewerId);
 const playerSummary = () => online ? game.viewerSummary : getPlayerSummary(game, viewerId);
 
@@ -1020,12 +1021,40 @@ function renderStockDetailSectorPicker() {
   requestAnimationFrame(() => $("#stock-detail-sector-list [aria-selected='true']")?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" }));
 }
 
+function mountStockDetailPanels() {
+  const detailBody = $("#stock-detail-body");
+  if (!detailBody) return;
+  for (const selector of [".chart-panel", ".trade-panel"]) {
+    const panel = $(selector);
+    if (!panel) continue;
+    if (!stockDetailPanelOrigins.has(panel)) {
+      stockDetailPanelOrigins.set(panel, { parent: panel.parentNode, nextSibling: panel.nextSibling });
+    }
+    if (panel.parentNode !== detailBody) detailBody.append(panel);
+  }
+}
+
+function restoreStockDetailPanels() {
+  for (const [panel, { parent, nextSibling }] of stockDetailPanelOrigins) {
+    if (!parent) continue;
+    if (nextSibling?.parentNode === parent) parent.insertBefore(panel, nextSibling);
+    else parent.append(panel);
+  }
+  stockDetailPanelOrigins.clear();
+}
+
+function closeStockDetail() {
+  $("#stock-detail-modal").classList.add("is-hidden");
+  restoreStockDetailPanels();
+}
+
 function openStockDetail(stockIndex = selectedStock, side = null) {
   selectedStock = Number(stockIndex);
   $("#limit-price").value = currencyInputValue(currentPrice(game, selectedStock));
   $("#trade-quantity").value = 1;
   if (side) setTradeSide(side);
   activateTab("trade");
+  mountStockDetailPanels();
   renderMarket();
   renderSelectedStock();
   renderTradePanel();
@@ -1710,7 +1739,7 @@ function resetToStart() {
   $("#message-modal").classList.add("is-hidden");
   $("#notifications-modal").classList.add("is-hidden");
   $("#profile-modal").classList.add("is-hidden");
-  $("#stock-detail-modal").classList.add("is-hidden");
+  closeStockDetail();
   $("#ranking-modal").classList.add("is-hidden");
   $("#elimination-modal").classList.add("is-hidden");
   $("#matchmaking-screen").classList.add("is-hidden");
@@ -1750,7 +1779,7 @@ $("#profile-upload").addEventListener("change", async (event) => { try { selecte
 $("#profile-confirm").addEventListener("click", () => $("#profile-modal").classList.add("is-hidden"));
 $('[data-close-profile]').addEventListener("click", () => $("#profile-modal").classList.add("is-hidden"));
 $("#stock-detail-modal").addEventListener("click", (event) => {
-  if (event.target.closest("[data-close-stock-detail]") || event.target === event.currentTarget) $("#stock-detail-modal").classList.add("is-hidden");
+  if (event.target.closest("[data-close-stock-detail]") || event.target === event.currentTarget) closeStockDetail();
 });
 $('[data-close-ranking]').addEventListener("click", () => $("#ranking-modal").classList.add("is-hidden"));
 $("#detail-buy").addEventListener("click", () => { setTradeSide("buy"); activateTab("trade"); renderTradePanel(); $("#trade-quantity").focus(); });
@@ -1967,7 +1996,6 @@ $("#message-modal").addEventListener("click", (event) => { if (event.target.id =
 $("#notifications-modal").addEventListener("click", (event) => { if (event.target.id === "notifications-modal") event.currentTarget.classList.add("is-hidden"); });
 $("#board-modal").addEventListener("click", (event) => { if (event.target.id === "board-modal") event.currentTarget.classList.add("is-hidden"); });
 $("#profile-modal").addEventListener("click", (event) => { if (event.target.id === "profile-modal") event.currentTarget.classList.add("is-hidden"); });
-$("#stock-detail-modal").addEventListener("click", (event) => { if (event.target.id === "stock-detail-modal") event.currentTarget.classList.add("is-hidden"); });
 window.addEventListener("resize", () => requestAnimationFrame(drawChart));
 $("#price-chart").addEventListener("mousemove", (event) => {
   const chart = event.currentTarget._chart;
@@ -1994,7 +2022,7 @@ document.addEventListener("keydown", (event) => {
     $("#notifications-modal").classList.add("is-hidden");
     $("#board-modal").classList.add("is-hidden");
     $("#profile-modal").classList.add("is-hidden");
-    $("#stock-detail-modal").classList.add("is-hidden");
+    closeStockDetail();
     $("#ranking-modal").classList.add("is-hidden");
     if (eliminationShown) $("#elimination-modal").classList.add("is-hidden");
   }
