@@ -412,7 +412,7 @@ body { background: var(--bg-main); }
 .profile-open-button .profile-preview { width: 58px; height: 58px; border: 2px solid var(--line-soft); border-radius: 14px; box-shadow: 0 4px 12px rgba(0,0,0,.28); }
 .profile-open-button b,.profile-open-button small { display: block; }
 .profile-open-button b { font-size: 16px; }
-.profile-open-button small { margin-top: 4px; color: var(--text-sub); font-size: 11px; line-height: 1.35; }
+.profile-open-button small { margin-top: 4px; color: var(--text-sub); font-size: 12px; line-height: 1.35; }
 .profile-open-button i { color: var(--red-main); font: normal 800 26px/1 var(--sans); }
 .profile-modal-card { width: min(560px,100%); }
 .profile-modal-card > p { margin: -8px 0 18px; color: #687d93; }
@@ -1476,3 +1476,15 @@ html,body { width:100%; min-width:320px; max-width:100%; overflow-x:hidden; }
   }
   #stock-survival-root,.start-screen,.matchmaking-screen,.lobby-screen,.mobile-app-shell { border-inline:1px solid rgba(255,255,255,.05); }
 }
+
+.stock-detail-character-copy p,
+.stock-detail-body .trade-grid label,
+.stock-detail-body .input-suffix input,
+.stock-detail-body .quick-amounts button,
+.stock-detail-body .order-summary span,
+.stock-detail-body .order-summary strong,
+.stock-detail-body .trade-submit { font-size:14px; }
+.stock-detail-sector-list button small,
+.stock-detail-body .selected-position-grid small,
+.stock-detail-body .chart-meta,
+.stock-detail-body .chart-stats { font-size:12px; }

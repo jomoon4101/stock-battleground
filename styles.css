@@ -848,3 +848,56 @@ body { color: var(--text); }
   .selected-position-grid { grid-template-columns: 1fr 1fr; }.selected-position-grid div:nth-child(2) { border-right: 0; }.selected-position-grid div { border-bottom: 1px solid var(--line); }.trade-grid { grid-template-columns: 1fr; }.order-summary { grid-column: auto; }.side-toggle { grid-column: auto; }.portfolio-card { grid-template-columns: 34px 1fr auto; }.portfolio-card > span:nth-of-type(n+3) { display: none; }.portfolio-pnl { display: block !important; }.chart-stats { gap: 8px; overflow-x: auto; }.game-bottom-nav { grid-template-columns: repeat(7,1fr); }
 }
 }
+
+/* Mobile readability floor */
+.leader-announcement {
+  border:1px solid var(--line-soft);
+  background:var(--bg-panel);
+  color:var(--text-main);
+  box-shadow:0 16px 42px rgba(0,0,0,.42);
+}
+.leader-announcement span { color:var(--red-main); }
+.leader-announcement strong { color:var(--text-main); font-size:14px; line-height:1.45; }
+.leader-announcement small { color:var(--text-sub); font-size:12px; }
+
+.rules-grid p,.data-note { font-size:14px; line-height:1.65; }
+.message-bubble,.message-empty,.notice-row,.board-post p { font-size:14px; line-height:1.55; }
+.message-bubble small,.message-recipient small,.message-contact small,.board-post small { font-size:12px; line-height:1.4; }
+
+.rank-number,.rank-person small,.rank-move,.streak-mark,
+.rank-detail-player small,.top-stock-card > span,.top-stock-card small,
+.rank-stock-jump span,.rank-stock-jump small,.rank-detail-card > p,
+.history-chart-grid span,.holdings-modal-summary small,.holdings-helper {
+  font-size:12px;
+  line-height:1.45;
+}
+.rank-person b,.rank-assets,.rank-detail-player strong,
+.top-stock-card strong,.player-history-summary,
+.holdings-modal-summary span,.holdings-modal-summary strong {
+  font-size:14px;
+  line-height:1.45;
+}
+
+.profile-modal-card > p,.modal input,.modal select,.modal textarea { font-size:14px; }
+.message-title-row .button,.message-recipient b,.message-contact b { font-size:14px; }
+.item-modal-card > p,.item-option-label,.modal-cost,
+.result-rank span,.result-rank small,.podium span,.podium small {
+  font-size:14px;
+  line-height:1.5;
+}
+.modal-cost strong { font-size:14px; }
+.rules-grid b,.podium b,.holdings-list:empty::after { font-size:14px; line-height:1.45; }
+.rank-stock-jump b,.top-stock-card b,.holding-name small,.holding-value small,
+.elimination-stats small,.elimination-activity > strong,
+.elimination-activity span,.elimination-activity em,
+.identity-card > div:nth-child(2) span,.identity-card > div:nth-child(2) small,
+.my-rank span,.asset-title-button small,.asset-breakdown button small,.salary-row {
+  font-size:12px;
+  line-height:1.4;
+}
+.holding-name strong,.holding-value b,.elimination-activity b {
+  font-size:14px;
+  line-height:1.45;
+}
+.holding-actions button { font-size:14px; }
+.asset-breakdown div,.asset-breakdown button,.asset-breakdown b { font-size:14px; }

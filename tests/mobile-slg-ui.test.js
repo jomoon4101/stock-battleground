@@ -162,3 +162,29 @@ test("compact global chat has an external trigger and a real hidden sheet lifecy
   assert.match(app, /#global-chat-sheet[\s\S]*classList\.contains\("is-hidden"\)/);
   assert.doesNotMatch(app, /globalChatCollapsed|is-collapsed/);
 });
+
+test("post-legacy dark leader and modal readability floor wins the cascade", async () => {
+  const styles = await readFile(`${root}/styles.css`, "utf8");
+  const legacyLeaderIndex = styles.lastIndexOf(".leader-announcement { border-color:");
+  const floorIndex = styles.lastIndexOf("/* Mobile readability floor */");
+  assert.ok(legacyLeaderIndex >= 0, "legacy leader declaration must remain detectable");
+  assert.ok(floorIndex > legacyLeaderIndex, "readability floor must follow all legacy declarations");
+
+  const floor = styles.slice(floorIndex);
+  assert.match(floor, /\.leader-announcement\s*\{(?=[^}]*border:\s*1px solid var\(--line-soft\))(?=[^}]*background:\s*var\(--bg-panel\))(?=[^}]*color:\s*var\(--text-main\))(?=[^}]*box-shadow:)[^}]*\}/);
+  assert.doesNotMatch(floor, /\.leader-announcement\s*\{[^}]*background:\s*(?:white|#fff)/);
+  assert.match(floor, /\.leader-announcement strong\s*\{[^}]*color:\s*var\(--text-main\)[^}]*font-size:\s*14px/);
+  assert.match(floor, /\.rules-grid p,\.data-note\s*\{[^}]*font-size:\s*14px/);
+  assert.match(floor, /\.message-bubble,\.message-empty,\.notice-row,\.board-post p\s*\{[^}]*font-size:\s*14px/);
+  assert.match(floor, /\.message-bubble small,\.message-recipient small,\.message-contact small,\.board-post small\s*\{[^}]*font-size:\s*12px/);
+  assert.match(floor, /\.rank-number,\.rank-person small,\.rank-move,\.streak-mark,[^}]*font-size:\s*12px/);
+  assert.match(floor, /\.rank-person b,\.rank-assets,\.rank-detail-player strong,[^}]*font-size:\s*14px/);
+  assert.match(floor, /\.item-modal-card > p,\.item-option-label,\.modal-cost,[^}]*font-size:\s*14px/);
+  assert.match(floor, /\.rules-grid b,\.podium b,\.holdings-list:empty::after\s*\{[^}]*font-size:\s*14px/);
+  assert.match(floor, /\.rank-stock-jump b,\.top-stock-card b,\.holding-name small,[^}]*font-size:\s*12px/);
+  assert.match(floor, /\.elimination-stats small,\.elimination-activity > strong,[^}]*font-size:\s*12px/);
+  assert.match(floor, /\.holding-name strong,\.holding-value b,\.elimination-activity b\s*\{[^}]*font-size:\s*14px/);
+
+  const mobileCss = await readFile(`${root}/mobile-first.css`, "utf8");
+  assert.match(mobileCss, /\.profile-open-button small\s*\{[^}]*font-size:\s*12px/);
+});
