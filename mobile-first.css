@@ -273,7 +273,7 @@ html, body { width: 100%; min-width: 320px; overflow-x: hidden; }
   --refine-line: rgba(112,146,181,.24);
   --refine-shadow: 0 18px 45px rgba(9,35,66,.12);
 }
-body { background: #edf3f9; }
+body { background: var(--bg-main); }
 .noise { opacity: .018; }
 .start-screen {
   background:
@@ -400,20 +400,20 @@ body { background: #edf3f9; }
   gap: 12px;
   align-items: center;
   padding: 9px 12px;
-  border: 1px solid #b9cada;
+  border: 1px solid var(--line-soft);
   border-radius: 13px;
-  background: linear-gradient(145deg,#fff,#eef5fa);
-  color: #102d4d;
+  background: var(--bg-panel-2);
+  color: var(--text-main);
   text-align: left;
-  box-shadow: 0 7px 18px rgba(15,54,94,.08);
+  box-shadow: 0 10px 24px rgba(0,0,0,.24);
   cursor: pointer;
 }
-.profile-open-button:hover { border-color: #e1283f; box-shadow: 0 9px 22px rgba(15,54,94,.13); }
-.profile-open-button .profile-preview { width: 58px; height: 58px; border: 2px solid white; border-radius: 14px; box-shadow: 0 4px 12px rgba(8,35,65,.18); }
+.profile-open-button:hover { border-color: var(--red-main); box-shadow: 0 12px 28px rgba(0,0,0,.3); }
+.profile-open-button .profile-preview { width: 58px; height: 58px; border: 2px solid var(--line-soft); border-radius: 14px; box-shadow: 0 4px 12px rgba(0,0,0,.28); }
 .profile-open-button b,.profile-open-button small { display: block; }
 .profile-open-button b { font-size: 16px; }
-.profile-open-button small { margin-top: 4px; color: #687d93; font-size: 11px; line-height: 1.35; }
-.profile-open-button i { color: #d7283d; font: normal 800 26px/1 var(--sans); }
+.profile-open-button small { margin-top: 4px; color: var(--text-sub); font-size: 11px; line-height: 1.35; }
+.profile-open-button i { color: var(--red-main); font: normal 800 26px/1 var(--sans); }
 .profile-modal-card { width: min(560px,100%); }
 .profile-modal-card > p { margin: -8px 0 18px; color: #687d93; }
 .profile-modal-picker { grid-template-columns: repeat(5,minmax(0,1fr)); gap: 10px; }
@@ -780,16 +780,16 @@ body { background: #edf3f9; }
 .stock-detail-sector-list button em { margin-left: 3px; font-style: normal; font-weight: 900; }
 .stock-detail-sector-list button em.up { color: #d5233b; }
 .stock-detail-sector-list button em.down { color: #1768d4; }
-.stock-detail-sector-list button.is-active { border-color: #dc2638; background: #fff0f2; box-shadow: 0 0 0 3px rgba(220,38,56,.1); }
+.stock-detail-sector-list button.is-active { border-color: var(--red-main); background: rgba(239,35,60,.12); color: var(--text-main); box-shadow: 0 0 0 3px rgba(239,35,60,.1); }
 
 /* My information now includes a concrete next-rank objective. */
-.my-goal-panel { grid-column: 1 / -1; min-width: 0; padding: 10px 11px; border: 1px solid #c4d3e1; border-radius: 9px; background: rgba(255,255,255,.78); }
+.my-goal-panel { grid-column: 1 / -1; min-width: 0; padding: 10px 11px; border: 1px solid var(--line-soft); border-radius: 9px; background: #0b1220; color: var(--text-main); }
 .my-goal-panel > span,.my-goal-panel > strong,.my-goal-panel > small { display: block; }
-.my-goal-panel > span { color: #1768d4; font: 800 10px/1.2 var(--mono); letter-spacing: .06em; }
-.my-goal-panel > strong { margin-top: 5px; color: #102f51; font-size: 16px; }
-.my-goal-panel > small { margin-top: 4px; color: #5f748b; font-size: 12px; line-height: 1.4; }
-.my-goal-progress { height: 6px; display: block; margin-top: 8px; overflow: hidden; border-radius: 999px; background: #dce7f0; }
-.my-goal-progress b { width: 0; height: 100%; display: block; border-radius: inherit; background: linear-gradient(90deg,#1768d4,#e4273e); transition: width .3s ease; }
+.my-goal-panel > span { color: #7fb6ff; font: 800 10px/1.2 var(--mono); letter-spacing: .06em; }
+.my-goal-panel > strong { margin-top: 5px; color: var(--text-main); font-size: 16px; }
+.my-goal-panel > small { margin-top: 4px; color: var(--text-sub); font-size: 12px; line-height: 1.4; }
+.my-goal-progress { height: 6px; display: block; margin-top: 8px; overflow: hidden; border-radius: 999px; background: var(--bg-panel-2); }
+.my-goal-progress b { width: 0; height: 100%; display: block; border-radius: inherit; background: linear-gradient(90deg,var(--blue-main),var(--gold-main)); transition: width .3s ease; }
 
 /* Clickable intelligence ticker with market direction emphasis. */
 .market-panel > .intel-panel .intel-cards { align-items: stretch; }
@@ -1278,6 +1278,7 @@ html,body { width:100%; min-width:320px; max-width:100%; overflow-x:hidden; }
 .intel-panel .panel-header button { min-height:36px; color:#7fb6ff; }
 .intel-cards { display:grid; grid-template-rows:repeat(3,minmax(58px,auto)); padding:8px; }
 .intel-feed-row { border-color:var(--line-soft); background:#0b1220; }
+.intel-ticker-item:hover,.intel-feed-row:hover { background:var(--bg-panel-2); }
 .intel-feed-card { border-color:var(--line-soft); background:var(--bg-panel); color:var(--text-sub); }
 .intel-feed-card.age-0 { background:var(--bg-panel-2); }
 .intel-feed-card.age-1 { background:var(--bg-panel); opacity:.82; }
@@ -1321,6 +1322,8 @@ html,body { width:100%; min-width:320px; max-width:100%; overflow-x:hidden; }
 .holding-actions button { min-height:44px; background:var(--bg-panel-2); color:#fff; }
 .holding-actions .quick-buy { background:var(--red-main); color:#fff; }
 .holding-actions .quick-sell { background:var(--blue-main); color:#fff; }
+.holding-actions .quick-buy:hover { background:var(--red-dark); }
+.holding-actions .quick-sell:hover { background:#246bbf; }
 .rank-row.is-me { border-color:rgba(242,184,75,.45); background:rgba(242,184,75,.08); }
 .rank-number,.my-rank b { color:var(--gold-main); }
 .asset-panel,.identity-card { background:var(--bg-panel); }

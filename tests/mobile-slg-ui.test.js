@@ -49,13 +49,19 @@ test("battle HUD, action bar, compact chat and image fallback contracts exist", 
     ["line-soft", "rgba(255,255,255,.08)"], ["text-main", "#f8fafc"],
     ["text-sub", "#94a3b8"], ["text-muted", "#64748b"], ["red-main", "#ef233c"],
     ["red-dark", "#b80f28"], ["blue-main", "#2f80ed"], ["gold-main", "#f2b84b"],
-    ["green-main", "#2dd4bf"], ["danger", "#fb7185"], ["safe", "#2dd4bf"],
-    ["warning", "#fbbf24"],
+    ["green-main", "#2dd4bf"], ["danger", "#ef4444"], ["safe", "#22c55e"],
+    ["warning", "#f59e0b"],
   ]) {
     assert.match(styles, new RegExp(`--${token}:\\s*${value.replace(/[().]/g, "\\$&")}`));
   }
   assert.doesNotMatch(styles, /color-scheme:\s*light/);
   assert.match(styles, /body\s*\{[^}]*\bfont:\s*[^;}]*\b14px\b/);
+  assert.doesNotMatch(styles, /2026-07 v2 readability and light-surface hardening/);
+  assert.doesNotMatch(styles, /Every dialog\/form surface is explicitly light/);
+  assert.doesNotMatch(styles, /--font-body:\s*16px|body\s*\{[^}]*font(?:-size)?:\s*[^;}]*16px|body\s*\{\s*font-size:\s*var\(--font-body\)/);
+  assert.doesNotMatch(styles, /--surface:\s*#ffffff|--surface-soft:\s*#f4f8fc|--surface-blue:\s*#eaf3fd/);
+  assert.doesNotMatch(styles, /\.message-bubble\.rumor\s*\{[^}]*background:\s*#fff7df/);
+  assert.match(styles, /\.message-bubble\.rumor\s*\{(?=[^}]*background:\s*rgba\(245,158,11,\.12\))(?=[^}]*color:\s*#fde68a)[^}]*\}/);
   assert.match(mobileCss, /\.mobile-app-shell\s*\{[^}]*\bwidth:\s*min\(\s*100%\s*,\s*480px\s*\)/);
   assert.match(mobileCss, /\.app-tab\s*\{[^}]*\bmin-height:\s*48px/);
   assert.match(mobileCss, /\.chat-fab\s*\{(?=[^}]*\bwidth:\s*44px)(?=[^}]*\bheight:\s*44px)[^}]*\}/);
@@ -63,6 +69,13 @@ test("battle HUD, action bar, compact chat and image fallback contracts exist", 
   assert.match(mobileCss, /\.game-bottom-nav\s*\{(?=[^}]*\bposition:\s*fixed)(?=[^}]*\bwidth:\s*min\(\s*100%\s*,\s*480px\s*\))(?=[^}]*env\(safe-area-inset-bottom\))[^}]*\}/);
   assert.match(mobileCss, /\.turn-action-bar\s*\{(?=[^}]*\bposition:\s*fixed)(?=[^}]*\bbottom:\s*calc\()[^}]*\}/);
   assert.match(mobileCss, /\.sector-art-fallback\s*\{/);
+  assert.doesNotMatch(mobileCss, /\.profile-open-button\s*\{[^}]*background:\s*linear-gradient\(145deg,#fff,#eef5fa\)/);
+  assert.doesNotMatch(mobileCss, /\.my-goal-panel\s*\{[^}]*background:\s*rgba\(255,255,255,\.78\)/);
+  assert.doesNotMatch(mobileCss, /body\s*\{\s*background:\s*#edf3f9/);
+  assert.doesNotMatch(mobileCss, /\.stock-detail-sector-list button\.is-active\s*\{[^}]*background:\s*#fff0f2/);
+  assert.match(mobileCss, /\.profile-open-button\s*\{(?=[^}]*border:\s*1px solid var\(--line-soft\))(?=[^}]*background:\s*var\(--bg-panel-2\))(?=[^}]*color:\s*var\(--text-main\))[^}]*\}/);
+  assert.match(mobileCss, /\.my-goal-panel\s*\{(?=[^}]*border:\s*1px solid var\(--line-soft\))(?=[^}]*background:\s*#0b1220)(?=[^}]*color:\s*var\(--text-main\))[^}]*\}/);
+  assert.match(mobileCss, /\.my-goal-progress\s*\{[^}]*background:\s*var\(--bg-panel-2\)/);
   for (const viewport of [390, 412, 430]) assert.match(mobileCss, new RegExp(`@media \\(min-width: ${viewport}px\\)`));
   assert.match(mobileCss, /@media \(min-width: 481px\)/);
 
