@@ -1568,14 +1568,28 @@ html,body { width:100%; min-width:320px; max-width:100%; overflow-x:hidden; }
 .stock-detail-sector-list button { min-height:56px; }
 
 /* Checkpoint HUD and final touch targets */
-.round-status { position:relative; }
 .final-countdown {
-  position:absolute;
-  inset:4px 0 4px 40px;
-  z-index:3;
-  width:auto;
+  position:fixed;
+  inset:auto;
+  left:50%;
+  top:0;
+  z-index:90;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto auto;
+  align-items:center;
+  gap:8px;
+  width:min(100%,480px);
   min-width:0;
-  height:auto;
+  min-height:60px;
+  height:calc(60px + env(safe-area-inset-top));
+  padding:env(safe-area-inset-top) 14px 0;
+  transform:translateX(-50%);
+  border-radius:0;
+}
+.final-countdown.tick { animation:mobile-countdown-hit .75s ease-out both; }
+@keyframes mobile-countdown-hit {
+  0% { transform:translateX(-50%) scale(1.02); background:rgba(155,20,27,.98); }
+  100% { transform:translateX(-50%) scale(1); background:rgba(72,13,17,.98); }
 }
 .trade-submit { min-height:56px; }
 .stock-detail-body .trade-submit { min-height:56px; }
@@ -1587,3 +1601,5 @@ html,body { width:100%; min-width:320px; max-width:100%; overflow-x:hidden; }
 .sector-open-button { min-height:48px; }
 .intel-trade-link { min-height:48px; }
 .holding-actions button { min-height:48px; }
+.stock-detail-body .tab { min-height:48px; }
+.market-panel > .intel-panel .intel-title-block #open-intel-messages { min-height:48px; }

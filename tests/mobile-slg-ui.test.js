@@ -247,14 +247,15 @@ test("checkpoint overlay and remaining transaction controls fit mobile touch tar
   assert.ok(finalTargetsIndex > oldCountdownIndex, "checkpoint overlay must be the final countdown layout");
 
   const finalTargets = mobileCss.slice(finalTargetsIndex);
-  assert.match(finalTargets, /\.round-status\s*\{[^}]*position:\s*relative/);
-  assert.match(finalTargets, /\.final-countdown\s*\{(?=[^}]*position:\s*absolute)(?=[^}]*inset:\s*[^;}]+)(?=[^}]*min-width:\s*0)(?=[^}]*width:\s*auto)[^}]*\}/);
+  assert.match(finalTargets, /\.final-countdown\s*\{(?=[^}]*position:\s*fixed)(?=[^}]*left:\s*50%)(?=[^}]*top:\s*0)(?=[^}]*width:\s*min\(100%,480px\))(?=[^}]*transform:\s*translateX\(-50%\))(?=[^}]*min-height:\s*60px)[^}]*\}/);
   assert.doesNotMatch(finalTargets, /\.final-countdown\s*\{[^}]*min-width:\s*145px/);
+  assert.match(styles, /\.is-hidden\s*\{[^}]*display:\s*none\s*!important/);
 
   for (const selector of [
     "\\.trade-submit", "\\.stock-detail-body \\.trade-submit", "\\.trade-grid input",
     "\\.order-form input", "\\.order-form select", "\\.inline-form input",
     "\\.sector-open-button", "\\.intel-trade-link", "\\.holding-actions button",
+    "\\.stock-detail-body \\.tab", "\\.market-panel > \\.intel-panel \\.intel-title-block #open-intel-messages",
   ]) {
     assert.match(finalTargets, new RegExp(`${selector}\\s*\\{[^}]*min-height:\\s*(?:48|5[0-9]|6[0-4])px`), selector);
   }
