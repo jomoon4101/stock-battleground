@@ -128,7 +128,6 @@ export function mountAppShell(root = document.querySelector("#stock-survival-roo
       <div><small>보유 현금</small><strong id="survival-cash">₩0</strong></div>
       <div class="risk"><small>생존 위험도</small><strong id="survival-risk">안전</strong></div>
       <div><small>남은 시간</small><strong id="survival-time">01:30</strong></div>
-      <button class="end-turn-button" id="end-turn-button"><span>✓</span><b>턴 종료</b><small>행동 완료</small></button>
     </section>
     </div>
 
@@ -314,10 +313,15 @@ export function mountAppShell(root = document.querySelector("#stock-survival-roo
     </section>
     </aside>
 
+    <div class="turn-action-bar" aria-label="턴 행동">
+      <button class="open-trade-button" id="open-trade-button" type="button"><span>⇄</span><b>거래</b><small>주문 열기</small></button>
+      <button class="end-turn-button" id="end-turn-button" type="button"><span>✓</span><b>턴 종료</b><small>행동 완료</small></button>
+    </div>
+
     <nav class="game-bottom-nav" id="game-bottom-nav" aria-label="게임 메뉴">
       <button data-app-tab="home" data-nav-target="assets"><span>⌂</span><small>홈</small></button>
       <button data-app-tab="market" data-nav-target="market"><span>▥</span><small>시장</small></button>
-      <button id="open-trade-button" data-app-tab="trade" data-nav-target="trade"><span>⇄</span><small>거래</small></button>
+      <button data-app-tab="trade" data-nav-target="trade"><span>⇄</span><small>거래</small></button>
       <button data-app-tab="survivors" data-nav-target="ranking"><span>♟</span><small>생존자</small></button>
       <button data-app-tab="logs" data-nav-target="messages"><span>▤</span><small>로그</small></button>
     </nav>

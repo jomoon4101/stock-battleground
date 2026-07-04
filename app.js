@@ -1845,6 +1845,16 @@ $("#game-bottom-nav").addEventListener("click", (event) => {
       break;
   }
 });
+
+$("#open-trade-button").addEventListener("click", () => {
+  if (!game) return;
+  setActiveAppTab("trade");
+  renderTradePanel();
+  renderOrders();
+  renderFinance();
+  renderItems();
+  requestAnimationFrame(drawChart);
+});
 $("#new-game-button").addEventListener("click", leaveOnlineRoom);
 $("#restart-button").addEventListener("click", leaveOnlineRoom);
 $("#rules-button").addEventListener("click", () => openSheet("rules-modal"));

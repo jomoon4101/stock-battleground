@@ -34,18 +34,47 @@ test("mobile SLG shell exposes the five real battle tabs", async () => {
 });
 
 test("battle HUD, action bar, compact chat and image fallback contracts exist", async () => {
-  const [uiShell, mobileCss] = await Promise.all([
+  const [uiShell, app, styles, mobileCss] = await Promise.all([
     readSource("ui-shell.js"),
+    readFile(`${root}/app.js`, "utf8"),
+    readFile(`${root}/styles.css`, "utf8"),
     readFile(`${root}/mobile-first.css`, "utf8"),
   ]);
 
   for (const id of ["battle-hud", "end-turn-button", "open-trade-button", "global-chat-toggle", "global-chat-sheet"]) {
     assert.match(uiShell, new RegExp(`id=["']${id}["']`));
   }
+  for (const [token, value] of [
+    ["bg-main", "#070b14"], ["bg-panel", "#101827"], ["bg-panel-2", "#162033"],
+    ["line-soft", "rgba(255,255,255,.08)"], ["text-main", "#f8fafc"],
+    ["text-sub", "#94a3b8"], ["text-muted", "#64748b"], ["red-main", "#ef233c"],
+    ["red-dark", "#b80f28"], ["blue-main", "#2f80ed"], ["gold-main", "#f2b84b"],
+    ["green-main", "#2dd4bf"], ["danger", "#fb7185"], ["safe", "#2dd4bf"],
+    ["warning", "#fbbf24"],
+  ]) {
+    assert.match(styles, new RegExp(`--${token}:\\s*${value.replace(/[().]/g, "\\$&")}`));
+  }
+  assert.doesNotMatch(styles, /color-scheme:\s*light/);
+  assert.match(styles, /body\s*\{[^}]*\bfont:\s*[^;}]*\b14px\b/);
   assert.match(mobileCss, /\.mobile-app-shell\s*\{[^}]*\bwidth:\s*min\(\s*100%\s*,\s*480px\s*\)/);
+  assert.match(mobileCss, /\.app-tab\s*\{[^}]*\bmin-height:\s*48px/);
   assert.match(mobileCss, /\.chat-fab\s*\{(?=[^}]*\bwidth:\s*44px)(?=[^}]*\bheight:\s*44px)[^}]*\}/);
-  assert.match(mobileCss, /sector-art-fallback/);
-  assert.match(mobileCss, /env\(safe-area-inset-bottom\)/);
+  assert.match(mobileCss, /\.battle-hud\s*\{[^}]*\bposition:\s*sticky/);
+  assert.match(mobileCss, /\.game-bottom-nav\s*\{(?=[^}]*\bposition:\s*fixed)(?=[^}]*\bwidth:\s*min\(\s*100%\s*,\s*480px\s*\))(?=[^}]*env\(safe-area-inset-bottom\))[^}]*\}/);
+  assert.match(mobileCss, /\.turn-action-bar\s*\{(?=[^}]*\bposition:\s*fixed)(?=[^}]*\bbottom:\s*calc\()[^}]*\}/);
+  assert.match(mobileCss, /\.sector-art-fallback\s*\{/);
+  for (const viewport of [390, 412, 430]) assert.match(mobileCss, new RegExp(`@media \\(min-width: ${viewport}px\\)`));
+  assert.match(mobileCss, /@media \(min-width: 481px\)/);
+
+  const actionBar = uiShell.match(/<div class="turn-action-bar"[\s\S]*?<\/div>/)?.[0] || "";
+  assert.match(actionBar, /id="open-trade-button"/);
+  assert.match(actionBar, /id="end-turn-button"/);
+  assert.equal((uiShell.match(/id="open-trade-button"/g) || []).length, 1);
+  assert.equal((uiShell.match(/id="end-turn-button"/g) || []).length, 1);
+  const bottomNav = uiShell.match(/<nav class="game-bottom-nav"[\s\S]*?<\/nav>/)?.[0] || "";
+  assert.equal((bottomNav.match(/data-app-tab=/g) || []).length, 5);
+  assert.doesNotMatch(bottomNav, /id="open-trade-button"/);
+  assert.match(app, /#open-trade-button[\s\S]*setActiveAppTab\("trade"\)[\s\S]*renderTradePanel\(\)[\s\S]*requestAnimationFrame\(drawChart\)/);
 });
 
 test("app tab state owns validation, accessibility, events and sheet scroll locking", async () => {
