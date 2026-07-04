@@ -264,6 +264,6 @@ test("dark mobile SLG tokens and readable control sizes exist", async () => {
   assert.match(styles, /--bg-main:\s*#070b14/);
   assert.match(styles, /--text-main:\s*#f8fafc/);
   assert.match(styles, /--red-main:\s*#ef233c/);
-  assert.match(mobileCss, /font-size:\s*14px/);
+  assert.match(styles, /font-size:\s*14px/);
   assert.match(mobileCss, /min-height:\s*48px/);
 });
