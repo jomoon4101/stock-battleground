@@ -1523,3 +1523,46 @@ html,body { width:100%; min-width:320px; max-width:100%; overflow-x:hidden; }
 .market-panel > .intel-panel .intel-feed-card > span,
 .market-panel > .intel-panel .intel-feed-card > em { color:var(--text-sub); }
 .market-panel > .intel-panel .intel-feed-row > .intel-category { color:var(--text-main); }
+
+/* Restored mobile controls and contrast */
+.topbar { grid-template-columns:40px minmax(0,1fr) auto; }
+.brand { width:40px; padding-inline:4px; }
+.brand-mark { width:32px; height:32px; }
+.round-status { gap:4px; padding-inline:3px; }
+.turn-badge { min-width:34px; }
+.top-actions { display:flex; align-items:center; gap:4px; padding-right:4px; }
+.top-actions .connection { display:none; }
+.top-actions .icon-button {
+  display:grid;
+  place-items:center;
+  width:48px;
+  height:48px;
+  min-width:48px;
+  min-height:48px;
+  border:1px solid var(--line-soft);
+  border-radius:11px;
+  background:var(--bg-panel-2);
+  color:var(--text-main);
+}
+.game-room-code { min-width:54px; min-height:48px; padding-inline:4px; }
+@media (min-width: 390px) {
+  .topbar { grid-template-columns:40px minmax(0,1fr) auto; }
+  .round-status { gap:6px; padding-inline:4px; }
+}
+
+.stock-detail-sector-switcher > div:first-child strong { color:var(--text-main); }
+.stock-detail-sector-switcher > div:first-child small { color:var(--text-sub); }
+.sector-ceo {
+  background-color:#0b1220;
+  background-image:linear-gradient(145deg,var(--bg-panel-2),#0b1220);
+}
+
+.stock-detail-actions button { min-height:48px; }
+.chart-type-toggle button { min-height:48px; }
+.stock-detail-body .chart-type-toggle button { min-height:48px; }
+.stock-detail-body .side-toggle { min-height:48px; }
+.stock-detail-body .side-toggle button { min-height:48px; }
+.stock-detail-body .quick-amounts button { min-height:48px; }
+.language-choice button { min-height:48px; }
+.sector-rail-controls button { width:48px; height:48px; min-height:48px; }
+.stock-detail-sector-list button { min-height:56px; }

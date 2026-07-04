@@ -204,3 +204,34 @@ test("final high-specificity intelligence block defeats light market surfaces", 
   assert.match(finalIntel, /\.market-panel > \.intel-panel \.intel-feed-row\s*\{(?=[^}]*border-color:\s*var\(--line-soft\))(?=[^}]*background:\s*var\(--bg-panel\))[^}]*\}/);
   assert.match(finalIntel, /\.market-panel > \.intel-panel \.intel-feed-card\s*\{(?=[^}]*border-color:\s*var\(--line-soft\))(?=[^}]*background:\s*var\(--bg-panel-2\))(?=[^}]*color:\s*var\(--text-sub\))[^}]*\}/);
 });
+
+test("final mobile controls, detail contrast and shell labels remain accessible", async () => {
+  const [uiShell, mobileCss, i18n] = await Promise.all([
+    readSource("ui-shell.js"),
+    readFile(`${root}/mobile-first.css`, "utf8"),
+    readFile(`${root}/i18n.js`, "utf8"),
+  ]);
+  assert.match(uiShell, /id="pause-button"/);
+  assert.match(uiShell, /id="rules-button"/);
+
+  const hiddenIconsIndex = mobileCss.lastIndexOf(".top-actions .connection,.top-actions .icon-button { display:none; }");
+  const restoredControlsIndex = mobileCss.lastIndexOf("/* Restored mobile controls and contrast */");
+  assert.ok(restoredControlsIndex > hiddenIconsIndex, "visible controls must follow the hidden legacy declaration");
+  const finalControls = mobileCss.slice(restoredControlsIndex);
+  assert.match(finalControls, /\.top-actions \.icon-button\s*\{(?=[^}]*display:\s*grid)(?=[^}]*width:\s*48px)(?=[^}]*height:\s*48px)[^}]*\}/);
+  assert.match(finalControls, /@media \(min-width:\s*390px\)\s*\{[\s\S]*?\.topbar\s*\{[^}]*grid-template-columns:\s*40px minmax\(0,1fr\) auto/);
+  assert.match(finalControls, /\.stock-detail-sector-switcher > div:first-child strong\s*\{[^}]*color:\s*var\(--text-main\)/);
+  assert.match(finalControls, /\.stock-detail-sector-switcher > div:first-child small\s*\{[^}]*color:\s*var\(--text-sub\)/);
+  assert.match(finalControls, /\.sector-ceo\s*\{(?=[^}]*background-color:\s*#0b1220)(?=[^}]*background-image:\s*linear-gradient\()[^}]*\}/);
+
+  for (const selector of [
+    "\\.stock-detail-actions button", "\\.chart-type-toggle button", "\\.stock-detail-body \\.chart-type-toggle button",
+    "\\.stock-detail-body \\.side-toggle button", "\\.stock-detail-body \\.quick-amounts button",
+    "\\.language-choice button", "\\.sector-rail-controls button", "\\.stock-detail-sector-list button",
+  ]) {
+    assert.match(finalControls, new RegExp(`${selector}\\s*\\{[^}]*min-height:\\s*(?:48|5[0-9]|6[0-4])px`), selector);
+  }
+
+  assert.match(i18n, /"주문 열기":\s*"Open order"/);
+  assert.match(i18n, /"턴 행동":\s*"Turn actions"/);
+});

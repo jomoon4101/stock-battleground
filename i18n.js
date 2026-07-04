@@ -3,6 +3,7 @@ const textOriginals = new WeakMap();
 const attributeOriginals = new WeakMap();
 
 const EN = {
+  "주문 열기": "Open order", "턴 행동": "Turn actions",
   "프로필": "Profile", "프로필 선택": "Choose profile", "아이콘을 눌러 변경하거나 사진을 올리세요": "Tap the icon to choose or upload a photo", "게임에서 사용할 프로필을 선택하세요.": "Choose the profile used in the game.", "내 사진 업로드": "Upload my photo", "선택 완료": "Done", "종목 상세": "Stock details", "바로 매수": "Buy now", "바로 매도": "Sell now", "일반 라운드 · 제한시간": "Live round · Time limit", "블라인드 라운드 · 추가 시간": "Blind round · Bonus time",
   "주식": "STOCK", "서바이벌": "SURVIVAL", "시장을 읽고, 자산을 숨기고, 마지막 벨까지 살아남으세요.": "Read the market, protect your assets, and survive until the final bell.",
   "빈자리는 최대 29명의 AI 트레이더가 채웁니다.": "Up to 29 AI traders fill every remaining seat.", "트레이더 닉네임": "Trader nickname", "게임 모드": "Game mode",
