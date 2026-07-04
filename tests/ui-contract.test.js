@@ -31,13 +31,13 @@ test("종목 상세 패널은 열 때 임시 마운트되고 모든 닫기 경�
   assert.match(app, /const stockDetailPanelOrigins = new Map\(\)/);
   assert.match(app, /function mountStockDetailPanels\(\)[\s\S]*stockDetailPanelOrigins\.has\(panel\)[\s\S]*parent: panel\.parentNode[\s\S]*nextSibling: panel\.nextSibling[\s\S]*detailBody\.append\(panel\)/);
   assert.match(app, /function restoreStockDetailPanels\(\)[\s\S]*parent\.insertBefore\(panel, nextSibling\)[\s\S]*stockDetailPanelOrigins\.clear\(\)/);
-  assert.match(app, /function closeStockDetail\(\)[\s\S]*stock-detail-modal[\s\S]*restoreStockDetailPanels\(\)/);
-  assert.match(app, /function openStockDetail[\s\S]*mountStockDetailPanels\(\)[\s\S]*stock-detail-modal[\s\S]*classList\.remove/);
+  assert.match(app, /function closeStockDetail\(\)[\s\S]*closeSheet\("stock-detail-modal"\)[\s\S]*restoreStockDetailPanels\(\)/);
+  assert.match(app, /function openStockDetail[\s\S]*mountStockDetailPanels\(\)[\s\S]*openSheet\("stock-detail-modal"\)/);
   assert.match(app, /data-close-stock-detail[\s\S]*closeStockDetail\(\)/);
   assert.match(app, /event\.key === "Escape"[\s\S]*closeStockDetail\(\)/);
   assert.match(app, /#detail-buy[\s\S]*setTradeSide\("buy"\)[\s\S]*renderTradePanel\(\)/);
   assert.match(app, /#detail-sell[\s\S]*setTradeSide\("sell"\)[\s\S]*renderTradePanel\(\)/);
-  assert.equal((app.match(/\$\("#stock-detail-modal"\)\.classList\.add\("is-hidden"\)/g) || []).length, 1);
+  assert.equal((app.match(/\$\("#stock-detail-modal"\)\.classList\.add\("is-hidden"\)/g) || []).length, 0);
 });
 
 test("앱이 참조하는 정적 ID가 HTML에 존재한다", async () => {

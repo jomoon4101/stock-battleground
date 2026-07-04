@@ -65,7 +65,7 @@ test("bottom navigation selects app tabs and renders each tab's content", async 
     readFile(`${root}/scripts/build.mjs`, "utf8"),
   ]);
 
-  assert.match(app, /import \{[^}]*setActiveAppTab[^}]*\} from ["']\.\/ui-state\.js["']/);
+  assert.match(app, /import \{[^}]*closeSheet[^}]*openSheet[^}]*setActiveAppTab[^}]*\} from ["']\.\/ui-state\.js["']/);
   assert.match(app, /mountAppShell\(\);[\s\S]*setActiveAppTab\("home"\)/);
   assert.match(app, /#game-bottom-nav[\s\S]*closest\("\[data-app-tab\]"\)[\s\S]*setActiveAppTab\(button\.dataset\.appTab\)/);
   assert.match(app, /case "home":[\s\S]*renderAssets\(\)[\s\S]*renderPortfolioPanel\(\)/);
@@ -78,4 +78,23 @@ test("bottom navigation selects app tabs and renders each tab's content", async 
   assert.match(app, /function activateTradeTab\(tabName\)/);
   assert.doesNotMatch(app, /function activateTab\(tabName\)/);
   assert.match(build, /"ui-state\.js"/);
+});
+
+test("all modal backdrop flows use shared sheet state helpers", async () => {
+  const app = await readFile(root + "/app.js", "utf8");
+  const sheetIds = [
+    "profile-modal", "stock-detail-modal", "ranking-modal", "rules-modal",
+    "item-modal", "result-modal", "message-modal", "notifications-modal",
+    "elimination-modal", "board-modal", "holdings-modal", "rank-detail-modal",
+  ];
+
+  for (const id of sheetIds) {
+    assert.match(app, new RegExp("openSheet\\(\"" + id + "\"\\)"), id + " must open through openSheet");
+    assert.match(app, new RegExp("closeSheet\\(\"" + id + "\"\\)"), id + " must close through closeSheet");
+    assert.doesNotMatch(
+      app,
+      new RegExp("\\$\\(\"#" + id + "\"\\)\\.classList\\.(?:add|remove)\\(\"is-hidden\"\\)"),
+      id + " must not bypass shared sheet state",
+    );
+  }
 });

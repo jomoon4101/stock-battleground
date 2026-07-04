@@ -25,7 +25,7 @@ import { API_BASE_URL, DEFAULT_RENDER_API_BASE_URL } from "./config.js";
 import { getLanguage, localizeDocument, phrase, setLanguage, translateText } from "./i18n.js";
 import { createAiChatLine, createAiConversationPlan } from "./ai-chat.js?v=20260701-23";
 import { mountAppShell } from "./ui-shell.js";
-import { setActiveAppTab } from "./ui-state.js";
+import { closeSheet, openSheet, setActiveAppTab } from "./ui-state.js";
 
 mountAppShell();
 setActiveAppTab("home");
@@ -1007,7 +1007,7 @@ function renderHoldingsModal() {
 
 function openHoldingsModal() {
   renderHoldingsModal();
-  $("#holdings-modal").classList.remove("is-hidden");
+  openSheet("holdings-modal");
 }
 
 function activateTradeTab(tabName) {
@@ -1046,7 +1046,7 @@ function restoreStockDetailPanels() {
 }
 
 function closeStockDetail() {
-  $("#stock-detail-modal").classList.add("is-hidden");
+  closeSheet("stock-detail-modal");
   restoreStockDetailPanels();
 }
 
@@ -1061,7 +1061,7 @@ function openStockDetail(stockIndex = selectedStock, side = null) {
   renderSelectedStock();
   renderTradePanel();
   renderStockDetailSectorPicker();
-  $("#stock-detail-modal").classList.remove("is-hidden");
+  openSheet("stock-detail-modal");
   localizeDocument($("#stock-detail-modal"));
   requestAnimationFrame(() => {
     drawChart();
@@ -1071,14 +1071,14 @@ function openStockDetail(stockIndex = selectedStock, side = null) {
 
 function openRankingModal() {
   renderRanking();
-  $("#ranking-modal").classList.remove("is-hidden");
+  openSheet("ranking-modal");
   localizeDocument($("#ranking-modal"));
   requestAnimationFrame(() => $("#rank-search").focus());
 }
 
 function jumpToHoldingStock(stockIndex, side = null) {
-  $("#holdings-modal").classList.add("is-hidden");
-  $("#rank-detail-modal").classList.add("is-hidden");
+  closeSheet("holdings-modal");
+  closeSheet("rank-detail-modal");
   openStockDetail(stockIndex, side);
 }
 
@@ -1125,7 +1125,7 @@ function openRankDetail(playerId) {
     ? `<span class="portfolio-heading">보유 종목 · 클릭해서 차트 보기</span>${portfolio.map((holding, index) => `<button class="rank-stock-jump ${index === 0 ? "is-largest" : ""}" data-rank-stock="${holding.stockIndex}"><strong>${escapeHtml(holding.name)}</strong><b>${holding.ticker}</b><small>${holding.quantity.toLocaleString("ko-KR")}주 · 평가액 ${money(holding.value)}</small></button>`).join("")}`
     : `<span>가장 많이 보유한 종목</span><strong>보유 종목 없음</strong><small>현재 공개할 주식 포지션이 없습니다.</small>`;
   $("#rank-detail-streak").textContent = entry.assetRiseStreak >= 2 ? `자산이 ${entry.assetRiseStreak}턴 연속 상승 중입니다.` : "연속 자산 상승 기록이 없습니다.";
-  $("#rank-detail-modal").classList.remove("is-hidden");
+  openSheet("rank-detail-modal");
   $("#rank-detail-message").dataset.messagePlayer = entry.playerId;
   $("#rank-detail-message").classList.toggle("is-hidden", entry.playerId === viewerId);
   drawHistoryChart($("#rank-history-chart"), entry.performance || [], "rank");
@@ -1284,7 +1284,7 @@ function openItemModal(itemId) {
     options = `<label class="item-option-label" for="item-rank">표시할 순위 (1~${playerCount})</label><input id="item-rank" type="number" min="1" max="${playerCount}" value="1">`;
   }
   $("#item-options").innerHTML = options || `<p class="helper">추가 선택 없이 즉시 적용됩니다.</p>`;
-  $("#item-modal").classList.remove("is-hidden");
+  openSheet("item-modal");
 }
 
 async function confirmItem() {
@@ -1302,7 +1302,7 @@ async function confirmItem() {
     result = safeAction(() => useSpecialItem(game, activeItem.id, options));
   }
   if (!result) return;
-  $("#item-modal").classList.add("is-hidden");
+  closeSheet("item-modal");
   let message = `${activeItem.name}을 사용했습니다.`;
   if (activeItem.id === "future-price") message = `${game.stocks[result.stockIndex].name} 다음 가격: ${money(result.price)}`;
   if (activeItem.id === "rising-stock") message = `상승 신호: ${game.stocks[result.stockIndex].name}`;
@@ -1436,7 +1436,7 @@ function showResults() {
   $("#final-rank").textContent = me.rank;
   $("#result-message").textContent = me.rank === 1 ? `최후의 트레이더가 되었습니다. 최종 순자산 ${money(me.assets)}.` : `최종 순자산 ${money(me.assets)}. 다음 게임에서는 정보 아이템과 예약 주문을 더 일찍 활용해보세요.`;
   $("#podium").innerHTML = ranking.slice(0, 3).map((entry) => `<div><b>${entry.rank}위</b><span>${escapeHtml(entry.nickname)}</span><small>${money(entry.assets, true)}</small></div>`).join("");
-  $("#result-modal").classList.remove("is-hidden");
+  openSheet("result-modal");
 }
 
 function handleLeaderNotice() {
@@ -1570,7 +1570,7 @@ function openMessages(targetId = null) {
   currentMessageTarget = targetId || existing[0] || null;
   $("#message-recipient-panel").classList.add("is-hidden");
   renderMessages();
-  $("#message-modal").classList.remove("is-hidden");
+  openSheet("message-modal");
   markThreadRead(currentMessageTarget);
   localizeDocument($("#message-modal"));
 }
@@ -1659,7 +1659,7 @@ function openNotifications() {
   $("#notifications-list").innerHTML = notificationHistory.length
     ? notificationHistory.map((notice) => `<div class="notice-row"><b>${escapeHtml(notice.icon || "!")}</b> ${escapeHtml(notice.text)}<small>${new Date(notice.createdAt).toLocaleTimeString()}</small></div>`).join("")
     : `<div class="notice-row">${getLanguage() === "en" ? "No notifications yet." : "아직 알림이 없습니다."}</div>`;
-  $("#notifications-modal").classList.remove("is-hidden");
+  openSheet("notifications-modal");
   $("#notice-unread").classList.add("is-hidden");
   localizeDocument($("#notifications-modal"));
 }
@@ -1672,7 +1672,7 @@ async function loadHallOfFame() {
 }
 
 async function openBoard() {
-  $("#board-modal").classList.remove("is-hidden");
+  openSheet("board-modal");
   try {
     const data = await requestJson("/api/board");
     $("#board-posts").innerHTML = data.posts.map((post) => `<article class="board-post"><p>${escapeHtml(post.text)}</p><small>ANONYMOUS · ${new Date(post.createdAt).toLocaleString()}</small></article>`).join("");
@@ -1703,7 +1703,7 @@ function showElimination() {
     ? activity.map((log) => `<div><span>T${String(log.turn).padStart(2, "0")}</span><b>${escapeHtml(displayText(log.message))}</b>${Number.isFinite(log.amountDelta) ? `<em class="${log.amountDelta > 0 ? "increase" : "decrease"}">${log.amountDelta > 0 ? "+" : "-"}${money(Math.abs(log.amountDelta))}</em>` : ""}</div>`).join("")
     : `<p>${getLanguage() === "en" ? "No trades or finance activity recorded." : "기록된 거래·금융 활동이 없습니다."}</p>`;
   $("#elimination-quote").textContent = `“${data.quote}”`;
-  $("#elimination-modal").classList.remove("is-hidden");
+  openSheet("elimination-modal");
   drawHistoryChart($("#elimination-chart"), data.performance || [], "assets");
   localizeDocument($("#elimination-modal"));
 }
@@ -1735,15 +1735,18 @@ function resetToStart() {
   currencyInputsLanguage = null;
   currentMessageTarget = null;
   game = null;
-  $("#result-modal").classList.add("is-hidden");
-  $("#rules-modal").classList.add("is-hidden");
-  $("#holdings-modal").classList.add("is-hidden");
-  $("#message-modal").classList.add("is-hidden");
-  $("#notifications-modal").classList.add("is-hidden");
-  $("#profile-modal").classList.add("is-hidden");
+  closeSheet("result-modal");
+  closeSheet("rules-modal");
+  closeSheet("holdings-modal");
+  closeSheet("message-modal");
+  closeSheet("notifications-modal");
+  closeSheet("profile-modal");
   closeStockDetail();
-  $("#ranking-modal").classList.add("is-hidden");
-  $("#elimination-modal").classList.add("is-hidden");
+  closeSheet("ranking-modal");
+  closeSheet("elimination-modal");
+  closeSheet("item-modal");
+  closeSheet("board-modal");
+  closeSheet("rank-detail-modal");
   $("#matchmaking-screen").classList.add("is-hidden");
   $("#lobby-screen").classList.add("is-hidden");
   $("#app-shell").classList.add("is-hidden");
@@ -1775,15 +1778,15 @@ $("#game-mode-buttons").addEventListener("click", (event) => {
   $("#game-speed").value = button.dataset.speed;
   $$('[data-speed]', $("#game-mode-buttons")).forEach((candidate) => candidate.classList.toggle("is-active", candidate === button));
 });
-$("#profile-open-button").addEventListener("click", () => { $("#profile-modal").classList.remove("is-hidden"); localizeDocument($("#profile-modal")); });
+$("#profile-open-button").addEventListener("click", () => { openSheet("profile-modal"); localizeDocument($("#profile-modal")); });
 $("#profile-picker").addEventListener("click", (event) => { const button = event.target.closest("[data-profile-index]"); if (!button) return; selectedAvatar = { kind: "meme", index: Number(button.dataset.profileIndex) }; renderProfilePicker(); });
 $("#profile-upload").addEventListener("change", async (event) => { try { selectedAvatar = await resizeUploadedAvatar(event.target.files[0]); renderProfilePicker(); showToast("프로필 사진을 적용했습니다."); } catch (error) { showToast(error.message, "error"); } });
-$("#profile-confirm").addEventListener("click", () => $("#profile-modal").classList.add("is-hidden"));
-$('[data-close-profile]').addEventListener("click", () => $("#profile-modal").classList.add("is-hidden"));
+$("#profile-confirm").addEventListener("click", () => closeSheet("profile-modal"));
+$('[data-close-profile]').addEventListener("click", () => closeSheet("profile-modal"));
 $("#stock-detail-modal").addEventListener("click", (event) => {
   if (event.target.closest("[data-close-stock-detail]") || event.target === event.currentTarget) closeStockDetail();
 });
-$('[data-close-ranking]').addEventListener("click", () => $("#ranking-modal").classList.add("is-hidden"));
+$('[data-close-ranking]').addEventListener("click", () => closeSheet("ranking-modal"));
 $("#detail-buy").addEventListener("click", () => { setTradeSide("buy"); activateTradeTab("trade"); renderTradePanel(); $("#trade-quantity").focus(); });
 $("#detail-sell").addEventListener("click", () => { if ($("#detail-sell").disabled) return; setTradeSide("sell"); activateTradeTab("trade"); renderTradePanel(); $("#trade-quantity").focus(); });
 $("#room-code-input").addEventListener("input", (event) => { event.target.value = event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""); });
@@ -1845,9 +1848,9 @@ $("#game-bottom-nav").addEventListener("click", (event) => {
 });
 $("#new-game-button").addEventListener("click", leaveOnlineRoom);
 $("#restart-button").addEventListener("click", leaveOnlineRoom);
-$("#rules-button").addEventListener("click", () => $("#rules-modal").classList.remove("is-hidden"));
-$("[data-close-modal]").addEventListener("click", () => $("#rules-modal").classList.add("is-hidden"));
-$("[data-close-item]").addEventListener("click", () => $("#item-modal").classList.add("is-hidden"));
+$("#rules-button").addEventListener("click", () => openSheet("rules-modal"));
+$("[data-close-modal]").addEventListener("click", () => closeSheet("rules-modal"));
+$("[data-close-item]").addEventListener("click", () => closeSheet("item-modal"));
 $("#stock-search").addEventListener("input", renderMarket);
 $(".stock-table-head").addEventListener("click", (event) => {
   const button = event.target.closest("[data-sort-key]");
@@ -1981,7 +1984,7 @@ $("#global-chat-send").addEventListener("click", sendGlobalChatMessage);
 $("#global-chat-input").addEventListener("keydown", (event) => { if (event.key === "Enter") sendGlobalChatMessage(); });
 $("#developer-board-button").addEventListener("click", openBoard);
 $("#board-submit").addEventListener("click", submitBoardPost);
-$("#observe-button").addEventListener("click", () => $("#elimination-modal").classList.add("is-hidden"));
+$("#observe-button").addEventListener("click", () => closeSheet("elimination-modal"));
 $("#open-holdings-button").addEventListener("click", openHoldingsModal);
 $("#net-assets").addEventListener("click", openHoldingsModal);
 $("#asset-stock-button").addEventListener("click", openHoldingsModal);
@@ -2002,19 +2005,19 @@ $("#rank-detail-stock").addEventListener("click", (event) => {
   const stock = event.target.closest("[data-rank-stock]");
   if (stock) jumpToHoldingStock(stock.dataset.rankStock);
 });
-$("[data-close-holdings]").addEventListener("click", () => $("#holdings-modal").classList.add("is-hidden"));
-$("[data-close-rank-detail]").addEventListener("click", () => $("#rank-detail-modal").classList.add("is-hidden"));
-$("[data-close-message]").addEventListener("click", () => $("#message-modal").classList.add("is-hidden"));
-$("[data-close-notifications]").addEventListener("click", () => $("#notifications-modal").classList.add("is-hidden"));
-$("[data-close-board]").addEventListener("click", () => $("#board-modal").classList.add("is-hidden"));
-$("#rules-modal").addEventListener("click", (event) => { if (event.target.id === "rules-modal") event.currentTarget.classList.add("is-hidden"); });
-$("#item-modal").addEventListener("click", (event) => { if (event.target.id === "item-modal") event.currentTarget.classList.add("is-hidden"); });
-$("#rank-detail-modal").addEventListener("click", (event) => { if (event.target.id === "rank-detail-modal") event.currentTarget.classList.add("is-hidden"); });
-$("#holdings-modal").addEventListener("click", (event) => { if (event.target.id === "holdings-modal") event.currentTarget.classList.add("is-hidden"); });
-$("#message-modal").addEventListener("click", (event) => { if (event.target.id === "message-modal") event.currentTarget.classList.add("is-hidden"); });
-$("#notifications-modal").addEventListener("click", (event) => { if (event.target.id === "notifications-modal") event.currentTarget.classList.add("is-hidden"); });
-$("#board-modal").addEventListener("click", (event) => { if (event.target.id === "board-modal") event.currentTarget.classList.add("is-hidden"); });
-$("#profile-modal").addEventListener("click", (event) => { if (event.target.id === "profile-modal") event.currentTarget.classList.add("is-hidden"); });
+$("[data-close-holdings]").addEventListener("click", () => closeSheet("holdings-modal"));
+$("[data-close-rank-detail]").addEventListener("click", () => closeSheet("rank-detail-modal"));
+$("[data-close-message]").addEventListener("click", () => closeSheet("message-modal"));
+$("[data-close-notifications]").addEventListener("click", () => closeSheet("notifications-modal"));
+$("[data-close-board]").addEventListener("click", () => closeSheet("board-modal"));
+$("#rules-modal").addEventListener("click", (event) => { if (event.target.id === "rules-modal") closeSheet("rules-modal"); });
+$("#item-modal").addEventListener("click", (event) => { if (event.target.id === "item-modal") closeSheet("item-modal"); });
+$("#rank-detail-modal").addEventListener("click", (event) => { if (event.target.id === "rank-detail-modal") closeSheet("rank-detail-modal"); });
+$("#holdings-modal").addEventListener("click", (event) => { if (event.target.id === "holdings-modal") closeSheet("holdings-modal"); });
+$("#message-modal").addEventListener("click", (event) => { if (event.target.id === "message-modal") closeSheet("message-modal"); });
+$("#notifications-modal").addEventListener("click", (event) => { if (event.target.id === "notifications-modal") closeSheet("notifications-modal"); });
+$("#board-modal").addEventListener("click", (event) => { if (event.target.id === "board-modal") closeSheet("board-modal"); });
+$("#profile-modal").addEventListener("click", (event) => { if (event.target.id === "profile-modal") closeSheet("profile-modal"); });
 window.addEventListener("resize", () => requestAnimationFrame(drawChart));
 $("#price-chart").addEventListener("mousemove", (event) => {
   const chart = event.currentTarget._chart;
@@ -2033,17 +2036,17 @@ $("#price-chart").addEventListener("mousemove", (event) => {
 $("#price-chart").addEventListener("mouseleave", () => $("#chart-tooltip").classList.add("is-hidden"));
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
-    $("#rules-modal").classList.add("is-hidden");
-    $("#item-modal").classList.add("is-hidden");
-    $("#rank-detail-modal").classList.add("is-hidden");
-    $("#holdings-modal").classList.add("is-hidden");
-    $("#message-modal").classList.add("is-hidden");
-    $("#notifications-modal").classList.add("is-hidden");
-    $("#board-modal").classList.add("is-hidden");
-    $("#profile-modal").classList.add("is-hidden");
+    closeSheet("rules-modal");
+    closeSheet("item-modal");
+    closeSheet("rank-detail-modal");
+    closeSheet("holdings-modal");
+    closeSheet("message-modal");
+    closeSheet("notifications-modal");
+    closeSheet("board-modal");
+    closeSheet("profile-modal");
     closeStockDetail();
-    $("#ranking-modal").classList.add("is-hidden");
-    if (eliminationShown) $("#elimination-modal").classList.add("is-hidden");
+    closeSheet("ranking-modal");
+    if (eliminationShown) closeSheet("elimination-modal");
   }
   if (event.code === "Space" && game && !online && !["INPUT", "SELECT", "TEXTAREA"].includes(document.activeElement.tagName)) {
     event.preventDefault();
