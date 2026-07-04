@@ -25,7 +25,7 @@ import { API_BASE_URL, DEFAULT_RENDER_API_BASE_URL } from "./config.js";
 import { getLanguage, localizeDocument, phrase, setLanguage, translateText } from "./i18n.js";
 import { createAiChatLine, createAiConversationPlan } from "./ai-chat.js?v=20260701-23";
 import { mountAppShell } from "./ui-shell.js";
-import { closeSheet, openSheet, setActiveAppTab } from "./ui-state.js";
+import { closeSheet, getActiveAppTab, openSheet, setActiveAppTab } from "./ui-state.js";
 
 mountAppShell();
 setActiveAppTab("home");
@@ -275,12 +275,6 @@ function renderProfilePicker() {
     : "";
   $("#profile-picker").innerHTML = uploaded + Array.from({ length: 10 }, (_, index) => `<button class="profile-option ${selectedAvatar.kind === "meme" && selectedAvatar.index === index ? "is-active" : ""}" data-profile-index="${index}" style="background-position:${avatarPosition(index)}" aria-label="Profile ${index + 1}"></button>`).join("");
   applyAvatar($("#profile-preview"), selectedAvatar);
-}
-
-function initializeIntegratedLayout() {
-  const rankingPanel = $(".ranking-panel");
-  const rankingBody = $("#ranking-modal-body");
-  if (rankingPanel && rankingBody) rankingBody.append(rankingPanel);
 }
 
 function resizeUploadedAvatar(file) {
@@ -642,28 +636,49 @@ function endCurrentTurn() {
   }
 }
 
+function renderActiveBattleTab() {
+  switch (getActiveAppTab()) {
+    case "home":
+      renderAssets();
+      renderPortfolioPanel();
+      break;
+    case "market":
+      renderMarket();
+      renderIntelCards();
+      break;
+    case "trade":
+      renderSelectedStock();
+      renderTradePanel();
+      renderOrders();
+      renderFinance();
+      renderItems();
+      requestAnimationFrame(drawChart);
+      break;
+    case "survivors":
+      renderRanking();
+      break;
+    case "logs":
+      renderLogs();
+      break;
+  }
+}
+
+function activateAppView(tab) {
+  setActiveAppTab(tab);
+  if (game) renderActiveBattleTab();
+}
+
 function renderAll() {
   if (!game) return;
   renderHeader();
-  renderMarket();
-  renderSelectedStock();
-  renderAssets();
-  renderRanking();
-  renderTradePanel();
-  renderPortfolioPanel();
-  renderIntelCards();
   renderSurvivalStatus();
   renderClock();
-  renderOrders();
-  renderFinance();
-  renderItems();
-  renderLogs();
   renderMessageBadges();
   renderGlobalChat();
   announceNewRumorMessages();
   if (!$("#message-modal").classList.contains("is-hidden")) renderMessages();
+  renderActiveBattleTab();
   localizeDocument($("#app-shell"));
-  requestAnimationFrame(drawChart);
 }
 
 function renderHeader() {
@@ -1069,9 +1084,8 @@ function openStockDetail(stockIndex = selectedStock, side = null) {
 }
 
 function openRankingModal() {
+  activateAppView("survivors");
   renderRanking();
-  openSheet("ranking-modal");
-  localizeDocument($("#ranking-modal"));
   requestAnimationFrame(() => $("#rank-search").focus());
 }
 
@@ -1820,40 +1834,12 @@ $("#portfolio-list").addEventListener("click", (event) => {
 $("#open-intel-messages").addEventListener("click", () => openMessages());
 $("#game-bottom-nav").addEventListener("click", (event) => {
   const button = event.target.closest("[data-app-tab]"); if (!button || !game) return;
-  const activeAppTab = setActiveAppTab(button.dataset.appTab);
-  switch (activeAppTab) {
-    case "home":
-      renderAssets();
-      renderPortfolioPanel();
-      break;
-    case "market":
-      renderMarket();
-      renderIntelCards();
-      break;
-    case "trade":
-      renderTradePanel();
-      renderOrders();
-      renderFinance();
-      renderItems();
-      requestAnimationFrame(drawChart);
-      break;
-    case "survivors":
-      renderRanking();
-      break;
-    case "logs":
-      renderLogs();
-      break;
-  }
+  activateAppView(button.dataset.appTab);
 });
 
 $("#open-trade-button").addEventListener("click", () => {
   if (!game) return;
-  setActiveAppTab("trade");
-  renderTradePanel();
-  renderOrders();
-  renderFinance();
-  renderItems();
-  requestAnimationFrame(drawChart);
+  activateAppView("trade");
 });
 $("#new-game-button").addEventListener("click", leaveOnlineRoom);
 $("#restart-button").addEventListener("click", leaveOnlineRoom);
@@ -2078,7 +2064,6 @@ document.addEventListener("keydown", (event) => {
 });
 
 $("#nickname").value = randomNickname();
-initializeIntegratedLayout();
 renderProfilePicker();
 setLanguage("ko");
 updateCurrencySymbols();

@@ -15,6 +15,19 @@ async function readSource(name) {
   }
 }
 
+function functionSource(source, name) {
+  const start = source.indexOf(`function ${name}(`);
+  assert.notEqual(start, -1, `${name} must exist`);
+  const bodyStart = source.indexOf("{", start);
+  let depth = 0;
+  for (let index = bodyStart; index < source.length; index += 1) {
+    if (source[index] === "{") depth += 1;
+    if (source[index] === "}") depth -= 1;
+    if (depth === 0) return source.slice(start, index + 1);
+  }
+  assert.fail(`${name} must have a complete function body`);
+}
+
 test("mobile SLG shell exposes the five real battle tabs", async () => {
   const [html, uiState, uiShell] = await Promise.all([
     readFile(`${root}/index.html`, "utf8"),
@@ -87,7 +100,7 @@ test("battle HUD, action bar, compact chat and image fallback contracts exist", 
   const bottomNav = uiShell.match(/<nav class="game-bottom-nav"[\s\S]*?<\/nav>/)?.[0] || "";
   assert.equal((bottomNav.match(/data-app-tab=/g) || []).length, 5);
   assert.doesNotMatch(bottomNav, /id="open-trade-button"/);
-  assert.match(app, /#open-trade-button[\s\S]*setActiveAppTab\("trade"\)[\s\S]*renderTradePanel\(\)[\s\S]*requestAnimationFrame\(drawChart\)/);
+  assert.match(app, /#open-trade-button[\s\S]*activateAppView\("trade"\)/);
 });
 
 test("app tab state owns validation, accessibility, events and sheet scroll locking", async () => {
@@ -107,14 +120,34 @@ test("bottom navigation selects app tabs and renders each tab's content", async 
     readFile(`${root}/scripts/build.mjs`, "utf8"),
   ]);
 
-  assert.match(app, /import \{[^}]*closeSheet[^}]*openSheet[^}]*setActiveAppTab[^}]*\} from ["']\.\/ui-state\.js["']/);
+  assert.match(app, /import \{[^}]*getActiveAppTab[^}]*setActiveAppTab[^}]*\} from ["']\.\/ui-state\.js["']/);
   assert.match(app, /mountAppShell\(\);[\s\S]*setActiveAppTab\("home"\)/);
-  assert.match(app, /#game-bottom-nav[\s\S]*closest\("\[data-app-tab\]"\)[\s\S]*setActiveAppTab\(button\.dataset\.appTab\)/);
-  assert.match(app, /case "home":[\s\S]*renderAssets\(\)[\s\S]*renderPortfolioPanel\(\)/);
-  assert.match(app, /case "market":[\s\S]*renderMarket\(\)[\s\S]*renderIntelCards\(\)/);
-  assert.match(app, /case "trade":[\s\S]*renderTradePanel\(\)[\s\S]*renderOrders\(\)[\s\S]*renderFinance\(\)[\s\S]*renderItems\(\)[\s\S]*requestAnimationFrame\(drawChart\)/);
-  assert.match(app, /case "survivors":[\s\S]*renderRanking\(\)/);
-  assert.match(app, /case "logs":[\s\S]*renderLogs\(\)/);
+  const activeRenderer = functionSource(app, "renderActiveBattleTab");
+  assert.match(activeRenderer, /switch \(getActiveAppTab\(\)\)/);
+  assert.match(activeRenderer, /case "home":[\s\S]*renderAssets\(\)[\s\S]*renderPortfolioPanel\(\)/);
+  assert.match(activeRenderer, /case "market":[\s\S]*renderMarket\(\)[\s\S]*renderIntelCards\(\)/);
+  assert.match(activeRenderer, /case "trade":[\s\S]*renderSelectedStock\(\)[\s\S]*renderTradePanel\(\)[\s\S]*renderOrders\(\)[\s\S]*renderFinance\(\)[\s\S]*renderItems\(\)[\s\S]*requestAnimationFrame\(drawChart\)/);
+  assert.match(activeRenderer, /case "survivors":[\s\S]*renderRanking\(\)/);
+  assert.match(activeRenderer, /case "logs":[\s\S]*renderLogs\(\)/);
+
+  const activateView = functionSource(app, "activateAppView");
+  assert.match(activateView, /setActiveAppTab\(tab\)/);
+  assert.match(activateView, /renderActiveBattleTab\(\)/);
+  const navHandler = app.slice(app.indexOf('$("#game-bottom-nav")'), app.indexOf('$("#open-trade-button")'));
+  assert.match(navHandler, /closest\("\[data-app-tab\]"\)/);
+  assert.match(navHandler, /activateAppView\(button\.dataset\.appTab\)/);
+  assert.doesNotMatch(navHandler, /switch\s*\(/);
+  const tradeHandler = app.slice(app.indexOf('$("#open-trade-button")'), app.indexOf('$("#new-game-button")'));
+  assert.match(tradeHandler, /activateAppView\("trade"\)/);
+
+  const renderAll = functionSource(app, "renderAll");
+  assert.match(renderAll, /renderHeader\(\)/);
+  assert.match(renderAll, /renderSurvivalStatus\(\)/);
+  assert.match(renderAll, /renderClock\(\)/);
+  assert.match(renderAll, /renderMessageBadges\(\)/);
+  assert.match(renderAll, /renderGlobalChat\(\)/);
+  assert.match(renderAll, /renderActiveBattleTab\(\)/);
+  assert.doesNotMatch(renderAll, /renderMarket\(\)|renderRanking\(\)|renderTradePanel\(\)|renderOrders\(\)|renderFinance\(\)|renderItems\(\)|renderLogs\(\)|requestAnimationFrame\(drawChart\)/);
   assert.doesNotMatch(app, /#game-bottom-nav[\s\S]*target === "ranking"[\s\S]*openRankingModal/);
   assert.doesNotMatch(app, /#game-bottom-nav[\s\S]*target === "trade"[\s\S]*openStockDetail/);
   assert.match(app, /function activateTradeTab\(tabName\)/);
@@ -122,10 +155,19 @@ test("bottom navigation selects app tabs and renders each tab's content", async 
   assert.match(build, /"ui-state\.js"/);
 });
 
+test("ranking navigation keeps the live board in Survivors instead of opening its legacy modal", async () => {
+  const app = await readFile(`${root}/app.js`, "utf8");
+  const openRanking = functionSource(app, "openRankingModal");
+  assert.match(openRanking, /activateAppView\("survivors"\)/);
+  assert.match(openRanking, /renderRanking\(\)/);
+  assert.doesNotMatch(openRanking, /openSheet\("ranking-modal"\)/);
+  assert.doesNotMatch(app, /function initializeIntegratedLayout\(/);
+});
+
 test("all modal backdrop flows use shared sheet state helpers", async () => {
   const app = await readFile(root + "/app.js", "utf8");
   const sheetIds = [
-    "profile-modal", "stock-detail-modal", "ranking-modal", "rules-modal",
+    "profile-modal", "stock-detail-modal", "rules-modal",
     "item-modal", "result-modal", "message-modal", "notifications-modal",
     "elimination-modal", "board-modal", "holdings-modal", "rank-detail-modal",
   ];
@@ -139,6 +181,8 @@ test("all modal backdrop flows use shared sheet state helpers", async () => {
       id + " must not bypass shared sheet state",
     );
   }
+  assert.doesNotMatch(functionSource(app, "openRankingModal"), /openSheet\("ranking-modal"\)/);
+  assert.match(app, /closeSheet\("ranking-modal"\)/);
 });
 
 test("compact global chat has an external trigger and a real hidden sheet lifecycle", async () => {

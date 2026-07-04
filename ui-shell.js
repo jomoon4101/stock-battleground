@@ -139,6 +139,64 @@ export function mountAppShell(root = document.querySelector("#stock-survival-roo
     <main class="game-layout">
       <section class="battle-tab-panel" id="tab-home" data-tab-panel="home">
         <section class="workspace">
+        <section class="identity-card" id="identity-card">
+          <button class="avatar profile-avatar" id="my-profile-button" aria-label="내 프로필"><span id="avatar-text"></span><i></i></button>
+          <div><span>MY TRADER</span><strong id="player-name">용감한 개미</strong><small id="player-id">PLAYER-001</small></div>
+          <div class="my-rank"><span>현재 순위</span><b id="my-rank">-</b></div>
+          <div class="identity-actions"><button id="mailbox-button">✉<em id="mail-unread" class="is-hidden">0</em></button><button id="notifications-button">♟<em id="notice-unread" class="is-hidden">0</em></button></div>
+          <div class="my-goal-panel">
+            <span id="my-goal-kicker">MY GOAL · 내 목표</span><strong id="my-goal-title">상위 순위 추월</strong><small id="my-goal-detail">다음 목표를 계산하고 있습니다.</small>
+            <i class="my-goal-progress"><b id="my-goal-progress"></b></i>
+          </div>
+        </section>
+
+        <section class="panel asset-panel">
+          <div class="panel-header compact">
+            <button class="asset-title-button" id="open-holdings-button"><span class="section-kicker">NET ASSETS</span><h2>생존 자산</h2><small>보유 종목 보기 →</small></button>
+            <span class="delta-badge" id="asset-delta">LIVE</span>
+          </div>
+          <button class="net-assets net-assets-trigger" id="net-assets">₩0</button>
+          <div class="asset-bar"><i id="cash-bar"></i><i id="stock-bar"></i><i id="bond-bar"></i></div>
+          <div class="asset-breakdown">
+            <div><span><i class="cash-dot"></i>현금</span><b id="asset-cash">₩0</b></div>
+            <button class="asset-stock-button" id="asset-stock-button"><span><i class="stock-dot"></i>주식 <small>목록 보기</small></span><b id="asset-stocks">₩0</b></button>
+            <div><span><i class="bond-dot"></i>채권</span><b id="asset-bonds">₩0</b></div>
+            <div class="debt-row"><span><i></i>대출</span><b id="asset-debt">-₩0</b></div>
+          </div>
+          <div class="salary-row"><span>월급 <b id="salary">₩0</b></span><span>예상 세율 <b id="tax-rate">0%</b></span></div>
+        </section>
+
+        <article class="panel portfolio-panel" id="portfolio-panel">
+          <div class="panel-header"><div><span class="section-kicker">MY SURVIVAL BAG</span><h2>내 보유 종목</h2></div><strong id="portfolio-summary">0개 종목</strong></div>
+          <div class="portfolio-list" id="portfolio-list"><p>아직 보유한 종목이 없습니다. 종목을 선택해 매수해보세요.</p></div>
+        </article>
+        </section>
+      </section>
+
+      <section class="battle-tab-panel" id="tab-market" data-tab-panel="market" hidden>
+      <section class="panel market-panel">
+        <div class="panel-header">
+          <div><span class="section-kicker">SECTOR MARKET</span><h2 id="stock-count-title">주식 섹터</h2></div>
+          <div class="market-header-actions"><span class="market-pulse"><i></i> OPEN</span><div class="sector-rail-controls" aria-label="섹터 카드 이동"><button id="sector-scroll-prev" type="button" aria-label="이전 섹터">‹</button><button id="sector-scroll-next" type="button" aria-label="다음 섹터">›</button></div></div>
+        </div>
+        <div class="market-tools">
+          <label class="search-box"><span>⌕</span><input id="stock-search" placeholder="섹터·회사 검색" autocomplete="off"></label>
+        </div>
+        <article class="panel intel-panel" id="intel-panel">
+          <div class="panel-header"><div class="intel-title-block"><span class="section-kicker">SURVIVAL INTELLIGENCE</span><h2>생존 정보 센터</h2><button id="open-intel-messages">찌라시 쪽지함 →</button></div></div>
+          <div class="intel-cards" id="intel-cards"></div>
+        </article>
+        <div class="stock-table-head">
+          <button data-sort-key="name">섹터 <i>↕</i></button>
+          <button data-sort-key="price">현재가 <i>↕</i></button>
+          <button data-sort-key="change">변동 <i>↕</i></button>
+        </div>
+        <div class="stock-list" id="stock-list" role="list" aria-label="주식 섹터"></div>
+      </section>
+      </section>
+
+      <section class="battle-tab-panel" id="tab-trade" data-tab-panel="trade" hidden>
+        <section class="workspace">
         <article class="panel chart-panel">
           <div class="chart-header">
             <div class="stock-title">
@@ -174,36 +232,6 @@ export function mountAppShell(root = document.querySelector("#stock-survival-roo
           </div>
         </article>
 
-        <article class="panel portfolio-panel" id="portfolio-panel">
-          <div class="panel-header"><div><span class="section-kicker">MY SURVIVAL BAG</span><h2>내 보유 종목</h2></div><strong id="portfolio-summary">0개 종목</strong></div>
-          <div class="portfolio-list" id="portfolio-list"><p>아직 보유한 종목이 없습니다. 종목을 선택해 매수해보세요.</p></div>
-        </article>
-        </section>
-      </section>
-
-      <section class="battle-tab-panel" id="tab-market" data-tab-panel="market" hidden>
-      <section class="panel market-panel">
-        <div class="panel-header">
-          <div><span class="section-kicker">SECTOR MARKET</span><h2 id="stock-count-title">주식 섹터</h2></div>
-          <div class="market-header-actions"><span class="market-pulse"><i></i> OPEN</span><div class="sector-rail-controls" aria-label="섹터 카드 이동"><button id="sector-scroll-prev" type="button" aria-label="이전 섹터">‹</button><button id="sector-scroll-next" type="button" aria-label="다음 섹터">›</button></div></div>
-        </div>
-        <div class="market-tools">
-          <label class="search-box"><span>⌕</span><input id="stock-search" placeholder="섹터·회사 검색" autocomplete="off"></label>
-        </div>
-        <article class="panel intel-panel" id="intel-panel">
-          <div class="panel-header"><div class="intel-title-block"><span class="section-kicker">SURVIVAL INTELLIGENCE</span><h2>생존 정보 센터</h2><button id="open-intel-messages">찌라시 쪽지함 →</button></div></div>
-          <div class="intel-cards" id="intel-cards"></div>
-        </article>
-        <div class="stock-table-head">
-          <button data-sort-key="name">섹터 <i>↕</i></button>
-          <button data-sort-key="price">현재가 <i>↕</i></button>
-          <button data-sort-key="change">변동 <i>↕</i></button>
-        </div>
-        <div class="stock-list" id="stock-list" role="list" aria-label="주식 섹터"></div>
-      </section>
-      </section>
-
-      <section class="battle-tab-panel" id="tab-trade" data-tab-panel="trade" hidden>
         <article class="panel trade-panel">
           <div class="tabs" role="tablist">
             <button class="tab is-active" data-tab="trade">행동 선택</button>
@@ -260,38 +288,19 @@ export function mountAppShell(root = document.querySelector("#stock-survival-roo
             <div class="item-grid random-items" id="random-items"></div>
           </div>
         </article>
+        </section>
       </section>
 
       <section class="battle-tab-panel" id="tab-survivors" data-tab-panel="survivors" hidden>
-      <aside class="right-rail">
-        <section class="identity-card" id="identity-card">
-          <button class="avatar profile-avatar" id="my-profile-button" aria-label="내 프로필"><span id="avatar-text"></span><i></i></button>
-          <div><span>MY TRADER</span><strong id="player-name">용감한 개미</strong><small id="player-id">PLAYER-001</small></div>
-          <div class="my-rank"><span>현재 순위</span><b id="my-rank">-</b></div>
-          <div class="identity-actions"><button id="mailbox-button">✉<em id="mail-unread" class="is-hidden">0</em></button><button id="notifications-button">♟<em id="notice-unread" class="is-hidden">0</em></button></div>
-          <div class="my-goal-panel">
-            <span id="my-goal-kicker">MY GOAL · 내 목표</span><strong id="my-goal-title">상위 순위 추월</strong><small id="my-goal-detail">다음 목표를 계산하고 있습니다.</small>
-            <i class="my-goal-progress"><b id="my-goal-progress"></b></i>
-          </div>
-        </section>
-
-        <section class="panel asset-panel">
+        <section class="panel ranking-panel">
           <div class="panel-header compact">
-            <button class="asset-title-button" id="open-holdings-button"><span class="section-kicker">NET ASSETS</span><h2>생존 자산</h2><small>보유 종목 보기 →</small></button>
-            <span class="delta-badge" id="asset-delta">LIVE</span>
+            <div><span class="section-kicker">SURVIVOR BOARD</span><h2>실시간 자산 순위</h2></div>
+            <span id="rank-status" class="rank-status">실시간</span>
           </div>
-          <button class="net-assets net-assets-trigger" id="net-assets">₩0</button>
-          <div class="asset-bar"><i id="cash-bar"></i><i id="stock-bar"></i><i id="bond-bar"></i></div>
-          <div class="asset-breakdown">
-            <div><span><i class="cash-dot"></i>현금</span><b id="asset-cash">₩0</b></div>
-            <button class="asset-stock-button" id="asset-stock-button"><span><i class="stock-dot"></i>주식 <small>목록 보기</small></span><b id="asset-stocks">₩0</b></button>
-            <div><span><i class="bond-dot"></i>채권</span><b id="asset-bonds">₩0</b></div>
-            <div class="debt-row"><span><i></i>대출</span><b id="asset-debt">-₩0</b></div>
-          </div>
-          <div class="salary-row"><span>월급 <b id="salary">₩0</b></span><span>예상 세율 <b id="tax-rate">0%</b></span></div>
+          <label class="rank-search"><span>⌕</span><input id="rank-search" placeholder="플레이어 검색" autocomplete="off"></label>
+          <div class="rank-table-head"><span>순위 / 플레이어</span><span>순자산</span></div>
+          <div class="ranking-list" id="ranking-list"></div>
         </section>
-
-      </aside>
       </section>
 
       <section class="battle-tab-panel" id="tab-logs" data-tab-panel="logs" hidden>
@@ -357,17 +366,7 @@ export function mountAppShell(root = document.querySelector("#stock-survival-roo
     <div class="modal ranking-modal-card">
       <button class="modal-close" data-close-ranking aria-label="닫기">×</button>
       <span class="section-kicker">LIVE RANKING</span><h2 id="ranking-modal-title">생존 순위</h2>
-      <div id="ranking-modal-body">
-        <section class="panel ranking-panel">
-          <div class="panel-header compact">
-            <div><span class="section-kicker">SURVIVOR BOARD</span><h2>실시간 자산 순위</h2></div>
-            <span id="rank-status" class="rank-status">실시간</span>
-          </div>
-          <label class="rank-search"><span>⌕</span><input id="rank-search" placeholder="플레이어 검색" autocomplete="off"></label>
-          <div class="rank-table-head"><span>순위 / 플레이어</span><span>순자산</span></div>
-          <div class="ranking-list" id="ranking-list"></div>
-        </section>
-      </div>
+      <div id="ranking-modal-body"></div>
     </div>
   </div>
 
