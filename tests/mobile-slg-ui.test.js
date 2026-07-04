@@ -250,6 +250,7 @@ test("checkpoint overlay and remaining transaction controls fit mobile touch tar
   assert.match(finalTargets, /\.final-countdown\s*\{(?=[^}]*position:\s*fixed)(?=[^}]*left:\s*50%)(?=[^}]*top:\s*0)(?=[^}]*width:\s*min\(100%,480px\))(?=[^}]*transform:\s*translateX\(-50%\))(?=[^}]*min-height:\s*60px)[^}]*\}/);
   assert.doesNotMatch(finalTargets, /\.final-countdown\s*\{[^}]*min-width:\s*145px/);
   assert.match(styles, /\.is-hidden\s*\{[^}]*display:\s*none\s*!important/);
+  assert.match(finalTargets, /\.stock-detail-body \.tabs\s*\{(?=[^}]*height:\s*auto)(?=[^}]*min-height:\s*48px)(?=[^}]*overflow:\s*visible)[^}]*\}/);
 
   for (const selector of [
     "\\.trade-submit", "\\.stock-detail-body \\.trade-submit", "\\.trade-grid input",

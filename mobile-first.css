@@ -1601,5 +1601,6 @@ html,body { width:100%; min-width:320px; max-width:100%; overflow-x:hidden; }
 .sector-open-button { min-height:48px; }
 .intel-trade-link { min-height:48px; }
 .holding-actions button { min-height:48px; }
+.stock-detail-body .tabs { height:auto; min-height:48px; overflow:visible; }
 .stock-detail-body .tab { min-height:48px; }
 .market-panel > .intel-panel .intel-title-block #open-intel-messages { min-height:48px; }
