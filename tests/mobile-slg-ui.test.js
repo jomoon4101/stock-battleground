@@ -188,3 +188,19 @@ test("post-legacy dark leader and modal readability floor wins the cascade", asy
   const mobileCss = await readFile(`${root}/mobile-first.css`, "utf8");
   assert.match(mobileCss, /\.profile-open-button small\s*\{[^}]*font-size:\s*12px/);
 });
+
+test("final high-specificity intelligence block defeats light market surfaces", async () => {
+  const mobileCss = await readFile(`${root}/mobile-first.css`, "utf8");
+  const lightPanelIndex = mobileCss.lastIndexOf("background: linear-gradient(90deg,#eef6fd,#fff)");
+  const lightCardsIndex = mobileCss.lastIndexOf("background: #d4e0eb");
+  const darkIntelIndex = mobileCss.lastIndexOf("/* Final intelligence dark cascade */");
+  assert.ok(lightPanelIndex >= 0 && lightCardsIndex >= 0, "legacy light intel surfaces must remain detectable");
+  assert.ok(darkIntelIndex > lightPanelIndex && darkIntelIndex > lightCardsIndex, "dark intel cascade must be last");
+
+  const finalIntel = mobileCss.slice(darkIntelIndex);
+  assert.doesNotMatch(finalIntel, /background:\s*(?:#fff|#d4e0eb|linear-gradient\([^;]*#fff)/);
+  assert.match(finalIntel, /\.market-panel > \.intel-panel\s*\{(?=[^}]*border:\s*1px solid var\(--line-soft\))(?=[^}]*background:\s*linear-gradient\([^}]*var\(--bg-panel\))(?=[^}]*color:\s*var\(--text-main\))[^}]*\}/);
+  assert.match(finalIntel, /\.market-panel > \.intel-panel \.intel-cards\s*\{[^}]*background:\s*#0b1220/);
+  assert.match(finalIntel, /\.market-panel > \.intel-panel \.intel-feed-row\s*\{(?=[^}]*border-color:\s*var\(--line-soft\))(?=[^}]*background:\s*var\(--bg-panel\))[^}]*\}/);
+  assert.match(finalIntel, /\.market-panel > \.intel-panel \.intel-feed-card\s*\{(?=[^}]*border-color:\s*var\(--line-soft\))(?=[^}]*background:\s*var\(--bg-panel-2\))(?=[^}]*color:\s*var\(--text-sub\))[^}]*\}/);
+});

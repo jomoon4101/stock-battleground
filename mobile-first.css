@@ -1488,3 +1488,38 @@ html,body { width:100%; min-width:320px; max-width:100%; overflow-x:hidden; }
 .stock-detail-body .selected-position-grid small,
 .stock-detail-body .chart-meta,
 .stock-detail-body .chart-stats { font-size:12px; }
+
+/* Final intelligence dark cascade */
+.market-panel > .intel-panel {
+  border:1px solid var(--line-soft);
+  background:linear-gradient(145deg,rgba(47,128,237,.1),var(--bg-panel));
+  color:var(--text-main);
+  box-shadow:0 12px 28px rgba(0,0,0,.22);
+}
+.market-panel > .intel-panel .panel-header { border-color:var(--line-soft); background:transparent; }
+.market-panel > .intel-panel .panel-header h2 { color:var(--text-main); }
+.market-panel > .intel-panel .panel-header .section-kicker,
+.market-panel > .intel-panel .intel-title-block #open-intel-messages { color:#7fb6ff; }
+.market-panel > .intel-panel .intel-cards {
+  border:1px solid var(--line-soft);
+  background:#0b1220;
+}
+.market-panel > .intel-panel .intel-feed-row {
+  border-color:var(--line-soft);
+  background:var(--bg-panel);
+  color:var(--text-sub);
+}
+.market-panel > .intel-panel .intel-feed-row:hover { background:var(--bg-panel-2); }
+.market-panel > .intel-panel .intel-feed-items { background:#0b1220; }
+.market-panel > .intel-panel .intel-feed-card {
+  border-color:var(--line-soft);
+  background:var(--bg-panel-2);
+  color:var(--text-sub);
+}
+.market-panel > .intel-panel .intel-feed-card.age-0 { background:var(--bg-panel-2); opacity:1; }
+.market-panel > .intel-panel .intel-feed-card.age-1 { background:var(--bg-panel); opacity:.82; }
+.market-panel > .intel-panel .intel-feed-card.age-2 { background:#0b1220; opacity:.68; }
+.market-panel > .intel-panel .intel-feed-card > small,
+.market-panel > .intel-panel .intel-feed-card > span,
+.market-panel > .intel-panel .intel-feed-card > em { color:var(--text-sub); }
+.market-panel > .intel-panel .intel-feed-row > .intel-category { color:var(--text-main); }
