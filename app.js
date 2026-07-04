@@ -25,8 +25,10 @@ import { API_BASE_URL, DEFAULT_RENDER_API_BASE_URL } from "./config.js";
 import { getLanguage, localizeDocument, phrase, setLanguage, translateText } from "./i18n.js";
 import { createAiChatLine, createAiConversationPlan } from "./ai-chat.js?v=20260701-23";
 import { mountAppShell } from "./ui-shell.js";
+import { setActiveAppTab } from "./ui-state.js";
 
 mountAppShell();
+setActiveAppTab("home");
 
 const $ = (selector, parent = document) => parent.querySelector(selector);
 const $$ = (selector, parent = document) => [...parent.querySelectorAll(selector)];
@@ -1008,7 +1010,7 @@ function openHoldingsModal() {
   $("#holdings-modal").classList.remove("is-hidden");
 }
 
-function activateTab(tabName) {
+function activateTradeTab(tabName) {
   $$('.tab').forEach((tab) => tab.classList.toggle("is-active", tab.dataset.tab === tabName));
   $$('.tab-content').forEach((content) => content.classList.toggle("is-active", content.id === `trade-tab-${tabName}`));
 }
@@ -1053,7 +1055,7 @@ function openStockDetail(stockIndex = selectedStock, side = null) {
   $("#limit-price").value = currencyInputValue(currentPrice(game, selectedStock));
   $("#trade-quantity").value = 1;
   if (side) setTradeSide(side);
-  activateTab("trade");
+  activateTradeTab("trade");
   mountStockDetailPanels();
   renderMarket();
   renderSelectedStock();
@@ -1782,8 +1784,8 @@ $("#stock-detail-modal").addEventListener("click", (event) => {
   if (event.target.closest("[data-close-stock-detail]") || event.target === event.currentTarget) closeStockDetail();
 });
 $('[data-close-ranking]').addEventListener("click", () => $("#ranking-modal").classList.add("is-hidden"));
-$("#detail-buy").addEventListener("click", () => { setTradeSide("buy"); activateTab("trade"); renderTradePanel(); $("#trade-quantity").focus(); });
-$("#detail-sell").addEventListener("click", () => { if ($("#detail-sell").disabled) return; setTradeSide("sell"); activateTab("trade"); renderTradePanel(); $("#trade-quantity").focus(); });
+$("#detail-buy").addEventListener("click", () => { setTradeSide("buy"); activateTradeTab("trade"); renderTradePanel(); $("#trade-quantity").focus(); });
+$("#detail-sell").addEventListener("click", () => { if ($("#detail-sell").disabled) return; setTradeSide("sell"); activateTradeTab("trade"); renderTradePanel(); $("#trade-quantity").focus(); });
 $("#room-code-input").addEventListener("input", (event) => { event.target.value = event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""); });
 $("#room-code-input").addEventListener("keydown", (event) => { if (event.key === "Enter") joinOnlineRoom(); });
 $("#start-match-button").addEventListener("click", startOnlineMatch);
@@ -1815,14 +1817,31 @@ $("#portfolio-list").addEventListener("click", (event) => {
 });
 $("#open-intel-messages").addEventListener("click", () => openMessages());
 $("#game-bottom-nav").addEventListener("click", (event) => {
-  const button = event.target.closest("[data-nav-target]"); if (!button || !game) return;
-  const target = button.dataset.navTarget;
-  if (target === "messages") { openMessages(); return; }
-  if (target === "rules") { $("#rules-modal").classList.remove("is-hidden"); return; }
-  if (target === "ranking") { openRankingModal(); return; }
-  if (target === "trade") { openStockDetail(selectedStock, tradeSide); return; }
-  const selector = { market: ".market-panel", assets: ".asset-panel" }[target];
-  $(selector)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  const button = event.target.closest("[data-app-tab]"); if (!button || !game) return;
+  const activeAppTab = setActiveAppTab(button.dataset.appTab);
+  switch (activeAppTab) {
+    case "home":
+      renderAssets();
+      renderPortfolioPanel();
+      break;
+    case "market":
+      renderMarket();
+      renderIntelCards();
+      break;
+    case "trade":
+      renderTradePanel();
+      renderOrders();
+      renderFinance();
+      renderItems();
+      requestAnimationFrame(drawChart);
+      break;
+    case "survivors":
+      renderRanking();
+      break;
+    case "logs":
+      renderLogs();
+      break;
+  }
 });
 $("#new-game-button").addEventListener("click", leaveOnlineRoom);
 $("#restart-button").addEventListener("click", leaveOnlineRoom);
@@ -1914,7 +1933,7 @@ $$('.side-toggle button').forEach((button) => button.addEventListener("click", (
 $("#trade-quantity").addEventListener("input", renderTradePanel);
 $("#trade-submit").addEventListener("click", submitTrade);
 $$('.quick-amounts button').forEach((button) => button.addEventListener("click", () => selectQuickAmount(button.dataset.portion)));
-$$('.tab').forEach((tab) => tab.addEventListener("click", () => activateTab(tab.dataset.tab)));
+$$('.tab').forEach((tab) => tab.addEventListener("click", () => activateTradeTab(tab.dataset.tab)));
 $("#limit-submit").addEventListener("click", submitLimitOrder);
 $("#order-list").addEventListener("click", (event) => {
   const button = event.target.closest("[data-cancel-order]");

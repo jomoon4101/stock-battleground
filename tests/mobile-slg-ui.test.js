@@ -47,3 +47,35 @@ test("battle HUD, action bar, compact chat and image fallback contracts exist", 
   assert.match(mobileCss, /sector-art-fallback/);
   assert.match(mobileCss, /env\(safe-area-inset-bottom\)/);
 });
+
+test("app tab state owns validation, accessibility, events and sheet scroll locking", async () => {
+  const uiState = await readSource("ui-state.js");
+
+  assert.match(uiState, /const APP_TABS = Object\.freeze\(\["home", "market", "trade", "survivors", "logs"\]\)/);
+  assert.match(uiState, /if \(!APP_TABS\.includes\(tabName\)\) return activeTab/);
+  assert.match(uiState, /aria-current/);
+  assert.match(uiState, /hidden = panel\.dataset\.tabPanel !== activeTab/);
+  assert.match(uiState, /new CustomEvent\("stock-survival:tab-change"/);
+  assert.match(uiState, /document\.body\.classList\.toggle\("has-open-sheet"/);
+});
+
+test("bottom navigation selects app tabs and renders each tab's content", async () => {
+  const [app, build] = await Promise.all([
+    readFile(`${root}/app.js`, "utf8"),
+    readFile(`${root}/scripts/build.mjs`, "utf8"),
+  ]);
+
+  assert.match(app, /import \{[^}]*setActiveAppTab[^}]*\} from ["']\.\/ui-state\.js["']/);
+  assert.match(app, /mountAppShell\(\);[\s\S]*setActiveAppTab\("home"\)/);
+  assert.match(app, /#game-bottom-nav[\s\S]*closest\("\[data-app-tab\]"\)[\s\S]*setActiveAppTab\(button\.dataset\.appTab\)/);
+  assert.match(app, /case "home":[\s\S]*renderAssets\(\)[\s\S]*renderPortfolioPanel\(\)/);
+  assert.match(app, /case "market":[\s\S]*renderMarket\(\)[\s\S]*renderIntelCards\(\)/);
+  assert.match(app, /case "trade":[\s\S]*renderTradePanel\(\)[\s\S]*renderOrders\(\)[\s\S]*renderFinance\(\)[\s\S]*renderItems\(\)[\s\S]*requestAnimationFrame\(drawChart\)/);
+  assert.match(app, /case "survivors":[\s\S]*renderRanking\(\)/);
+  assert.match(app, /case "logs":[\s\S]*renderLogs\(\)/);
+  assert.doesNotMatch(app, /#game-bottom-nav[\s\S]*target === "ranking"[\s\S]*openRankingModal/);
+  assert.doesNotMatch(app, /#game-bottom-nav[\s\S]*target === "trade"[\s\S]*openStockDetail/);
+  assert.match(app, /function activateTradeTab\(tabName\)/);
+  assert.doesNotMatch(app, /function activateTab\(tabName\)/);
+  assert.match(build, /"ui-state\.js"/);
+});
