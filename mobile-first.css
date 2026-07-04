@@ -1566,3 +1566,24 @@ html,body { width:100%; min-width:320px; max-width:100%; overflow-x:hidden; }
 .language-choice button { min-height:48px; }
 .sector-rail-controls button { width:48px; height:48px; min-height:48px; }
 .stock-detail-sector-list button { min-height:56px; }
+
+/* Checkpoint HUD and final touch targets */
+.round-status { position:relative; }
+.final-countdown {
+  position:absolute;
+  inset:4px 0 4px 40px;
+  z-index:3;
+  width:auto;
+  min-width:0;
+  height:auto;
+}
+.trade-submit { min-height:56px; }
+.stock-detail-body .trade-submit { min-height:56px; }
+.trade-grid input { min-height:48px; height:48px; }
+.stock-detail-body .trade-grid input { min-height:48px; }
+.order-form input { min-height:48px; height:48px; }
+.order-form select { min-height:48px; height:48px; }
+.inline-form input { min-height:48px; height:48px; }
+.sector-open-button { min-height:48px; }
+.intel-trade-link { min-height:48px; }
+.holding-actions button { min-height:48px; }

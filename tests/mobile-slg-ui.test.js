@@ -235,3 +235,27 @@ test("final mobile controls, detail contrast and shell labels remain accessible"
   assert.match(i18n, /"주문 열기":\s*"Open order"/);
   assert.match(i18n, /"턴 행동":\s*"Turn actions"/);
 });
+
+test("checkpoint overlay and remaining transaction controls fit mobile touch targets", async () => {
+  const [styles, mobileCss] = await Promise.all([
+    readFile(`${root}/styles.css`, "utf8"),
+    readFile(`${root}/mobile-first.css`, "utf8"),
+  ]);
+  assert.match(styles, /\.final-countdown\s*\{[^}]*min-width:\s*145px/);
+  const oldCountdownIndex = mobileCss.lastIndexOf(".final-countdown { inset:");
+  const finalTargetsIndex = mobileCss.lastIndexOf("/* Checkpoint HUD and final touch targets */");
+  assert.ok(finalTargetsIndex > oldCountdownIndex, "checkpoint overlay must be the final countdown layout");
+
+  const finalTargets = mobileCss.slice(finalTargetsIndex);
+  assert.match(finalTargets, /\.round-status\s*\{[^}]*position:\s*relative/);
+  assert.match(finalTargets, /\.final-countdown\s*\{(?=[^}]*position:\s*absolute)(?=[^}]*inset:\s*[^;}]+)(?=[^}]*min-width:\s*0)(?=[^}]*width:\s*auto)[^}]*\}/);
+  assert.doesNotMatch(finalTargets, /\.final-countdown\s*\{[^}]*min-width:\s*145px/);
+
+  for (const selector of [
+    "\\.trade-submit", "\\.stock-detail-body \\.trade-submit", "\\.trade-grid input",
+    "\\.order-form input", "\\.order-form select", "\\.inline-form input",
+    "\\.sector-open-button", "\\.intel-trade-link", "\\.holding-actions button",
+  ]) {
+    assert.match(finalTargets, new RegExp(`${selector}\\s*\\{[^}]*min-height:\\s*(?:48|5[0-9]|6[0-4])px`), selector);
+  }
+});
