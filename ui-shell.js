@@ -303,9 +303,10 @@ export function mountAppShell(root = document.querySelector("#stock-survival-roo
       </section>
     </main>
 
-    <aside class="global-chat-sheet" id="global-chat-sheet">
+    <button class="chat-fab" id="global-chat-toggle" type="button" aria-controls="global-chat-sheet" aria-expanded="false" aria-label="전체 채팅 열기"><span>●</span><em id="global-chat-unread" class="is-hidden">0</em></button>
+    <aside class="global-chat-sheet is-hidden" id="global-chat-sheet">
     <section class="global-chat" id="global-chat" aria-label="전체 채팅">
-      <button class="global-chat-header" id="global-chat-toggle" type="button" aria-expanded="true"><span>●</span><strong>전체 채팅</strong><small>모든 생존자와 대화</small><em id="global-chat-unread" class="is-hidden">0</em><i>⌄</i></button>
+      <header class="global-chat-header"><span>●</span><strong>전체 채팅</strong><small>모든 생존자와 대화</small><button type="button" data-close-global-chat aria-label="전체 채팅 닫기">×</button></header>
       <div class="global-chat-panel">
         <div class="global-chat-messages" id="global-chat-messages" aria-live="polite"></div>
         <div class="global-chat-compose"><input id="global-chat-input" maxlength="180" placeholder="전체 메시지 입력" autocomplete="off"><button id="global-chat-send" type="button">전송</button></div>

@@ -127,7 +127,6 @@ let noticesInitialized = false;
 let sectorRailClickSuppressed = false;
 let seenRumorMessageIds = new Set();
 let seenGlobalChatIds = new Set();
-let globalChatCollapsed = false;
 let localAiConversationGeneration = 0;
 const stockDetailPanelOrigins = new Map();
 const myPlayer = () => game?.players.find((player) => player.id === viewerId);
@@ -1506,18 +1505,17 @@ function renderMessageBadges() {
 function renderGlobalChat() {
   const messages = (game?.messages || []).filter((message) => message.system === "global" || message.toId === "ALL").slice(-60);
   const list = $("#global-chat-messages");
+  const chatIsOpen = !$("#global-chat-sheet").classList.contains("is-hidden");
   list.innerHTML = messages.length ? messages.map((message) => {
     const sender = playerById(message.fromId);
     const senderName = message.fromName || sender?.nickname || message.fromId;
     return `<div class="global-chat-message ${message.fromId === viewerId ? "mine" : ""} ${message.ai ? "ai" : ""}"><b>${escapeHtml(senderName)}</b><span>${escapeHtml(message.text)}</span><time>${new Date(message.createdAt).toLocaleTimeString(getLanguage() === "en" ? "en-US" : "ko-KR", { hour: "2-digit", minute: "2-digit" })}</time></div>`;
   }).join("") : `<div class="global-chat-empty">${getLanguage() === "en" ? "No room messages yet. Say hello to the other survivors." : "아직 전체 메시지가 없습니다. 다른 생존자에게 인사해보세요."}</div>`;
   const unread = messages.filter((message) => message.fromId !== viewerId && !seenGlobalChatIds.has(message.id)).length;
-  if (!globalChatCollapsed) messages.forEach((message) => seenGlobalChatIds.add(message.id));
+  if (chatIsOpen) messages.forEach((message) => seenGlobalChatIds.add(message.id));
   $("#global-chat-unread").textContent = unread;
-  $("#global-chat-unread").classList.toggle("is-hidden", unread <= 0 || !globalChatCollapsed);
-  $("#global-chat").classList.toggle("is-collapsed", globalChatCollapsed);
-  $("#global-chat-toggle").setAttribute("aria-expanded", String(!globalChatCollapsed));
-  if (!globalChatCollapsed) requestAnimationFrame(() => { list.scrollTop = list.scrollHeight; });
+  $("#global-chat-unread").classList.toggle("is-hidden", unread <= 0 || chatIsOpen);
+  if (chatIsOpen) requestAnimationFrame(() => { list.scrollTop = list.scrollHeight; });
 }
 
 async function sendGlobalChatMessage() {
@@ -1729,7 +1727,6 @@ function resetToStart() {
   seenNoticeIds = new Set();
   seenRumorMessageIds = new Set();
   seenGlobalChatIds = new Set();
-  globalChatCollapsed = false;
   localAiConversationGeneration += 1;
   noticesInitialized = false;
   currencyInputsLanguage = null;
@@ -1747,6 +1744,8 @@ function resetToStart() {
   closeSheet("item-modal");
   closeSheet("board-modal");
   closeSheet("rank-detail-modal");
+  closeSheet("global-chat-sheet");
+  $("#global-chat-toggle").setAttribute("aria-expanded", "false");
   $("#matchmaking-screen").classList.add("is-hidden");
   $("#lobby-screen").classList.add("is-hidden");
   $("#app-shell").classList.add("is-hidden");
@@ -1979,7 +1978,16 @@ $("#message-recipient-search").addEventListener("input", renderMessageRecipients
 $("#message-recipient-list").addEventListener("click", (event) => { const recipient = event.target.closest("[data-message-recipient]"); if (!recipient) return; currentMessageTarget = recipient.dataset.messageRecipient; $("#message-recipient-panel").classList.add("is-hidden"); renderMessages(); $("#message-input").focus(); });
 $("#message-send").addEventListener("click", sendDirectMessage);
 $("#message-input").addEventListener("keydown", (event) => { if (event.key === "Enter") sendDirectMessage(); });
-$("#global-chat-toggle").addEventListener("click", () => { globalChatCollapsed = !globalChatCollapsed; renderGlobalChat(); });
+$("#global-chat-toggle").addEventListener("click", () => {
+  openSheet("global-chat-sheet");
+  $("#global-chat-toggle").setAttribute("aria-expanded", "true");
+  renderGlobalChat();
+});
+$("[data-close-global-chat]").addEventListener("click", () => {
+  closeSheet("global-chat-sheet");
+  $("#global-chat-toggle").setAttribute("aria-expanded", "false");
+  renderGlobalChat();
+});
 $("#global-chat-send").addEventListener("click", sendGlobalChatMessage);
 $("#global-chat-input").addEventListener("keydown", (event) => { if (event.key === "Enter") sendGlobalChatMessage(); });
 $("#developer-board-button").addEventListener("click", openBoard);
@@ -2047,6 +2055,8 @@ document.addEventListener("keydown", (event) => {
     closeStockDetail();
     closeSheet("ranking-modal");
     if (eliminationShown) closeSheet("elimination-modal");
+    closeSheet("global-chat-sheet");
+    $("#global-chat-toggle").setAttribute("aria-expanded", "false");
   }
   if (event.code === "Space" && game && !online && !["INPUT", "SELECT", "TEXTAREA"].includes(document.activeElement.tagName)) {
     event.preventDefault();

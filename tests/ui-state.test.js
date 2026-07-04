@@ -182,3 +182,19 @@ test("closing the last open sheet unlocks body scrolling", async () => {
     assert.equal(fake.document.body.classList.contains("has-open-sheet"), false);
   });
 });
+
+test("global chat starts hidden and its open-close lifecycle controls body locking", async () => {
+  const fake = createFakeDocument({ sheets: [{ id: "global-chat-sheet", type: "chat" }] });
+  await withUiState(fake.document, async ({ openSheet, closeSheet }) => {
+    const chatSheet = fake.getElementById("global-chat-sheet");
+    assert.equal(chatSheet.classList.contains("is-hidden"), true);
+
+    assert.equal(openSheet("global-chat-sheet"), true);
+    assert.equal(chatSheet.classList.contains("is-hidden"), false);
+    assert.equal(fake.document.body.classList.contains("has-open-sheet"), true);
+
+    assert.equal(closeSheet("global-chat-sheet"), true);
+    assert.equal(chatSheet.classList.contains("is-hidden"), true);
+    assert.equal(fake.document.body.classList.contains("has-open-sheet"), false);
+  });
+});

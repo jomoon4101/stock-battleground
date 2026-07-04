@@ -98,3 +98,25 @@ test("all modal backdrop flows use shared sheet state helpers", async () => {
     );
   }
 });
+
+test("compact global chat has an external trigger and a real hidden sheet lifecycle", async () => {
+  const [uiShell, app] = await Promise.all([
+    readSource("ui-shell.js"),
+    readFile(root + "/app.js", "utf8"),
+  ]);
+  const toggleIndex = uiShell.indexOf('id="global-chat-toggle"');
+  const sheetStart = uiShell.indexOf('id="global-chat-sheet"');
+  const sheetEnd = uiShell.indexOf("</aside>", sheetStart);
+
+  assert.match(uiShell, /class="chat-fab" id="global-chat-toggle"[^>]*aria-controls="global-chat-sheet"[^>]*aria-expanded="false"/);
+  assert.ok(toggleIndex >= 0 && toggleIndex < sheetStart, "chat toggle must remain outside the hidden sheet");
+  assert.match(uiShell, /class="global-chat-sheet is-hidden" id="global-chat-sheet"/);
+  assert.match(uiShell.slice(sheetStart, sheetEnd), /data-close-global-chat/);
+  assert.equal((uiShell.match(/id="global-chat-toggle"/g) || []).length, 1);
+  assert.equal((uiShell.match(/id="global-chat-unread"/g) || []).length, 1);
+
+  assert.match(app, /#global-chat-toggle[\s\S]*openSheet\("global-chat-sheet"\)[\s\S]*aria-expanded", "true"/);
+  assert.match(app, /data-close-global-chat[\s\S]*closeSheet\("global-chat-sheet"\)[\s\S]*aria-expanded", "false"/);
+  assert.match(app, /#global-chat-sheet[\s\S]*classList\.contains\("is-hidden"\)/);
+  assert.doesNotMatch(app, /globalChatCollapsed|is-collapsed/);
+});
