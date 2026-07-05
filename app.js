@@ -786,12 +786,15 @@ function ceoPresentation(stock, change) {
 }
 
 function sectorFallbackLabel(stock) {
-  return `${stock.icon || "◆"} ${stock.sector || stock.name || "SECTOR"}`;
+  return `${stock.icon || "◆"} ${stock.name || "STOCK"}`;
+}
+
+function sectorArtFallbackClass(stock) {
+  return sectorArtPath(stock.sectorKey) ? "" : "sector-art-fallback has-image-error";
 }
 
 function sectorArtProbeMarkup(stock) {
-  const generatedSectorKeys = game?.stocks?.map((candidate) => candidate.sectorKey) || [];
-  const artPath = sectorArtPath(stock.sectorKey, generatedSectorKeys);
+  const artPath = sectorArtPath(stock.sectorKey);
   if (!artPath) return "";
   return `<img class="sector-art-probe" data-sector-art="${escapeHtml(stock.sectorKey)}" src="${escapeHtml(artPath)}" alt="" aria-hidden="true">`;
 }
@@ -860,7 +863,7 @@ function renderMarket() {
     <article class="stock-row sector-card sector-${stock.sectorKey} mood-${ceo.mood} ${index === selectedStock ? "is-active" : ""}" data-stock-index="${index}" data-open-stock-detail="${index}" role="listitem" tabindex="0" aria-label="${escapeHtml(stock.sector)} · ${escapeHtml(stock.name)} · ${percent(change)} · ${getLanguage() === "en" ? "open trading window" : "거래창 열기"}">
       <button class="sector-open-button" type="button" data-open-stock-detail="${index}" aria-label="${escapeHtml(stock.sector)} 거래창 열기">${getLanguage() === "en" ? "OPEN TRADE" : "거래창 열기"} ›</button>
       <span class="sector-card-heading"><em>${stock.icon || "◆"} ${escapeHtml(stock.sector)}</em>${owned ? `<i class="owned-badge">${getLanguage() === "en" ? "OWNED" : "보유중"}</i>` : ""}</span>
-      <span class="sector-ceo ${ceo.className}" style="${ceo.style}" role="img" data-sector-fallback="${escapeHtml(sectorFallbackLabel(stock))}" aria-label="${ceo.mood === "up" ? (getLanguage() === "en" ? "CEO cheering" : "CEO 환호") : ceo.mood === "down" ? (getLanguage() === "en" ? "CEO disappointed" : "CEO 우울") : (getLanguage() === "en" ? "CEO neutral" : "CEO 기본 표정")}">${sectorArtProbeMarkup(stock)}</span>
+      <span class="sector-ceo ${ceo.className} ${sectorArtFallbackClass(stock)}" style="${ceo.style}" role="img" data-sector-fallback="${escapeHtml(sectorFallbackLabel(stock))}" aria-label="${ceo.mood === "up" ? (getLanguage() === "en" ? "CEO cheering" : "CEO 환호") : ceo.mood === "down" ? (getLanguage() === "en" ? "CEO disappointed" : "CEO 우울") : (getLanguage() === "en" ? "CEO neutral" : "CEO 기본 표정")}">${sectorArtProbeMarkup(stock)}</span>
       <span class="sector-company"><b class="${streak.direction ? `streak-${streak.direction}` : ""}">${escapeHtml(stock.name)}</b><small>${stock.ticker} · ${escapeHtml(stock.sectorDescription || "")}</small></span>
       <span class="sector-stats"><small class="${sectorLevelClass(stats.profitability)}">${getLanguage() === "en" ? "RETURN" : "수익성"} <b>${sectorLevelLabel(stats.profitability)}</b></small><small class="${sectorLevelClass(stats.stability)}">${getLanguage() === "en" ? "STABILITY" : "안정성"} <b>${sectorLevelLabel(stats.stability)}</b></small><small class="${sectorLevelClass(stats.volatility)}">${getLanguage() === "en" ? "VOLATILITY" : "변동성"} <b>${sectorLevelLabel(stats.volatility)}</b></small></span>
       <span class="sector-quote"><strong>${money(currentPrice(game, index), true)}</strong><b class="stock-change ${change >= 0 ? "up" : "down"}">${percent(change)}</b><small>${risk}${streak.direction ? ` · ${streak.count}${getLanguage() === "en" ? "-turn streak" : "턴 연속"}` : ""}</small></span>
@@ -894,7 +897,7 @@ function renderSelectedStock() {
   $("#stock-detail-title").textContent = stock.name;
   $("#stock-detail-description").textContent = stock.sectorDescription || "";
   const detailCeo = $("#stock-detail-ceo");
-  detailCeo.className = `sector-ceo ${ceo.className}`;
+  detailCeo.className = `sector-ceo ${ceo.className} ${sectorArtFallbackClass(stock)}`.trim();
   detailCeo.style.cssText = ceo.style;
   detailCeo.dataset.sectorFallback = sectorFallbackLabel(stock);
   detailCeo.innerHTML = sectorArtProbeMarkup(stock);

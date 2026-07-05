@@ -84,12 +84,30 @@ test("sector art probes use build-backed paths and safe fallback metadata", asyn
   }
   assert.equal(sectorArtPath("../../secrets"), "");
   assert.equal(sectorArtPath("made-up-sector"), "");
-  assert.equal(sectorArtPath("future-sector", ["future-sector"]), "assets/sector-ceo-future-sector-v2.webp");
+  assert.equal(sectorArtPath("future-sector", ["future-sector"]), "");
+  assert.doesNotMatch(helper, /generatedSectorKeys/);
   assert.match(build, /sector-ceo-.+-v2\\\.webp/);
   assert.match(app, /<img class="sector-art-probe" data-sector-art="\$\{escapeHtml\(stock\.sectorKey\)\}" src="\$\{escapeHtml\(artPath\)\}" alt="" aria-hidden="true">/);
   assert.match(app, /data-sector-fallback="\$\{escapeHtml\(sectorFallbackLabel\(stock\)\)\}"/);
   assert.match(functionSource(app, "renderSelectedStock"), /detailCeo\.dataset\.sectorFallback = sectorFallbackLabel\(stock\)/);
   assert.match(functionSource(app, "renderSelectedStock"), /detailCeo\.innerHTML = sectorArtProbeMarkup\(stock\)/);
+
+  const fallbackLabel = functionSource(app, "sectorFallbackLabel");
+  assert.match(fallbackLabel, /stock\.name/);
+  assert.doesNotMatch(fallbackLabel, /stock\.sector/);
+  const probeMarkup = functionSource(app, "sectorArtProbeMarkup");
+  assert.match(probeMarkup, /sectorArtPath\(stock\.sectorKey\)/);
+  assert.doesNotMatch(probeMarkup, /game\?\.stocks|generatedSectorKeys/);
+  assert.match(probeMarkup, /if \(!artPath\) return ""/);
+});
+
+test("unknown sector art immediately uses fallback classes without a probe URL", async () => {
+  const app = await readFile(`${root}/app.js`, "utf8");
+  const fallbackClass = functionSource(app, "sectorArtFallbackClass");
+  assert.match(fallbackClass, /sectorArtPath\(stock\.sectorKey\)/);
+  assert.match(fallbackClass, /sector-art-fallback has-image-error/);
+  assert.match(functionSource(app, "renderMarket"), /sector-ceo \$\{ceo\.className\} \$\{sectorArtFallbackClass\(stock\)\}/);
+  assert.match(functionSource(app, "renderSelectedStock"), /sectorArtFallbackClass\(stock\)/);
 });
 
 test("delegated sector art state changes are scoped to probe image events", async () => {

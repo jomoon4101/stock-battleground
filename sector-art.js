@@ -13,18 +13,14 @@ export const SECTOR_ART_KEYS = Object.freeze([
 ]);
 
 const BUILT_IN_SECTOR_KEYS = new Set(SECTOR_ART_KEYS);
-const SAFE_SECTOR_KEY = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 function normalizeSectorKey(value) {
-  const normalized = String(value || "").trim().toLowerCase();
-  return SAFE_SECTOR_KEY.test(normalized) ? normalized : "";
+  return String(value || "").trim().toLowerCase();
 }
 
-export function sectorArtPath(sectorKey, generatedSectorKeys = []) {
+export function sectorArtPath(sectorKey) {
   const normalized = normalizeSectorKey(sectorKey);
-  if (!normalized) return "";
-  const generated = new Set([...generatedSectorKeys].map(normalizeSectorKey).filter(Boolean));
-  if (!BUILT_IN_SECTOR_KEYS.has(normalized) && !generated.has(normalized)) return "";
+  if (!BUILT_IN_SECTOR_KEYS.has(normalized)) return "";
   return `assets/sector-ceo-${normalized}-v2.webp`;
 }
 
