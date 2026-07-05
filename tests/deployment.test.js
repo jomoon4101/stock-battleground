@@ -34,7 +34,7 @@ test("build copies every required sector CEO v2 WebP", async () => {
 test("production build emits the complete mobile SLG shell and required assets", async () => {
   await execFileAsync(process.execPath, [`${root}/scripts/build.mjs`], { cwd: root });
   const requiredFiles = [
-    "index.html", "app.js", "ui-shell.js", "ui-state.js", "sector-art.js",
+    "index.html", "404.html", "app.js", "engine.js", "ai-chat.js", "ui-shell.js", "ui-state.js", "sector-art.js",
     "onboarding-state.js", "styles.css", "mobile-first.css", "i18n.js", "config.js",
     "assets/stock-meme-avatars.png",
   ];

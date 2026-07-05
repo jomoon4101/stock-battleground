@@ -389,22 +389,50 @@ test("mobile SLG shell labels and empty states localize to exact English copy", 
   }
 });
 
-test("generated sector and player aria labels translate their composed action", async () => {
+test("localizeDocument restores composed aria labels after English to Korean switch", async () => {
   const previousDocument = globalThis.document;
-  globalThis.document = { documentElement: { lang: "ko" }, body: null };
+  const previousNodeFilter = globalThis.NodeFilter;
+  const elements = ["Technology 거래창 열기", "Alice 상세 정보"].map((label) => {
+    const attributes = new Map([["aria-label", label]]);
+    return {
+      hasAttribute: (name) => attributes.has(name),
+      getAttribute: (name) => attributes.get(name),
+      setAttribute: (name, value) => attributes.set(name, value),
+    };
+  });
+  const body = { querySelectorAll: () => elements };
+  globalThis.NodeFilter = { SHOW_TEXT: 4 };
+  globalThis.document = {
+    documentElement: { lang: "ko" },
+    body,
+    createTreeWalker: () => ({ nextNode: () => null }),
+  };
   try {
-    const [{ setLanguage, translateText }, app] = await Promise.all([
-      import(`${pathToFileURL(`${root}/i18n.js`).href}?composed-runtime-labels`),
-      readFile(`${root}/app.js`, "utf8"),
-    ]);
+    const { setLanguage } = await import(`${pathToFileURL(`${root}/i18n.js`).href}?reversible-composed-labels`);
     setLanguage("en");
-    assert.equal(`Technology ${translateText("거래창 열기")}`, "Technology Open trading window");
-    assert.equal(`Alice ${translateText("상세 정보")}`, "Alice details");
-    assert.match(functionSource(app, "renderMarket"), /aria-label="\$\{escapeHtml\(stock\.sector\)\} \$\{translateText\("거래창 열기"\)\}"/);
-    assert.match(functionSource(app, "renderRanking"), /aria-label="\$\{escapeHtml\(entry\.nickname\)\} \$\{translateText\("상세 정보"\)\}"/);
+    assert.equal(elements[0].getAttribute("aria-label"), "Technology Open trading window");
+    assert.equal(elements[1].getAttribute("aria-label"), "Alice details");
+    setLanguage("ko");
+    assert.equal(elements[0].getAttribute("aria-label"), "Technology 거래창 열기");
+    assert.equal(elements[1].getAttribute("aria-label"), "Alice 상세 정보");
   } finally {
     globalThis.document = previousDocument;
+    globalThis.NodeFilter = previousNodeFilter;
   }
+});
+
+test("dynamic aria renderers provide stable Korean originals to localizeDocument", async () => {
+  const app = await readFile(`${root}/app.js`, "utf8");
+  const renderMarket = functionSource(app, "renderMarket");
+  assert.match(renderMarket, /aria-label="\$\{escapeHtml\(stock\.sector\)\} 거래창 열기"/);
+  assert.ok(renderMarket.indexOf("localizeDocument(stockList)") > renderMarket.indexOf("stockList.innerHTML"));
+  assert.match(functionSource(app, "renderRanking"), /aria-label="\$\{escapeHtml\(entry\.nickname\)\} 상세 정보"/);
+});
+
+test("holdings empty-state translation has one canonical dictionary entry", async () => {
+  const i18n = await readFile(`${root}/i18n.js`, "utf8");
+  assert.equal((i18n.match(/"보유 종목 없음"\s*:/g) || []).length, 1);
+  assert.match(i18n, /"보유 종목 없음":\s*"No holdings yet"/);
 });
 
 test("checkpoint overlay and remaining transaction controls fit mobile touch targets", async () => {

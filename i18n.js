@@ -27,7 +27,7 @@ const EN = {
   "선차트": "Line", "봉차트": "Candles", "시가": "Open", "최고": "High", "최저": "Low", "거래량": "Volume", "보유": "Owned", "즉시 거래": "Instant trade", "예약 주문": "Limit orders", "대출·채권": "Loan & bonds", "아이템": "Items", "매수": "Buy", "매도": "Sell", "주문 수량": "Quantity", "최대": "MAX", "예상 주문 금액": "Estimated total", "매수 주문": "Buy order", "매도 주문": "Sell order",
   "대출 잔액": "Loan balance", "보유 채권": "Bonds", "대출": "Borrow", "상환": "Repay", "채권 매수": "Buy bond", "특별 아이템": "Special items", "랜덤 아이템": "Random items", "실시간 기록": "Live activity",
   "내 자산": "My assets", "보유 종목 보기 →": "View portfolio →", "현금": "Cash", "목록 보기": "View list", "채권": "Bonds", "월급": "Salary", "예상 세율": "Estimated tax", "생존 순위": "Survival ranking", "실시간 자산 순위": "Live net worth ranking", "플레이어 검색": "Search players", "순위 / 플레이어": "Rank / Player", "순자산": "Net worth", "현재 순위": "Current rank", "다른 섹터 선택": "Choose another sector", "거래할 섹터를 선택하세요.": "Choose the sector you want to trade.", "내 목표": "My goal",
-  "게임 규칙": "Game rules", "아이템 사용": "Use item", "예상 비용": "Estimated cost", "구매하고 사용": "Buy and use", "게임 종료": "Game over", "최종 순위": "Final rank", "새 게임 시작": "Start new game", "플레이어 정보": "Player details", "가장 많이 보유한 종목": "Largest holding", "보유 종목 없음": "No holdings yet", "연속 자산 상승 기록이 없습니다.": "No consecutive asset gains.", "현재 순자산": "Current net worth", "쪽지 보내기": "Send message", "턴별 순위": "Rank by turn", "자산 등락": "Asset change",
+  "게임 규칙": "Game rules", "아이템 사용": "Use item", "예상 비용": "Estimated cost", "구매하고 사용": "Buy and use", "게임 종료": "Game over", "최종 순위": "Final rank", "새 게임 시작": "Start new game", "플레이어 정보": "Player details", "가장 많이 보유한 종목": "Largest holding", "연속 자산 상승 기록이 없습니다.": "No consecutive asset gains.", "현재 순자산": "Current net worth", "쪽지 보내기": "Send message", "턴별 순위": "Rank by turn", "자산 등락": "Asset change",
   "쪽지함": "Mailbox", "쪽지 내용을 입력하세요": "Write a message", "전송": "Send", "알림": "Notifications", "일개미에게 일시키기": "Put the worker ant to work", "개발자에게 시킬 일을 익명으로 남겨주세요.": "Leave an anonymous task for the developer.", "익명 등록": "Post anonymously", "시장에서 탈락했습니다": "You were eliminated", "탈락 순위": "Elimination rank", "남은 게임 관전하기": "Observe the remaining game", "내 보유 주식": "My holdings", "총 주식 평가액": "Total stock value", "주문을 마무리하세요": "Finish your orders",
   "닫기": "Close", "새 게임": "New game", "일시정지": "Pause", "규칙": "Rules", "게임 규칙": "Game rules",
   "테크": "Tech", "금융": "Finance", "소비재": "Consumer", "헬스케어": "Healthcare", "산업재": "Industrials", "에너지": "Energy",
@@ -71,7 +71,7 @@ Object.assign(EN, {
   "프로필 사진을 적용했습니다.": "Profile photo applied.", "방 코드를 복사했습니다.": "Room code copied.", "방 코드를 직접 복사해주세요.": "Please copy the room code manually.",
   "가장 많이 보유한 종목 · 클릭해서 차트 보기": "Largest holding · click to view chart", "상세 정보": "details", "과거": "Past", "시": "O", "고": "H", "저": "L", "종": "C",
   "최후의 트레이더가 되었습니다.": "You are the last trader standing.", "다음 게임에서는 정보 아이템과 예약 주문을 더 일찍 활용해보세요.": "Next game, use information items and limit orders earlier.",
-  "아직 알림이 없습니다.": "No notifications yet.", "아직 완료된 게임이 없습니다.": "No completed games yet.", "익명": "Anonymous", "보유 종목 없음": "No holdings yet",
+  "아직 알림이 없습니다.": "No notifications yet.", "아직 완료된 게임이 없습니다.": "No completed games yet.", "익명": "Anonymous",
   "주요 거래 기록": "Key activity", "기록된 거래·금융 활동이 없습니다.": "No trades or finance activity recorded.",
   "받는 플레이어 검색": "Search recipient", "비공개 시장 정보": "Private market tip", "아직 주고받은 쪽지가 없습니다.": "No sent or received messages yet.",
   "첫 쪽지를 보내 대화를 시작하세요.": "Start a new conversation.", "대화를 선택하거나 새 쪽지를 보내세요.": "Select a conversation or send a new message.", "거래량 폭등": "VOLUME SURGE", "거래량 폭락": "VOLUME DROP",
@@ -88,6 +88,7 @@ const PATTERNS = [
   [/^(\d+) \/ (\d+)명$/, "$1 / $2 players"], [/^(\d+)위 플레이어 정보$/, "#$1 player details"], [/^실제 순위 (\d+)위$/, "Actual rank #$1"], [/^현재 T(\d+)$/, "Current T$1"],
   [/^(\d+)개 종목으로 포트폴리오가 교체되었습니다\.$/, "Portfolio replaced with $1 stocks."], [/^새 월급은 (.+)입니다\.$/, "New salary: $1."], [/^상승 신호: /, "Rising signal: "], [/^하락 신호: /, "Falling signal: "],
   [/ 다음 가격: /g, " next price: "], [/을 사용했습니다\.$/g, " used."], [/ 평가액 /g, " · value "], [/ 현재가 /g, " · price "], [/주 ·/g, " shares ·"], [/주$/g, " shares"],
+  [/거래창 열기$/, "Open trading window"], [/상세 정보$/, "details"],
   [/^보유 종목 ·/, "Holdings ·"], [/^연속 (\d+)↑$/, "$1-turn streak ↑"], [/^T(\d+) 기준$/, "T$1 snapshot"], [/^ANONYMOUS ·/, "ANONYMOUS ·"],
 ];
 
