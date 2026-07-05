@@ -215,6 +215,20 @@ test("rank-effect timers update ranking only while Survivors is active", async (
   assert.doesNotMatch(app, /if \(game\) renderRanking\(\)/);
 });
 
+test("ranking renderer localizes Survivors for direct timer and search renders", async () => {
+  const app = await readFile(`${root}/app.js`, "utf8");
+  const renderRanking = functionSource(app, "renderRanking");
+  const markupIndex = renderRanking.indexOf('$("#ranking-list").innerHTML');
+  const localizeIndex = renderRanking.indexOf('localizeDocument($("#tab-survivors"))');
+
+  assert.ok(markupIndex >= 0 && localizeIndex > markupIndex, "ranking markup must be localized after insertion");
+  assert.match(renderRanking, /localizeDocument\(\$\("#tab-survivors"\)\);\s*}$/);
+  assert.equal((renderRanking.match(/localizeDocument\(/g) || []).length, 1);
+  assert.doesNotMatch(renderRanking, /activateAppView\(/);
+  assert.equal((app.match(/getActiveAppTab\(\) === "survivors"\) renderRanking\(\)/g) || []).length, 2);
+  assert.match(app, /\$\("#rank-search"\)\.addEventListener\("input", renderRanking\)/);
+});
+
 test("all modal backdrop flows use shared sheet state helpers", async () => {
   const app = await readFile(root + "/app.js", "utf8");
   const sheetIds = [

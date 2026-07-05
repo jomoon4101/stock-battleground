@@ -1106,6 +1106,7 @@ function renderRanking() {
       <span class="rank-message-button" data-message-player="${entry.playerId}" title="쪽지 보내기">✉</span>
     </button>`;
   }).join("");
+  localizeDocument($("#tab-survivors"));
 }
 
 function openRankDetail(playerId) {
