@@ -17,6 +17,17 @@ test("npm scripts와 Vercel dist·SPA 설정이 존재한다", async () => {
   assert.match(build, /sector-ceo-.+v2/);
 });
 
+test("build copies every required sector CEO v2 WebP", async () => {
+  const build = await readFile(`${root}/scripts/build.mjs`, "utf8");
+  const sectorKeys = [
+    "technology", "financials", "health-care", "consumer-discretionary",
+    "consumer-staples", "industrials", "communication-services", "materials",
+    "energy", "utilities", "real-estate",
+  ];
+  assert.match(build, /\^sector-ceo-\.\+-v2\\\.webp\$/);
+  for (const key of sectorKeys) await stat(`${root}/assets/sector-ceo-${key}-v2.webp`);
+});
+
 test("환경변수 예시는 이름만 포함하고 Supabase 변수는 사용하지 않는다", async () => {
   const [env, config, build] = await Promise.all([
     readFile(`${root}/.env.example`, "utf8"), readFile(`${root}/config.js`, "utf8"), readFile(`${root}/scripts/build.mjs`, "utf8"),

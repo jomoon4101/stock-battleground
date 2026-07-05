@@ -26,9 +26,13 @@ import { getLanguage, localizeDocument, phrase, setLanguage, translateText } fro
 import { createAiChatLine, createAiConversationPlan } from "./ai-chat.js?v=20260701-23";
 import { mountAppShell } from "./ui-shell.js";
 import { closeSheet, getActiveAppTab, openSheet, setActiveAppTab } from "./ui-state.js";
+import { applySectorArtProbeState, sectorArtPath } from "./sector-art.js";
 
 mountAppShell();
 setActiveAppTab("home");
+
+document.addEventListener("error", (event) => applySectorArtProbeState(event, true), true);
+document.addEventListener("load", (event) => applySectorArtProbeState(event, false), true);
 
 const $ = (selector, parent = document) => parent.querySelector(selector);
 const $$ = (selector, parent = document) => [...parent.querySelectorAll(selector)];
@@ -60,6 +64,7 @@ const escapeHtml = (value) => String(value).replace(/[&<>'"]/g, (character) => (
 const deployedOnVercel = globalThis.location?.hostname?.endsWith(".vercel.app") === true;
 const resolvedApiBaseUrl = String(API_BASE_URL || (deployedOnVercel ? DEFAULT_RENDER_API_BASE_URL : "")).replace(/\/$/, "");
 const apiUrl = (path) => `${resolvedApiBaseUrl}${path}`;
+const ONBOARDING_KEY = "stock-survival-onboarding-seen";
 const NICKNAME_WORDS = ["존버", "상한가", "떡상", "물타기", "풀매수", "단타", "급등", "반등", "배당", "차트", "몰빵", "손절", "매집", "불타기", "저점"];
 const NICKNAME_CREATURES = ["개미", "황소", "곰", "여우", "고래", "사마귀", "잠자리", "딱정벌레", "부엉이", "거북이", "매", "늑대", "토끼", "하이에나", "꿀벌"];
 // Synthetic game disclosures inspired by official Form 8-K material-event categories.
@@ -128,6 +133,7 @@ let sectorRailClickSuppressed = false;
 let seenRumorMessageIds = new Set();
 let seenGlobalChatIds = new Set();
 let localAiConversationGeneration = 0;
+let onlineGameEntered = false;
 const stockDetailPanelOrigins = new Map();
 const myPlayer = () => game?.players.find((player) => player.id === viewerId);
 const playerSummary = () => online ? game.viewerSummary : getPlayerSummary(game, viewerId);
@@ -305,6 +311,14 @@ function safeAction(action, successMessage) {
   }
 }
 
+function showFirstGameOnboarding() {
+  try {
+    if (localStorage.getItem(ONBOARDING_KEY) !== "1") openSheet("onboarding-sheet");
+  } catch {
+    openSheet("onboarding-sheet");
+  }
+}
+
 function beginSoloGame() {
   const nickname = $("#nickname").value.trim() || (getLanguage() === "en" ? "Player" : "플레이어");
   speed = $("#game-speed").value;
@@ -331,6 +345,7 @@ function beginSoloGame() {
   initializeCurrencyInputs();
   setupTurnClock();
   renderAll();
+  showFirstGameOnboarding();
   requestAnimationFrame(drawChart);
   scheduleLocalAiConversation({ chance: 0.9, count: 2 });
 }
@@ -441,6 +456,7 @@ function applyServerState(state) {
   viewerId = state.viewer.playerId;
   speed = state.room.speed;
   if (state.room.status === "matching") {
+    onlineGameEntered = false;
     game = null;
     $("#start-screen").classList.add("is-hidden");
     $("#lobby-screen").classList.add("is-hidden");
@@ -450,6 +466,7 @@ function applyServerState(state) {
     return;
   }
   if (state.room.status === "waiting") {
+    onlineGameEntered = false;
     game = null;
     $("#start-screen").classList.add("is-hidden");
     $("#app-shell").classList.add("is-hidden");
@@ -457,6 +474,8 @@ function applyServerState(state) {
     renderLobby(state);
     return;
   }
+  const firstRunningState = state.room.status === "running" && !onlineGameEntered;
+  if (state.room.status === "running") onlineGameEntered = true;
   const incomingGame = state.game;
   if (incomingGame?.rankAnimationTurn && incomingGame.rankAnimationTurn !== rankAnimationTurnSeen && incomingGame.actualRanking.length) {
     rankAnimationTurnSeen = incomingGame.rankAnimationTurn;
@@ -484,6 +503,7 @@ function applyServerState(state) {
   }
   paused = false;
   renderAll();
+  if (firstRunningState) showFirstGameOnboarding();
   handleLeaderNotice();
   handleGameNotices();
   if (game.elimination && !eliminationShown) showElimination();
@@ -765,6 +785,17 @@ function ceoPresentation(stock, change) {
   return { mood, className: `ceo-${stock.sectorKey}`, style: `background-position:${column} ${vertical}` };
 }
 
+function sectorFallbackLabel(stock) {
+  return `${stock.icon || "◆"} ${stock.sector || stock.name || "SECTOR"}`;
+}
+
+function sectorArtProbeMarkup(stock) {
+  const generatedSectorKeys = game?.stocks?.map((candidate) => candidate.sectorKey) || [];
+  const artPath = sectorArtPath(stock.sectorKey, generatedSectorKeys);
+  if (!artPath) return "";
+  return `<img class="sector-art-probe" data-sector-art="${escapeHtml(stock.sectorKey)}" src="${escapeHtml(artPath)}" alt="" aria-hidden="true">`;
+}
+
 function sectorLevelLabel(value) {
   if (getLanguage() !== "en") return value || "-";
   return { "높음": "HIGH", "중간": "MID", "낮음": "LOW" }[value] || value || "-";
@@ -829,7 +860,7 @@ function renderMarket() {
     <article class="stock-row sector-card sector-${stock.sectorKey} mood-${ceo.mood} ${index === selectedStock ? "is-active" : ""}" data-stock-index="${index}" data-open-stock-detail="${index}" role="listitem" tabindex="0" aria-label="${escapeHtml(stock.sector)} · ${escapeHtml(stock.name)} · ${percent(change)} · ${getLanguage() === "en" ? "open trading window" : "거래창 열기"}">
       <button class="sector-open-button" type="button" data-open-stock-detail="${index}" aria-label="${escapeHtml(stock.sector)} 거래창 열기">${getLanguage() === "en" ? "OPEN TRADE" : "거래창 열기"} ›</button>
       <span class="sector-card-heading"><em>${stock.icon || "◆"} ${escapeHtml(stock.sector)}</em>${owned ? `<i class="owned-badge">${getLanguage() === "en" ? "OWNED" : "보유중"}</i>` : ""}</span>
-      <span class="sector-ceo ${ceo.className}" style="${ceo.style}" role="img" aria-label="${ceo.mood === "up" ? (getLanguage() === "en" ? "CEO cheering" : "CEO 환호") : ceo.mood === "down" ? (getLanguage() === "en" ? "CEO disappointed" : "CEO 우울") : (getLanguage() === "en" ? "CEO neutral" : "CEO 기본 표정")}"></span>
+      <span class="sector-ceo ${ceo.className}" style="${ceo.style}" role="img" data-sector-fallback="${escapeHtml(sectorFallbackLabel(stock))}" aria-label="${ceo.mood === "up" ? (getLanguage() === "en" ? "CEO cheering" : "CEO 환호") : ceo.mood === "down" ? (getLanguage() === "en" ? "CEO disappointed" : "CEO 우울") : (getLanguage() === "en" ? "CEO neutral" : "CEO 기본 표정")}">${sectorArtProbeMarkup(stock)}</span>
       <span class="sector-company"><b class="${streak.direction ? `streak-${streak.direction}` : ""}">${escapeHtml(stock.name)}</b><small>${stock.ticker} · ${escapeHtml(stock.sectorDescription || "")}</small></span>
       <span class="sector-stats"><small class="${sectorLevelClass(stats.profitability)}">${getLanguage() === "en" ? "RETURN" : "수익성"} <b>${sectorLevelLabel(stats.profitability)}</b></small><small class="${sectorLevelClass(stats.stability)}">${getLanguage() === "en" ? "STABILITY" : "안정성"} <b>${sectorLevelLabel(stats.stability)}</b></small><small class="${sectorLevelClass(stats.volatility)}">${getLanguage() === "en" ? "VOLATILITY" : "변동성"} <b>${sectorLevelLabel(stats.volatility)}</b></small></span>
       <span class="sector-quote"><strong>${money(currentPrice(game, index), true)}</strong><b class="stock-change ${change >= 0 ? "up" : "down"}">${percent(change)}</b><small>${risk}${streak.direction ? ` · ${streak.count}${getLanguage() === "en" ? "-turn streak" : "턴 연속"}` : ""}</small></span>
@@ -865,6 +896,8 @@ function renderSelectedStock() {
   const detailCeo = $("#stock-detail-ceo");
   detailCeo.className = `sector-ceo ${ceo.className}`;
   detailCeo.style.cssText = ceo.style;
+  detailCeo.dataset.sectorFallback = sectorFallbackLabel(stock);
+  detailCeo.innerHTML = sectorArtProbeMarkup(stock);
   const quantity = myPlayer().holdings[selectedStock] || 0;
   const average = myPlayer().averagePrices?.[selectedStock] || 0;
   const pnl = quantity ? quantity * (price - average) : 0;
@@ -1727,6 +1760,7 @@ function resetToStart() {
   eventStream = null;
   clearSession();
   online = false;
+  onlineGameEntered = false;
   roomState = null;
   viewerId = "PLAYER-001";
   resultShown = false;
@@ -1756,6 +1790,7 @@ function resetToStart() {
   closeSheet("board-modal");
   closeSheet("rank-detail-modal");
   closeSheet("global-chat-sheet");
+  closeSheet("onboarding-sheet");
   $("#global-chat-toggle").setAttribute("aria-expanded", "false");
   $("#matchmaking-screen").classList.add("is-hidden");
   $("#lobby-screen").classList.add("is-hidden");
@@ -1776,6 +1811,11 @@ $("#active-survival-list").addEventListener("click", (event) => {
 });
 $("#active-survival-refresh").addEventListener("click", loadActiveRooms);
 $("#solo-button").addEventListener("click", beginSoloGame);
+$("#onboarding-confirm").addEventListener("click", () => {
+  localStorage.setItem(ONBOARDING_KEY, "1");
+  closeSheet("onboarding-sheet");
+});
+$('[data-close-onboarding]').addEventListener("click", () => closeSheet("onboarding-sheet"));
 $("#nickname").addEventListener("keydown", (event) => { if (event.key === "Enter") startMatchmaking(); });
 $("#language-choice").addEventListener("click", (event) => {
   const button = event.target.closest("[data-language]"); if (!button) return;
@@ -2018,6 +2058,7 @@ $("#message-modal").addEventListener("click", (event) => { if (event.target.id =
 $("#notifications-modal").addEventListener("click", (event) => { if (event.target.id === "notifications-modal") closeSheet("notifications-modal"); });
 $("#board-modal").addEventListener("click", (event) => { if (event.target.id === "board-modal") closeSheet("board-modal"); });
 $("#profile-modal").addEventListener("click", (event) => { if (event.target.id === "profile-modal") closeSheet("profile-modal"); });
+$("#onboarding-sheet").addEventListener("click", (event) => { if (event.target.id === "onboarding-sheet") closeSheet("onboarding-sheet"); });
 window.addEventListener("resize", () => requestAnimationFrame(drawChart));
 $("#price-chart").addEventListener("mousemove", (event) => {
   const chart = event.currentTarget._chart;
@@ -2044,6 +2085,7 @@ document.addEventListener("keydown", (event) => {
     closeSheet("notifications-modal");
     closeSheet("board-modal");
     closeSheet("profile-modal");
+    closeSheet("onboarding-sheet");
     closeStockDetail();
     if (eliminationShown) closeSheet("elimination-modal");
     closeSheet("global-chat-sheet");

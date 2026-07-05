@@ -336,6 +336,21 @@ export function mountAppShell(root = document.querySelector("#stock-survival-roo
     </nav>
   </div>
 
+  <div class="modal-backdrop onboarding-sheet is-hidden" id="onboarding-sheet" role="dialog" aria-modal="true" aria-labelledby="onboarding-title">
+    <div class="modal onboarding-sheet-card">
+      <button class="modal-close" data-close-onboarding type="button" aria-label="닫기">×</button>
+      <span class="section-kicker">FIRST GAME GUIDE</span>
+      <h2 id="onboarding-title">생존 거래를 시작하세요</h2>
+      <ol class="onboarding-steps">
+        <li><b>1</b><span>섹터를 확인하세요.</span></li>
+        <li><b>2</b><span>종목을 매수/매도하세요.</span></li>
+        <li><b>3</b><span>턴을 종료하세요.</span></li>
+        <li><b>4</b><span>마지막까지 생존하세요.</span></li>
+      </ol>
+      <button class="button button-primary" id="onboarding-confirm" type="button">게임 시작</button>
+    </div>
+  </div>
+
   <div class="modal-backdrop is-hidden" id="profile-modal" role="dialog" aria-modal="true" aria-labelledby="profile-modal-title">
     <div class="modal profile-modal-card">
       <button class="modal-close" data-close-profile aria-label="닫기">×</button>

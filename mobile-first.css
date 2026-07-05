@@ -1554,6 +1554,55 @@ html,body { width:100%; min-width:320px; max-width:100%; overflow-x:hidden; }
 .sector-rail-controls button { width:48px; height:48px; min-height:48px; }
 .stock-detail-sector-list button { min-height:56px; }
 
+/* First-game guide and resilient sector portraits */
+.onboarding-sheet { align-items:end; padding:0; }
+.onboarding-sheet-card {
+  width:min(100%,480px);
+  max-height:min(82dvh,620px);
+  margin-top:auto;
+  padding:28px 22px calc(24px + env(safe-area-inset-bottom));
+  border-radius:22px 22px 0 0;
+  background:var(--bg-panel);
+  color:var(--text-main);
+}
+.onboarding-sheet-card h2 { margin:6px 0 18px; font-size:24px; }
+.onboarding-steps { display:grid; gap:10px; margin:0 0 22px; padding:0; list-style:none; }
+.onboarding-steps li { display:grid; grid-template-columns:38px minmax(0,1fr); gap:12px; align-items:center; min-height:58px; padding:10px 12px; border:1px solid var(--line-soft); border-radius:12px; background:var(--bg-panel-2); }
+.onboarding-steps b { display:grid; place-items:center; width:36px; height:36px; border-radius:50%; background:var(--blue-main); color:#fff; font:900 15px/1 var(--mono); }
+.onboarding-steps span { color:var(--text-main); font-size:15px; font-weight:800; }
+#onboarding-confirm { width:100%; min-height:52px; }
+
+.sector-art-probe {
+  position:absolute;
+  width:1px;
+  height:1px;
+  overflow:hidden;
+  opacity:0;
+  pointer-events:none;
+  clip-path:inset(50%);
+}
+.sector-ceo.sector-art-fallback,
+.sector-ceo.has-image-error {
+  position:relative;
+  background-color:#111b2d;
+  background-image:radial-gradient(circle at 50% 28%,rgba(47,128,237,.24),transparent 42%),linear-gradient(145deg,#162033,#090f1b);
+  background-position:center;
+  background-size:cover;
+}
+.sector-ceo.sector-art-fallback::after {
+  content:attr(data-sector-fallback);
+  position:absolute;
+  inset:0;
+  display:grid;
+  place-items:center;
+  padding:18px;
+  color:#cbd5e1;
+  font-size:clamp(15px,4vw,20px);
+  font-weight:900;
+  text-align:center;
+  text-shadow:0 2px 12px rgba(0,0,0,.7);
+}
+
 /* Checkpoint HUD and final touch targets */
 .final-countdown {
   position:fixed;
