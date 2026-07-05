@@ -465,7 +465,7 @@ function applyServerState(state) {
     setTimeout(() => {
       if (rankAnimationTurnSeen === effectTurn) {
         activeRankEffects.clear();
-        if (game) renderRanking();
+        if (game && getActiveAppTab() === "survivors") renderRanking();
       }
     }, 2400);
   }
@@ -622,7 +622,7 @@ function endCurrentTurn() {
   }));
   soloLastAssets = new Map(afterRanking.map((entry) => [entry.playerId, entry.assets]));
   activeRankEffects = new Map([...soloRankMovements].filter(([, movement]) => movement).map(([id, movement]) => [id, movement > 0 ? "up" : "down"]));
-  setTimeout(() => { activeRankEffects.clear(); if (game) renderRanking(); }, 2400);
+  setTimeout(() => { activeRankEffects.clear(); if (game && getActiveAppTab() === "survivors") renderRanking(); }, 2400);
   if (result.finished) {
     clearInterval(timerHandle);
     renderAll();
@@ -664,8 +664,11 @@ function renderActiveBattleTab() {
 }
 
 function activateAppView(tab) {
-  setActiveAppTab(tab);
-  if (game) renderActiveBattleTab();
+  const activeTab = setActiveAppTab(tab);
+  if (!game) return;
+  renderActiveBattleTab();
+  const panel = $(`[data-tab-panel="${activeTab}"]`);
+  if (panel) localizeDocument(panel);
 }
 
 function renderAll() {
@@ -1064,28 +1067,16 @@ function closeStockDetail() {
 
 function openStockDetail(stockIndex = selectedStock, side = null) {
   selectedStock = Number(stockIndex);
-  activateAppView("trade");
   $("#limit-price").value = currencyInputValue(currentPrice(game, selectedStock));
   $("#trade-quantity").value = 1;
-  if (side) setTradeSide(side);
+  if (side) selectTradeSide(side);
   activateTradeTab("trade");
-  mountStockDetailPanels();
-  renderMarket();
-  renderSelectedStock();
-  renderTradePanel();
+  activateAppView("trade");
   renderStockDetailSectorPicker();
+  mountStockDetailPanels();
   openSheet("stock-detail-modal");
   localizeDocument($("#stock-detail-modal"));
-  requestAnimationFrame(() => {
-    drawChart();
-    if (side) $("#trade-quantity").focus();
-  });
-}
-
-function openRankingModal() {
-  activateAppView("survivors");
-  renderRanking();
-  requestAnimationFrame(() => $("#rank-search").focus());
+  if (side) requestAnimationFrame(() => $("#trade-quantity").focus());
 }
 
 function jumpToHoldingStock(stockIndex, side = null) {
@@ -1238,9 +1229,13 @@ function renderLogs() {
   }).join("");
 }
 
-function setTradeSide(side) {
+function selectTradeSide(side) {
   tradeSide = side;
   $$(".side-toggle button").forEach((button) => button.classList.toggle("is-active", button.dataset.side === side));
+}
+
+function setTradeSide(side) {
+  selectTradeSide(side);
   renderTradePanel();
 }
 
@@ -1755,7 +1750,6 @@ function resetToStart() {
   closeSheet("notifications-modal");
   closeSheet("profile-modal");
   closeStockDetail();
-  closeSheet("ranking-modal");
   closeSheet("elimination-modal");
   closeSheet("item-modal");
   closeSheet("board-modal");
@@ -1801,7 +1795,6 @@ $('[data-close-profile]').addEventListener("click", () => closeSheet("profile-mo
 $("#stock-detail-modal").addEventListener("click", (event) => {
   if (event.target.closest("[data-close-stock-detail]") || event.target === event.currentTarget) closeStockDetail();
 });
-$('[data-close-ranking]').addEventListener("click", () => closeSheet("ranking-modal"));
 $("#detail-buy").addEventListener("click", () => { setTradeSide("buy"); activateTradeTab("trade"); renderTradePanel(); $("#trade-quantity").focus(); });
 $("#detail-sell").addEventListener("click", () => { if ($("#detail-sell").disabled) return; setTradeSide("sell"); activateTradeTab("trade"); renderTradePanel(); $("#trade-quantity").focus(); });
 $("#room-code-input").addEventListener("input", (event) => { event.target.value = event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""); });
@@ -2051,7 +2044,6 @@ document.addEventListener("keydown", (event) => {
     closeSheet("board-modal");
     closeSheet("profile-modal");
     closeStockDetail();
-    closeSheet("ranking-modal");
     if (eliminationShown) closeSheet("elimination-modal");
     closeSheet("global-chat-sheet");
     $("#global-chat-toggle").setAttribute("aria-expanded", "false");

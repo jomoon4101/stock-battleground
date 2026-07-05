@@ -229,10 +229,11 @@ test("섹터 거래창·생존자 순위 탭·정보 패널 동행 배치와 매
     readMarkup(), readFile(`${root}/app.js`, "utf8"), readFile(`${root}/engine.js`, "utf8"),
     readFile(`${root}/server.mjs`, "utf8"), readFile(`${root}/mobile-first.css`, "utf8"),
   ]);
-  for (const id of ["ranking-modal", "ranking-modal-body", "rank-search", "ranking-list"]) assert.match(html, new RegExp(`id="${id}"`));
+  for (const id of ["rank-search", "ranking-list"]) assert.match(html, new RegExp(`id="${id}"`));
+  assert.doesNotMatch(html, /ranking-modal|ranking-modal-body|ranking-modal-title|data-close-ranking/);
   assert.doesNotMatch(html, /data-nav-target="chart"/);
   assert.equal((html.match(/data-nav-target="ranking"/g) || []).length, 1);
-  assert.ok(html.indexOf('id="ranking-modal"') > html.indexOf('</main>'));
+  assert.doesNotMatch(app, /openRankingModal|closeSheet\("ranking-modal"\)/);
   assert.match(app, /data-stock-index[\s\S]*sector-open-button/);
   assert.match(app, /activateAppView\(button\.dataset\.appTab\)/);
   assert.match(app, /case "survivors":[\s\S]*renderRanking\(\)/);
@@ -241,7 +242,7 @@ test("섹터 거래창·생존자 순위 탭·정보 패널 동행 배치와 매
   assert.match(engine, /const isAccurate = rng\.next\(\) < 0\.68/);
   assert.doesNotMatch(server, /player\.rumorImmune\) return false/);
   assert.match(server, /if \(!result\.finished\)[\s\S]*room\.members\.forEach[\s\S]*deliverRumor/);
-  assert.match(mobileCss, /\.ranking-modal-card/);
+  assert.doesNotMatch(mobileCss, /\.ranking-modal-card/);
   assert.match(mobileCss, /\.game-bottom-nav\s*\{[^}]*grid-template-columns:\s*repeat\(5/);
 });
 

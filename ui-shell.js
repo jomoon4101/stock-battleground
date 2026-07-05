@@ -362,14 +362,6 @@ export function mountAppShell(root = document.querySelector("#stock-survival-roo
     </div>
   </div>
 
-  <div class="modal-backdrop is-hidden" id="ranking-modal" role="dialog" aria-modal="true" aria-labelledby="ranking-modal-title">
-    <div class="modal ranking-modal-card">
-      <button class="modal-close" data-close-ranking aria-label="닫기">×</button>
-      <span class="section-kicker">LIVE RANKING</span><h2 id="ranking-modal-title">생존 순위</h2>
-      <div id="ranking-modal-body"></div>
-    </div>
-  </div>
-
   <div class="modal-backdrop is-hidden" id="rules-modal" role="dialog" aria-modal="true" aria-labelledby="rules-title">
     <div class="modal rules-modal-card">
       <button class="modal-close" data-close-modal aria-label="닫기">×</button>

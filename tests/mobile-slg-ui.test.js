@@ -133,6 +133,11 @@ test("bottom navigation selects app tabs and renders each tab's content", async 
   const activateView = functionSource(app, "activateAppView");
   assert.match(activateView, /setActiveAppTab\(tab\)/);
   assert.match(activateView, /renderActiveBattleTab\(\)/);
+  const renderIndex = activateView.indexOf("renderActiveBattleTab()");
+  const panelIndex = activateView.indexOf('[data-tab-panel="${activeTab}"]');
+  const localizeIndex = activateView.indexOf("localizeDocument(panel)");
+  assert.ok(panelIndex > renderIndex, "the active panel must be selected after its dynamic content renders");
+  assert.ok(localizeIndex > panelIndex, "the newly rendered active panel must be localized");
   const navHandler = app.slice(app.indexOf('$("#game-bottom-nav")'), app.indexOf('$("#open-trade-button")'));
   assert.match(navHandler, /closest\("\[data-app-tab\]"\)/);
   assert.match(navHandler, /activateAppView\(button\.dataset\.appTab\)/);
@@ -155,12 +160,14 @@ test("bottom navigation selects app tabs and renders each tab's content", async 
   assert.match(build, /"ui-state\.js"/);
 });
 
-test("ranking navigation keeps the live board in Survivors instead of opening its legacy modal", async () => {
-  const app = await readFile(`${root}/app.js`, "utf8");
-  const openRanking = functionSource(app, "openRankingModal");
-  assert.match(openRanking, /activateAppView\("survivors"\)/);
-  assert.match(openRanking, /renderRanking\(\)/);
-  assert.doesNotMatch(openRanking, /openSheet\("ranking-modal"\)/);
+test("Survivors owns ranking without a legacy ranking modal", async () => {
+  const [app, uiShell] = await Promise.all([
+    readFile(`${root}/app.js`, "utf8"),
+    readSource("ui-shell.js"),
+  ]);
+  assert.doesNotMatch(app, /openRankingModal|ranking-modal|data-close-ranking/);
+  assert.doesNotMatch(uiShell, /ranking-modal|ranking-modal-body|ranking-modal-title|data-close-ranking/);
+  assert.match(functionSource(app, "renderActiveBattleTab"), /case "survivors":[\s\S]*renderRanking\(\)/);
   assert.doesNotMatch(app, /function initializeIntegratedLayout\(/);
 });
 
@@ -175,19 +182,37 @@ test("Trade owns finance totals while Home renders only home asset fields", asyn
   assert.match(renderFinance, /\$\("#finance-bonds"\)\.textContent = money\(summary\.bonds\)/);
 });
 
-test("opening stock detail activates Trade before mounting or opening the modal", async () => {
+test("opening stock detail initializes once, activates Trade, then mounts and opens the modal", async () => {
   const app = await readFile(`${root}/app.js`, "utf8");
   const openStockDetail = functionSource(app, "openStockDetail");
   const selectedIndex = openStockDetail.indexOf("selectedStock = Number(stockIndex)");
+  const priceIndex = openStockDetail.indexOf('$("#limit-price").value');
+  const quantityIndex = openStockDetail.indexOf('$("#trade-quantity").value');
+  const sideIndex = openStockDetail.indexOf("if (side)");
   const activateIndex = openStockDetail.indexOf('activateAppView("trade")');
+  const pickerIndex = openStockDetail.indexOf("renderStockDetailSectorPicker()");
   const mountIndex = openStockDetail.indexOf("mountStockDetailPanels()");
   const openIndex = openStockDetail.indexOf('openSheet("stock-detail-modal")');
+  const localizeIndex = openStockDetail.indexOf('localizeDocument($("#stock-detail-modal"))');
 
   assert.ok(selectedIndex >= 0, "stock detail must select the requested stock");
-  assert.ok(activateIndex > selectedIndex, "Trade activation must follow stock selection");
-  assert.ok(mountIndex > activateIndex, "Trade activation must happen before temporary panel mounting");
+  assert.ok(priceIndex > selectedIndex && quantityIndex > priceIndex, "trade inputs must initialize after stock selection");
+  assert.ok(sideIndex > quantityIndex && activateIndex > sideIndex, "trade side must initialize before Trade activation");
+  assert.equal((openStockDetail.match(/activateAppView\("trade"\)/g) || []).length, 1);
+  assert.ok(pickerIndex > activateIndex, "the detail sector picker must render after Trade activation");
+  assert.ok(mountIndex > pickerIndex, "temporary panels must mount after the detail picker renders");
   assert.ok(openIndex > mountIndex, "temporary panel mounting must happen before the modal opens");
+  assert.ok(localizeIndex > openIndex, "the open modal must be localized");
+  assert.doesNotMatch(openStockDetail, /renderMarket\(\)|renderSelectedStock\(\)|renderTradePanel\(\)|drawChart\(\)/);
   assert.doesNotMatch(functionSource(app, "activateAppView"), /openStockDetail\(/);
+});
+
+test("rank-effect timers update ranking only while Survivors is active", async () => {
+  const app = await readFile(`${root}/app.js`, "utf8");
+  const guardedRenders = app.match(/if \(game && getActiveAppTab\(\) === "survivors"\) renderRanking\(\);/g) || [];
+
+  assert.equal(guardedRenders.length, 2);
+  assert.doesNotMatch(app, /if \(game\) renderRanking\(\)/);
 });
 
 test("all modal backdrop flows use shared sheet state helpers", async () => {
@@ -207,8 +232,7 @@ test("all modal backdrop flows use shared sheet state helpers", async () => {
       id + " must not bypass shared sheet state",
     );
   }
-  assert.doesNotMatch(functionSource(app, "openRankingModal"), /openSheet\("ranking-modal"\)/);
-  assert.match(app, /closeSheet\("ranking-modal"\)/);
+  assert.doesNotMatch(app, /openRankingModal|ranking-modal|data-close-ranking/);
 });
 
 test("compact global chat has an external trigger and a real hidden sheet lifecycle", async () => {
