@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const optionalModuleSources = new Set(["ui-shell.js", "ui-state.js"]);
@@ -342,6 +342,48 @@ test("final mobile controls, detail contrast and shell labels remain accessible"
 
   assert.match(i18n, /"주문 열기":\s*"Open order"/);
   assert.match(i18n, /"턴 행동":\s*"Turn actions"/);
+});
+
+test("mobile SLG shell labels and empty states localize to exact English copy", async () => {
+  const previousDocument = globalThis.document;
+  globalThis.document = { documentElement: { lang: "ko" }, body: null };
+  try {
+    const { setLanguage, translateText } = await import(`${pathToFileURL(`${root}/i18n.js`).href}?mobile-shell-localization`);
+    setLanguage("en");
+    const expected = {
+      "홈": "Home",
+      "시장": "Market",
+      "거래": "Trade",
+      "생존자": "Survivors",
+      "로그": "Log",
+      "거래장 열기": "Open Trade Desk",
+      "보유 종목 없음": "No holdings yet",
+      "시장 스캔에서 첫 종목을 선택하세요.": "Choose your first stock from Market Scan.",
+      "현재 열린 생존전이 없습니다.": "No survival match is open right now.",
+      "전체 채팅 열기": "Open room chat",
+      "전체 채팅 닫기": "Close room chat",
+      "게임 메뉴": "Game menu",
+      "생존 상태바": "Survival status",
+      "섹터 카드 이동": "Sector card navigation",
+      "이전 섹터": "Previous sector",
+      "다음 섹터": "Next sector",
+      "거래 섹터 선택": "Choose trading sector",
+      "선택 섹터 CEO": "Selected sector CEO",
+      "생존 거래를 시작하세요": "Start survival trading",
+      "섹터를 확인하세요.": "Review the sectors.",
+      "종목을 매수/매도하세요.": "Buy or sell a stock.",
+      "턴을 종료하세요.": "End your turn.",
+      "마지막까지 생존하세요.": "Survive to the end.",
+      "게임 시작": "Start game",
+      "안전": "Safe",
+    };
+    for (const [korean, english] of Object.entries(expected)) {
+      assert.equal(translateText(korean), english, korean);
+      assert.doesNotMatch(translateText(korean), /[가-힣]/, korean);
+    }
+  } finally {
+    globalThis.document = previousDocument;
+  }
 });
 
 test("checkpoint overlay and remaining transaction controls fit mobile touch targets", async () => {

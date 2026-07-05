@@ -1,9 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { execFile } from "node:child_process";
 import { readFile, stat } from "node:fs/promises";
+import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 
 const root = fileURLToPath(new URL("..", import.meta.url));
+const execFileAsync = promisify(execFile);
 
 test("npm scripts와 Vercel dist·SPA 설정이 존재한다", async () => {
   const [pkg, vercel, build] = await Promise.all([readFile(`${root}/package.json`, "utf8").then(JSON.parse), readFile(`${root}/vercel.json`, "utf8").then(JSON.parse), readFile(`${root}/scripts/build.mjs`, "utf8")]);
@@ -26,6 +29,22 @@ test("build copies every required sector CEO v2 WebP", async () => {
   ];
   assert.match(build, /\^sector-ceo-\.\+-v2\\\.webp\$/);
   for (const key of sectorKeys) await stat(`${root}/assets/sector-ceo-${key}-v2.webp`);
+});
+
+test("production build emits the complete mobile SLG shell and required assets", async () => {
+  await execFileAsync(process.execPath, [`${root}/scripts/build.mjs`], { cwd: root });
+  const requiredFiles = [
+    "index.html", "app.js", "ui-shell.js", "ui-state.js", "sector-art.js",
+    "onboarding-state.js", "styles.css", "mobile-first.css", "i18n.js", "config.js",
+    "assets/stock-meme-avatars.png",
+  ];
+  const sectorKeys = [
+    "technology", "financials", "health-care", "consumer-discretionary",
+    "consumer-staples", "industrials", "communication-services", "materials",
+    "energy", "utilities", "real-estate",
+  ];
+  requiredFiles.push(...sectorKeys.map((key) => `assets/sector-ceo-${key}-v2.webp`));
+  await Promise.all(requiredFiles.map((name) => stat(`${root}/dist/${name}`)));
 });
 
 test("환경변수 예시는 이름만 포함하고 Supabase 변수는 사용하지 않는다", async () => {
