@@ -43,6 +43,8 @@ Object.assign(EN, {
   "전체 채팅 열기": "Open room chat", "전체 채팅 닫기": "Close room chat", "생존 상태바": "Survival status", "안전": "Safe",
   "섹터 카드 이동": "Sector card navigation", "이전 섹터": "Previous sector", "다음 섹터": "Next sector", "거래 섹터 선택": "Choose trading sector", "선택 섹터 CEO": "Selected sector CEO",
   "생존 거래를 시작하세요": "Start survival trading", "섹터를 확인하세요.": "Review the sectors.", "종목을 매수/매도하세요.": "Buy or sell a stock.", "턴을 종료하세요.": "End your turn.", "마지막까지 생존하세요.": "Survive to the end.", "게임 시작": "Start game",
+  "찌라시 쪽지함 →": "Open rumor inbox →", "방 코드 보기·복사": "View or copy room code", "거래창 열기": "Open trading window",
+  "종목명을 누르면 차트로 이동합니다. 매수·매도 버튼을 누르면 해당 주문 화면이 바로 열립니다.": "Tap a stock name to view its chart. Use Buy or Sell to open that order screen.",
   "서버 시뮬레이션 준비": "Server simulation ready", "클릭해서 복사": "Click to copy", "시장 필터": "Market filter", "주식 종목": "Stock list", "선택한 종목의 가격 차트": "Selected stock price chart",
   "현재 T01": "Current T01", "수량": "Quantity", "목표 가격": "Target price", "예약 매수": "Limit buy", "예약 매도": "Limit sell", "예약 등록": "Place limit order",
   "예약 주문은 다음 턴부터 조건 충족 시 체결되며, 거래 정지 아이템의 영향을 받지 않습니다.": "Limit orders can fill from the next turn and are not affected by a trading freeze.",

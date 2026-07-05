@@ -376,11 +376,32 @@ test("mobile SLG shell labels and empty states localize to exact English copy", 
       "마지막까지 생존하세요.": "Survive to the end.",
       "게임 시작": "Start game",
       "안전": "Safe",
+      "찌라시 쪽지함 →": "Open rumor inbox →",
+      "방 코드 보기·복사": "View or copy room code",
+      "종목명을 누르면 차트로 이동합니다. 매수·매도 버튼을 누르면 해당 주문 화면이 바로 열립니다.": "Tap a stock name to view its chart. Use Buy or Sell to open that order screen.",
     };
     for (const [korean, english] of Object.entries(expected)) {
       assert.equal(translateText(korean), english, korean);
       assert.doesNotMatch(translateText(korean), /[가-힣]/, korean);
     }
+  } finally {
+    globalThis.document = previousDocument;
+  }
+});
+
+test("generated sector and player aria labels translate their composed action", async () => {
+  const previousDocument = globalThis.document;
+  globalThis.document = { documentElement: { lang: "ko" }, body: null };
+  try {
+    const [{ setLanguage, translateText }, app] = await Promise.all([
+      import(`${pathToFileURL(`${root}/i18n.js`).href}?composed-runtime-labels`),
+      readFile(`${root}/app.js`, "utf8"),
+    ]);
+    setLanguage("en");
+    assert.equal(`Technology ${translateText("거래창 열기")}`, "Technology Open trading window");
+    assert.equal(`Alice ${translateText("상세 정보")}`, "Alice details");
+    assert.match(functionSource(app, "renderMarket"), /aria-label="\$\{escapeHtml\(stock\.sector\)\} \$\{translateText\("거래창 열기"\)\}"/);
+    assert.match(functionSource(app, "renderRanking"), /aria-label="\$\{escapeHtml\(entry\.nickname\)\} \$\{translateText\("상세 정보"\)\}"/);
   } finally {
     globalThis.document = previousDocument;
   }

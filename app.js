@@ -862,7 +862,7 @@ function renderMarket() {
     const stats = stock.sectorStats || {};
     return `
     <article class="stock-row sector-card sector-${stock.sectorKey} mood-${ceo.mood} ${index === selectedStock ? "is-active" : ""}" data-stock-index="${index}" data-open-stock-detail="${index}" role="listitem" tabindex="0" aria-label="${escapeHtml(stock.sector)} · ${escapeHtml(stock.name)} · ${percent(change)} · ${getLanguage() === "en" ? "open trading window" : "거래창 열기"}">
-      <button class="sector-open-button" type="button" data-open-stock-detail="${index}" aria-label="${escapeHtml(stock.sector)} 거래창 열기">${getLanguage() === "en" ? "OPEN TRADE" : "거래창 열기"} ›</button>
+      <button class="sector-open-button" type="button" data-open-stock-detail="${index}" aria-label="${escapeHtml(stock.sector)} ${translateText("거래창 열기")}">${getLanguage() === "en" ? "OPEN TRADE" : "거래창 열기"} ›</button>
       <span class="sector-card-heading"><em>${stock.icon || "◆"} ${escapeHtml(stock.sector)}</em>${owned ? `<i class="owned-badge">${getLanguage() === "en" ? "OWNED" : "보유중"}</i>` : ""}</span>
       <span class="sector-ceo ${ceo.className} ${sectorArtFallbackClass(stock)}" style="${ceo.style}" role="img" data-sector-fallback="${escapeHtml(sectorFallbackLabel(stock))}" aria-label="${ceo.mood === "up" ? (getLanguage() === "en" ? "CEO cheering" : "CEO 환호") : ceo.mood === "down" ? (getLanguage() === "en" ? "CEO disappointed" : "CEO 우울") : (getLanguage() === "en" ? "CEO neutral" : "CEO 기본 표정")}">${sectorArtProbeMarkup(stock)}</span>
       <span class="sector-company"><b class="${streak.direction ? `streak-${streak.direction}` : ""}">${escapeHtml(stock.name)}</b><small>${stock.ticker} · ${escapeHtml(stock.sectorDescription || "")}</small></span>
@@ -1135,7 +1135,7 @@ function renderRanking() {
     const movement = Number(entry.movement) || 0;
     const streak = Number(entry.assetRiseStreak) || 0;
     return `
-    <button class="rank-row ${entry.playerId === viewerId ? "is-me" : ""} ${effect ? `rank-${effect}` : ""} ${streak >= 2 ? "is-hot-streak" : ""}" data-player-id="${entry.playerId}" aria-label="${escapeHtml(entry.nickname)} 상세 정보">
+    <button class="rank-row ${entry.playerId === viewerId ? "is-me" : ""} ${effect ? `rank-${effect}` : ""} ${streak >= 2 ? "is-hot-streak" : ""}" data-player-id="${entry.playerId}" aria-label="${escapeHtml(entry.nickname)} ${translateText("상세 정보")}">
       <span class="rank-number">${String(entry.rank).padStart(2, "0")}</span>
       ${avatarMarkup(entry.avatar, "rank-avatar")}
       <span class="rank-person"><b>${escapeHtml(entry.nickname)} ${streak >= 2 ? `<em class="streak-mark">연속 ${streak}↑</em>` : ""}</b><small>${entry.playerId}</small></span>
