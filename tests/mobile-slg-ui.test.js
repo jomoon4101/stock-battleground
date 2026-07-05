@@ -271,6 +271,60 @@ test("compact global chat has an external trigger and a real hidden sheet lifecy
   assert.doesNotMatch(app, /globalChatCollapsed|is-collapsed/);
 });
 
+test("every mobile sheet exposes dialog semantics, an interior card, and a shared close control", async () => {
+  const uiShell = await readSource("ui-shell.js");
+  const sheetIds = [...uiShell.matchAll(/<(?:div|aside) class="[^"]*(?:modal-backdrop|global-chat-sheet)[^"]*" id="([^"]+)"/g)]
+    .map((match) => match[1]);
+
+  assert.ok(sheetIds.includes("global-chat-sheet"));
+  for (const id of sheetIds) {
+    const start = uiShell.indexOf(`id="${id}"`);
+    const nextSheet = uiShell.slice(start + id.length).search(/<(?:div|aside) class="[^"]*(?:modal-backdrop|global-chat-sheet)/);
+    const fragment = uiShell.slice(start, nextSheet < 0 ? undefined : start + id.length + nextSheet);
+    assert.match(fragment, /role="dialog"/i, `${id} must be a dialog`);
+    assert.match(fragment, /aria-modal="true"/i, `${id} must be modal`);
+    assert.match(fragment, /class="[^"]*sheet-card[^"]*"/i, `${id} must expose an interior card`);
+    assert.match(fragment, /data-sheet-close/i, `${id} must expose the shared close control`);
+  }
+});
+
+test("mobile HUD exposes live connected, reconnecting, and disconnected states", async () => {
+  const [uiShell, app, mobileCss] = await Promise.all([
+    readSource("ui-shell.js"),
+    readFile(`${root}/app.js`, "utf8"),
+    readFile(`${root}/mobile-first.css`, "utf8"),
+  ]);
+  assert.match(uiShell, /id="connection-status"[^>]*class="connection-status"[^>]*role="status"[^>]*aria-live="polite"[^>]*aria-atomic="true"/);
+
+  const setter = functionSource(app, "setConnectionStatus");
+  for (const state of ["connected", "reconnecting", "disconnected", "offline"]) {
+    assert.match(setter, new RegExp(`${state}:`));
+  }
+  assert.match(setter, /dataset\.connectionState = state/);
+  assert.match(app, /eventStream\.onopen = \(\) => setConnectionStatus\("connected"\)/);
+  assert.match(app, /eventStream\.readyState === EventSource\.CLOSED[\s\S]*"disconnected"[\s\S]*"reconnecting"/);
+
+  const hiddenLegacyIndex = mobileCss.lastIndexOf(".top-actions .connection { display:none; }");
+  const visibleStatusIndex = mobileCss.lastIndexOf(".connection-status {");
+  assert.ok(visibleStatusIndex > hiddenLegacyIndex, "visible connection status must win after legacy connection hiding");
+  const visibleStatus = mobileCss.slice(visibleStatusIndex, mobileCss.indexOf("}", visibleStatusIndex) + 1);
+  assert.match(visibleStatus, /display:\s*block/);
+  assert.doesNotMatch(visibleStatus, /display:\s*none/);
+});
+
+test("active-room and portfolio empty states provide direct actions through existing flows", async () => {
+  const app = await readFile(`${root}/app.js`, "utf8");
+  const activeRooms = functionSource(app, "loadActiveRooms");
+  const portfolio = functionSource(app, "renderPortfolioPanel");
+  assert.match(activeRooms, /data-create-active-room/);
+  assert.match(activeRooms, />방 만들기</);
+  assert.match(app, /#active-survival-list[\s\S]*data-create-active-room[\s\S]*createOnlineRoom\(\)/);
+  assert.match(portfolio, /data-open-market/);
+  assert.match(portfolio, />시장 보기</);
+  assert.match(portfolio, /localizeDocument\(\$\("#portfolio-list"\)\)/);
+  assert.match(app, /#portfolio-list[\s\S]*data-open-market[\s\S]*activateAppView\("market"\)/);
+});
+
 test("post-legacy dark leader and modal readability floor wins the cascade", async () => {
   const styles = await readFile(`${root}/styles.css`, "utf8");
   const legacyLeaderIndex = styles.lastIndexOf(".leader-announcement { border-color:");
@@ -360,6 +414,13 @@ test("mobile SLG shell labels and empty states localize to exact English copy", 
       "보유 종목 없음": "No holdings yet",
       "시장 스캔에서 첫 종목을 선택하세요.": "Choose your first stock from Market Scan.",
       "현재 열린 생존전이 없습니다.": "No survival match is open right now.",
+      "현재 참여 가능한 서바이벌이 없습니다.": "There are no survival games available to join.",
+      "시장 보기": "Open Market",
+      "연결 상태": "Connection status",
+      "오프라인": "Offline",
+      "연결됨": "Connected",
+      "재연결 중": "Reconnecting",
+      "연결 끊김": "Disconnected",
       "전체 채팅 열기": "Open room chat",
       "전체 채팅 닫기": "Close room chat",
       "게임 메뉴": "Game menu",
@@ -389,10 +450,10 @@ test("mobile SLG shell labels and empty states localize to exact English copy", 
   }
 });
 
-test("localizeDocument restores composed aria labels after English to Korean switch", async () => {
+test("localizeDocument restores composed and new shell aria labels after English to Korean switch", async () => {
   const previousDocument = globalThis.document;
   const previousNodeFilter = globalThis.NodeFilter;
-  const elements = ["Technology 거래창 열기", "Alice 상세 정보"].map((label) => {
+  const elements = ["Technology 거래창 열기", "Alice 상세 정보", "연결 상태", "시장 보기"].map((label) => {
     const attributes = new Map([["aria-label", label]]);
     return {
       hasAttribute: (name) => attributes.has(name),
@@ -412,9 +473,13 @@ test("localizeDocument restores composed aria labels after English to Korean swi
     setLanguage("en");
     assert.equal(elements[0].getAttribute("aria-label"), "Technology Open trading window");
     assert.equal(elements[1].getAttribute("aria-label"), "Alice details");
+    assert.equal(elements[2].getAttribute("aria-label"), "Connection status");
+    assert.equal(elements[3].getAttribute("aria-label"), "Open Market");
     setLanguage("ko");
     assert.equal(elements[0].getAttribute("aria-label"), "Technology 거래창 열기");
     assert.equal(elements[1].getAttribute("aria-label"), "Alice 상세 정보");
+    assert.equal(elements[2].getAttribute("aria-label"), "연결 상태");
+    assert.equal(elements[3].getAttribute("aria-label"), "시장 보기");
   } finally {
     globalThis.document = previousDocument;
     globalThis.NodeFilter = previousNodeFilter;

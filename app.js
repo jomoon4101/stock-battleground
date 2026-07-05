@@ -403,7 +403,8 @@ async function loadActiveRooms() {
           <span>${getLanguage() === "en" ? "IN PROGRESS" : "진행중"}</span>
           <button class="button button-secondary" data-active-room-code="${escapeHtml(room.code)}">${getLanguage() === "en" ? "JOIN NOW" : "바로 참여"}</button>
         </article>`).join("")
-      : `<p class="active-survival-empty">${getLanguage() === "en" ? "There are no survival games available to join." : "현재 참여 가능한 서바이벌이 없습니다."}</p>`;
+      : `<div class="active-survival-empty"><p>현재 참여 가능한 서바이벌이 없습니다.</p><button class="button button-secondary empty-state-action" type="button" data-create-active-room>방 만들기</button></div>`;
+    localizeDocument(list);
   } catch {
     if (requestId !== activeRoomsRequestId) return;
     list.innerHTML = `<p class="active-survival-empty is-error">${getLanguage() === "en" ? "Could not load the room list. Refresh and try again." : "방 목록을 불러오지 못했습니다. 새로고침 후 다시 시도해주세요."}</p>`;
@@ -439,14 +440,28 @@ async function startMatchmaking() {
 function connectToRoom(code, token) {
   eventStream?.close();
   eventStream = new EventSource(apiUrl(`/api/rooms/${encodeURIComponent(code)}/events?token=${encodeURIComponent(token)}`));
+  setConnectionStatus("reconnecting");
+  eventStream.onopen = () => setConnectionStatus("connected");
   eventStream.onmessage = (event) => {
     try { applyServerState(JSON.parse(event.data)); }
     catch { showToast("게임 상태를 읽지 못했습니다.", "error"); }
   };
-  eventStream.onerror = () => {
-    const status = $(".connection");
-    if (status) status.innerHTML = "<i></i> RECONNECTING";
+  eventStream.onerror = () => setConnectionStatus(
+    eventStream.readyState === EventSource.CLOSED ? "disconnected" : "reconnecting",
+  );
+}
+
+function setConnectionStatus(state) {
+  const labels = {
+    connected: { ko: "연결됨", en: "Connected" },
+    reconnecting: { ko: "재연결 중", en: "Reconnecting" },
+    disconnected: { ko: "연결 끊김", en: "Disconnected" },
+    offline: { ko: "오프라인", en: "Offline" },
   };
+  const status = $("#connection-status");
+  if (!status || !labels[state]) return;
+  status.dataset.connectionState = state;
+  status.textContent = labels[state][getLanguage()];
 }
 
 function applyServerState(state) {
@@ -724,6 +739,7 @@ function renderHeader() {
   $(".connection").innerHTML = `<i></i> ${online ? `ROOM ${roomState.code}` : "SOLO"}`;
   $("#game-room-code b").textContent = online ? roomState.code : "SOLO";
   $("#game-room-code small").textContent = online ? "OPEN · ROOM" : "OFFLINE";
+  setConnectionStatus(online ? "connected" : "offline");
 }
 
 function renderSurvivalStatus() {
@@ -946,7 +962,8 @@ function renderPortfolioPanel() {
       <span><small>${getLanguage() === "en" ? "AVG" : "평균 매수가"}</small><b>${money(entry.average, true)}</b></span><span><small>${getLanguage() === "en" ? "NOW" : "현재가"}</small><b>${money(entry.price, true)}</b></span>
       <span class="${entry.pnl >= 0 ? "profit" : "loss"}"><small>${getLanguage() === "en" ? "RETURN" : "수익률"}</small><b>${percent(entry.returnRate)}</b></span><span><small>${getLanguage() === "en" ? "VALUE" : "평가금액"}</small><b>${money(entry.value, true)}</b></span>
       <span class="portfolio-pnl ${entry.pnl >= 0 ? "profit" : "loss"}"><small>${getLanguage() === "en" ? "P/L" : "평가 손익"}</small><b>${entry.pnl >= 0 ? "+" : ""}${money(entry.pnl, true)}</b></span>
-    </button>`).join("") : `<p>${getLanguage() === "en" ? "You do not own any stocks yet. Select a stock and buy your first position." : "아직 보유한 종목이 없습니다. 종목을 선택해 매수해보세요."}</p>`;
+    </button>`).join("") : `<div class="portfolio-empty"><strong>보유 종목 없음</strong><p>시장 스캔에서 첫 종목을 선택하세요.</p><button class="button button-secondary empty-state-action" type="button" data-open-market>시장 보기</button></div>`;
+  localizeDocument($("#portfolio-list"));
 }
 
 function renderIntelCards() {
@@ -1811,6 +1828,10 @@ $("#start-button").addEventListener("click", startMatchmaking);
 $("#private-room-button").addEventListener("click", createOnlineRoom);
 $("#join-room-button").addEventListener("click", () => joinOnlineRoom());
 $("#active-survival-list").addEventListener("click", (event) => {
+  if (event.target.closest("[data-create-active-room]")) {
+    createOnlineRoom();
+    return;
+  }
   const button = event.target.closest("[data-active-room-code]");
   if (button) joinOnlineRoom(button.dataset.activeRoomCode);
 });
@@ -1872,6 +1893,10 @@ $("#end-turn-button").addEventListener("click", async () => {
 });
 $("#pause-button").addEventListener("click", () => { paused = !paused; lastFrame = performance.now(); renderHeader(); renderClock(); });
 $("#portfolio-list").addEventListener("click", (event) => {
+  if (event.target.closest("[data-open-market]")) {
+    activateAppView("market");
+    return;
+  }
   const card = event.target.closest("[data-portfolio-stock]");
   if (card) jumpToHoldingStock(card.dataset.portfolioStock);
 });
@@ -2058,6 +2083,10 @@ $("[data-close-rank-detail]").addEventListener("click", () => closeSheet("rank-d
 $("[data-close-message]").addEventListener("click", () => closeSheet("message-modal"));
 $("[data-close-notifications]").addEventListener("click", () => closeSheet("notifications-modal"));
 $("[data-close-board]").addEventListener("click", () => closeSheet("board-modal"));
+document.addEventListener("stock-survival:sheet-close", (event) => {
+  if (event.detail.id === "stock-detail-modal") restoreStockDetailPanels();
+  if (event.detail.id === "global-chat-sheet") renderGlobalChat();
+});
 $("#rules-modal").addEventListener("click", (event) => { if (event.target.id === "rules-modal") closeSheet("rules-modal"); });
 $("#item-modal").addEventListener("click", (event) => { if (event.target.id === "item-modal") closeSheet("item-modal"); });
 $("#rank-detail-modal").addEventListener("click", (event) => { if (event.target.id === "rank-detail-modal") closeSheet("rank-detail-modal"); });
@@ -2084,21 +2113,6 @@ $("#price-chart").addEventListener("mousemove", (event) => {
 });
 $("#price-chart").addEventListener("mouseleave", () => $("#chart-tooltip").classList.add("is-hidden"));
 document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape") {
-    closeSheet("rules-modal");
-    closeSheet("item-modal");
-    closeSheet("rank-detail-modal");
-    closeSheet("holdings-modal");
-    closeSheet("message-modal");
-    closeSheet("notifications-modal");
-    closeSheet("board-modal");
-    closeSheet("profile-modal");
-    closeSheet("onboarding-sheet");
-    closeStockDetail();
-    if (eliminationShown) closeSheet("elimination-modal");
-    closeSheet("global-chat-sheet");
-    $("#global-chat-toggle").setAttribute("aria-expanded", "false");
-  }
   if (event.code === "Space" && game && !online && !["INPUT", "SELECT", "TEXTAREA"].includes(document.activeElement.tagName)) {
     event.preventDefault();
     paused = !paused;

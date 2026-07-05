@@ -39,7 +39,8 @@ const EN = {
 
 Object.assign(EN, {
   "홈": "Home", "시장": "Market", "거래": "Trade", "생존자": "Survivors", "로그": "Log", "게임 메뉴": "Game menu",
-  "거래장 열기": "Open Trade Desk", "보유 종목 없음": "No holdings yet", "시장 스캔에서 첫 종목을 선택하세요.": "Choose your first stock from Market Scan.", "현재 열린 생존전이 없습니다.": "No survival match is open right now.",
+  "거래장 열기": "Open Trade Desk", "보유 종목 없음": "No holdings yet", "시장 스캔에서 첫 종목을 선택하세요.": "Choose your first stock from Market Scan.", "시장 보기": "Open Market", "현재 열린 생존전이 없습니다.": "No survival match is open right now.", "현재 참여 가능한 서바이벌이 없습니다.": "There are no survival games available to join.",
+  "연결 상태": "Connection status", "오프라인": "Offline", "연결됨": "Connected", "재연결 중": "Reconnecting", "연결 끊김": "Disconnected",
   "전체 채팅 열기": "Open room chat", "전체 채팅 닫기": "Close room chat", "생존 상태바": "Survival status", "안전": "Safe",
   "섹터 카드 이동": "Sector card navigation", "이전 섹터": "Previous sector", "다음 섹터": "Next sector", "거래 섹터 선택": "Choose trading sector", "선택 섹터 CEO": "Selected sector CEO",
   "생존 거래를 시작하세요": "Start survival trading", "섹터를 확인하세요.": "Review the sectors.", "종목을 매수/매도하세요.": "Buy or sell a stock.", "턴을 종료하세요.": "End your turn.", "마지막까지 생존하세요.": "Survive to the end.", "게임 시작": "Start game",

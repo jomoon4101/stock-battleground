@@ -53,7 +53,7 @@ export function mountAppShell(root = document.querySelector("#stock-survival-roo
       </div>
       <section class="active-survivals" aria-labelledby="active-survival-title">
         <header><h2 id="active-survival-title">🔥 서바이벌 진행중</h2><button id="active-survival-refresh" type="button" title="목록 새로고침" aria-label="목록 새로고침">↻</button></header>
-        <div id="active-survival-list" aria-live="polite"><p class="active-survival-empty">현재 진행 중인 서바이벌이 없습니다.</p></div>
+        <div id="active-survival-list" aria-live="polite"><div class="active-survival-empty"><p>현재 진행 중인 서바이벌이 없습니다.</p><button class="button button-secondary empty-state-action" type="button" data-create-active-room>방 만들기</button></div></div>
       </section>
       <div class="start-meta">
         <span><i></i> 서버 시뮬레이션 준비</span>
@@ -115,6 +115,7 @@ export function mountAppShell(root = document.querySelector("#stock-survival-roo
         </div>
       </div>
       <div class="top-actions">
+        <span id="connection-status" class="connection-status" role="status" aria-live="polite" aria-atomic="true" aria-label="연결 상태">오프라인</span>
         <button class="game-room-code" id="game-room-code" title="방 코드 보기·복사"><small>OPEN</small><b>SOLO</b></button>
         <button class="icon-button" id="pause-button" title="일시정지" aria-label="일시정지">Ⅱ</button>
         <button class="icon-button" id="rules-button" title="규칙" aria-label="게임 규칙">?</button>
@@ -312,9 +313,9 @@ export function mountAppShell(root = document.querySelector("#stock-survival-roo
     </main>
 
     <button class="chat-fab" id="global-chat-toggle" type="button" aria-controls="global-chat-sheet" aria-expanded="false" aria-label="전체 채팅 열기"><span>●</span><em id="global-chat-unread" class="is-hidden">0</em></button>
-    <aside class="global-chat-sheet is-hidden" id="global-chat-sheet">
-    <section class="global-chat" id="global-chat" aria-label="전체 채팅">
-      <header class="global-chat-header"><span>●</span><strong>전체 채팅</strong><small>모든 생존자와 대화</small><button type="button" data-close-global-chat aria-label="전체 채팅 닫기">×</button></header>
+    <aside class="global-chat-sheet is-hidden" id="global-chat-sheet" role="dialog" aria-modal="true" aria-labelledby="global-chat-title">
+    <section class="global-chat sheet-card" id="global-chat" aria-label="전체 채팅">
+      <header class="global-chat-header"><span>●</span><strong id="global-chat-title">전체 채팅</strong><small>모든 생존자와 대화</small><button type="button" data-close-global-chat data-sheet-close aria-label="전체 채팅 닫기">×</button></header>
       <div class="global-chat-panel">
         <div class="global-chat-messages" id="global-chat-messages" aria-live="polite"></div>
         <div class="global-chat-compose"><input id="global-chat-input" maxlength="180" placeholder="전체 메시지 입력" autocomplete="off"><button id="global-chat-send" type="button">전송</button></div>
@@ -337,8 +338,8 @@ export function mountAppShell(root = document.querySelector("#stock-survival-roo
   </div>
 
   <div class="modal-backdrop onboarding-sheet is-hidden" id="onboarding-sheet" role="dialog" aria-modal="true" aria-labelledby="onboarding-title">
-    <div class="modal onboarding-sheet-card">
-      <button class="modal-close" data-close-onboarding type="button" aria-label="닫기">×</button>
+    <div class="modal onboarding-sheet-card sheet-card">
+      <button class="modal-close" data-close-onboarding data-sheet-close type="button" aria-label="닫기">×</button>
       <span class="section-kicker">FIRST GAME GUIDE</span>
       <h2 id="onboarding-title">생존 거래를 시작하세요</h2>
       <ol class="onboarding-steps">
@@ -352,8 +353,8 @@ export function mountAppShell(root = document.querySelector("#stock-survival-roo
   </div>
 
   <div class="modal-backdrop is-hidden" id="profile-modal" role="dialog" aria-modal="true" aria-labelledby="profile-modal-title">
-    <div class="modal profile-modal-card">
-      <button class="modal-close" data-close-profile aria-label="닫기">×</button>
+    <div class="modal profile-modal-card sheet-card">
+      <button class="modal-close" data-close-profile data-sheet-close aria-label="닫기">×</button>
       <span class="section-kicker">TRADER PROFILE</span><h2 id="profile-modal-title">프로필 선택</h2>
       <p>게임에서 사용할 프로필을 선택하세요.</p>
       <div class="profile-picker profile-modal-picker" id="profile-picker"></div>
@@ -363,8 +364,8 @@ export function mountAppShell(root = document.querySelector("#stock-survival-roo
   </div>
 
   <div class="modal-backdrop is-hidden" id="stock-detail-modal" role="dialog" aria-modal="true" aria-labelledby="stock-detail-title">
-    <div class="modal stock-detail-modal-card">
-      <button class="modal-close" data-close-stock-detail type="button" aria-label="닫기">×</button>
+    <div class="modal stock-detail-modal-card sheet-card">
+      <button class="modal-close" data-close-stock-detail data-sheet-close type="button" aria-label="닫기">×</button>
       <div class="stock-detail-character">
         <span class="sector-ceo" id="stock-detail-ceo" role="img" aria-label="선택 섹터 CEO"></span>
         <div class="stock-detail-character-copy"><span class="section-kicker" id="stock-detail-sector">STOCK SECTOR</span><h2 id="stock-detail-title">종목 상세</h2><p id="stock-detail-description"></p><div class="stock-detail-actions"><button class="detail-buy" id="detail-buy" type="button">바로 매수</button><button class="detail-sell" id="detail-sell" type="button">바로 매도</button></div></div>
@@ -378,8 +379,8 @@ export function mountAppShell(root = document.querySelector("#stock-survival-roo
   </div>
 
   <div class="modal-backdrop is-hidden" id="rules-modal" role="dialog" aria-modal="true" aria-labelledby="rules-title">
-    <div class="modal rules-modal-card">
-      <button class="modal-close" data-close-modal aria-label="닫기">×</button>
+    <div class="modal rules-modal-card sheet-card">
+      <button class="modal-close" data-close-modal data-sheet-close aria-label="닫기">×</button>
       <span class="section-kicker">HOW TO SURVIVE</span><h2 id="rules-title">게임 규칙</h2>
       <div class="rules-grid">
         <div><b>3~7명 · 3가지 자동 모드</b><p>빠른 게임은 3명·10라운드·5섹터, 기본 게임은 5명·20라운드·8섹터, 장기 게임은 7명·30라운드·11섹터입니다.</p></div>
@@ -394,8 +395,8 @@ export function mountAppShell(root = document.querySelector("#stock-survival-roo
   </div>
 
   <div class="modal-backdrop is-hidden" id="item-modal" role="dialog" aria-modal="true" aria-labelledby="item-modal-title">
-    <div class="modal item-modal-card">
-      <button class="modal-close" data-close-item aria-label="닫기">×</button>
+    <div class="modal item-modal-card sheet-card">
+      <button class="modal-close" data-close-item data-sheet-close aria-label="닫기">×</button>
       <span class="section-kicker">SPECIAL ITEM</span><h2 id="item-modal-title">아이템 사용</h2>
       <p id="item-modal-description"></p>
       <div id="item-options"></div>
@@ -405,7 +406,8 @@ export function mountAppShell(root = document.querySelector("#stock-survival-roo
   </div>
 
   <div class="modal-backdrop is-hidden" id="result-modal" role="dialog" aria-modal="true" aria-labelledby="result-title">
-    <div class="modal result-card">
+    <div class="modal result-card sheet-card">
+      <button class="modal-close" data-sheet-close type="button" aria-label="닫기">×</button>
       <span class="section-kicker">FINAL BELL</span><h2 id="result-title">게임 종료</h2>
       <div class="result-rank"><span>최종 순위</span><strong id="final-rank">1</strong><small>/ 30</small></div>
       <p id="result-message"></p>
@@ -415,8 +417,8 @@ export function mountAppShell(root = document.querySelector("#stock-survival-roo
   </div>
 
   <div class="modal-backdrop is-hidden" id="rank-detail-modal" role="dialog" aria-modal="true" aria-labelledby="rank-detail-title">
-    <div class="modal rank-detail-card">
-      <button class="modal-close" data-close-rank-detail aria-label="닫기">×</button>
+    <div class="modal rank-detail-card sheet-card">
+      <button class="modal-close" data-close-rank-detail data-sheet-close aria-label="닫기">×</button>
       <span class="section-kicker">PLAYER INTEL</span><h2 id="rank-detail-title">플레이어 정보</h2>
       <div class="rank-detail-player"><span id="rank-detail-avatar">?</span><div><strong id="rank-detail-name">-</strong><small id="rank-detail-id">-</small></div><b id="rank-detail-rank">-위</b></div>
       <div class="top-stock-card" id="rank-detail-stock"></div>
@@ -429,8 +431,8 @@ export function mountAppShell(root = document.querySelector("#stock-survival-roo
   <div class="leader-announcement is-hidden" id="leader-announcement"><span>♛</span><strong id="leader-announcement-text"></strong></div>
 
   <div class="modal-backdrop is-hidden" id="message-modal" role="dialog" aria-modal="true" aria-labelledby="message-title">
-    <div class="modal message-modal-card">
-      <button class="modal-close" data-close-message aria-label="닫기">×</button><span class="section-kicker">DIRECT MESSAGE</span>
+    <div class="modal message-modal-card sheet-card">
+      <button class="modal-close" data-close-message data-sheet-close aria-label="닫기">×</button><span class="section-kicker">DIRECT MESSAGE</span>
       <div class="message-title-row"><h2 id="message-title">쪽지함</h2><button class="button button-secondary" id="message-new">쪽지 보내기</button></div>
       <div class="message-recipient-panel is-hidden" id="message-recipient-panel"><input id="message-recipient-search" placeholder="받는 플레이어 검색" autocomplete="off"><div id="message-recipient-list"></div></div>
       <div class="message-layout"><div class="message-contacts" id="message-contacts"></div><div class="message-thread"><div id="message-thread"></div><div class="message-compose"><input id="message-input" maxlength="240" placeholder="쪽지 내용을 입력하세요"><button class="button button-primary" id="message-send">전송</button></div></div></div>
@@ -438,20 +440,20 @@ export function mountAppShell(root = document.querySelector("#stock-survival-roo
   </div>
 
   <div class="modal-backdrop is-hidden" id="notifications-modal" role="dialog" aria-modal="true" aria-labelledby="notifications-title">
-    <div class="modal notifications-card"><button class="modal-close" data-close-notifications aria-label="닫기">×</button><span class="section-kicker">NOTICES</span><h2 id="notifications-title">알림</h2><div id="notifications-list"></div></div>
+    <div class="modal notifications-card sheet-card"><button class="modal-close" data-close-notifications data-sheet-close aria-label="닫기">×</button><span class="section-kicker">NOTICES</span><h2 id="notifications-title">알림</h2><div id="notifications-list"></div></div>
   </div>
 
   <div class="modal-backdrop is-hidden" id="board-modal" role="dialog" aria-modal="true" aria-labelledby="board-title">
-    <div class="modal board-card"><button class="modal-close" data-close-board aria-label="닫기">×</button><span class="section-kicker">ANONYMOUS BOARD</span><h2 id="board-title">일개미에게 일시키기</h2><div class="board-compose"><textarea id="board-input" maxlength="500" placeholder="개발자에게 시킬 일을 익명으로 남겨주세요."></textarea><button class="button button-primary" id="board-submit">익명 등록</button></div><div id="board-posts" class="board-posts"></div></div>
+    <div class="modal board-card sheet-card"><button class="modal-close" data-close-board data-sheet-close aria-label="닫기">×</button><span class="section-kicker">ANONYMOUS BOARD</span><h2 id="board-title">일개미에게 일시키기</h2><div class="board-compose"><textarea id="board-input" maxlength="500" placeholder="개발자에게 시킬 일을 익명으로 남겨주세요."></textarea><button class="button button-primary" id="board-submit">익명 등록</button></div><div id="board-posts" class="board-posts"></div></div>
   </div>
 
   <div class="modal-backdrop is-hidden" id="elimination-modal" role="dialog" aria-modal="true" aria-labelledby="elimination-title">
-    <div class="modal elimination-card"><span class="section-kicker">ELIMINATED</span><h2 id="elimination-title">시장에서 탈락했습니다</h2><div class="elimination-rank"><span>탈락 순위</span><strong id="elimination-rank">100</strong><small id="elimination-turn">TURN 11</small></div><div id="elimination-stats" class="elimination-stats"></div><canvas id="elimination-chart"></canvas><div class="elimination-activity"><strong>주요 거래 기록</strong><div id="elimination-activity"></div></div><blockquote id="elimination-quote"></blockquote><button class="button button-secondary" id="observe-button">남은 게임 관전하기</button></div>
+    <div class="modal elimination-card sheet-card"><button class="modal-close" data-sheet-close type="button" aria-label="닫기">×</button><span class="section-kicker">ELIMINATED</span><h2 id="elimination-title">시장에서 탈락했습니다</h2><div class="elimination-rank"><span>탈락 순위</span><strong id="elimination-rank">100</strong><small id="elimination-turn">TURN 11</small></div><div id="elimination-stats" class="elimination-stats"></div><canvas id="elimination-chart"></canvas><div class="elimination-activity"><strong>주요 거래 기록</strong><div id="elimination-activity"></div></div><blockquote id="elimination-quote"></blockquote><button class="button button-secondary" id="observe-button">남은 게임 관전하기</button></div>
   </div>
 
   <div class="modal-backdrop is-hidden" id="holdings-modal" role="dialog" aria-modal="true" aria-labelledby="holdings-title">
-    <div class="modal holdings-modal-card">
-      <button class="modal-close" data-close-holdings aria-label="닫기">×</button>
+    <div class="modal holdings-modal-card sheet-card">
+      <button class="modal-close" data-close-holdings data-sheet-close aria-label="닫기">×</button>
       <span class="section-kicker">MY PORTFOLIO</span><h2 id="holdings-title">내 보유 주식</h2>
       <div class="holdings-modal-summary"><span>총 주식 평가액</span><strong id="holdings-total">₩0</strong><small id="holdings-count">0개 종목</small></div>
       <div class="holdings-list" id="holdings-list"></div>

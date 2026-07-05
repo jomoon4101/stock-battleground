@@ -19,9 +19,10 @@ function functionSource(source, name) {
 }
 
 test("first-game onboarding is an accessible four-step shared bottom sheet", async () => {
-  const [shell, app, onboardingState, mobileCss, build] = await Promise.all([
+  const [shell, app, uiState, onboardingState, mobileCss, build] = await Promise.all([
     readFile(`${root}/ui-shell.js`, "utf8"),
     readFile(`${root}/app.js`, "utf8"),
+    readFile(`${root}/ui-state.js`, "utf8"),
     readFile(`${root}/onboarding-state.js`, "utf8").catch(() => ""),
     readFile(`${root}/mobile-first.css`, "utf8"),
     readFile(`${root}/scripts/build.mjs`, "utf8"),
@@ -53,7 +54,7 @@ test("first-game onboarding is an accessible four-step shared bottom sheet", asy
   assert.match(app, /data-close-onboarding[\s\S]*closeSheet\("onboarding-sheet"\)/);
   assert.doesNotMatch(app, /\$\("#onboarding-sheet"\)\.classList\.(?:add|remove)\("is-hidden"\)/);
   assert.match(functionSource(app, "resetToStart"), /closeSheet\("onboarding-sheet"\)/);
-  assert.match(app, /event\.key === "Escape"[\s\S]*closeSheet\("onboarding-sheet"\)/);
+  assert.match(uiState, /event\.key === "Escape"[\s\S]*closeSheet\(sheet\.id\)/);
   assert.match(mobileCss, /\.onboarding-sheet-card\s*\{/);
   assert.match(mobileCss, /\.onboarding-steps\s*\{/);
 });
