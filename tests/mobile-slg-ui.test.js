@@ -266,9 +266,21 @@ test("compact global chat has an external trigger and a real hidden sheet lifecy
   assert.equal((uiShell.match(/id="global-chat-unread"/g) || []).length, 1);
 
   assert.match(app, /#global-chat-toggle[\s\S]*openSheet\("global-chat-sheet"\)[\s\S]*aria-expanded", "true"/);
-  assert.match(app, /data-close-global-chat[\s\S]*closeSheet\("global-chat-sheet"\)[\s\S]*aria-expanded", "false"/);
+  assert.match(app, /stock-survival:sheet-close[\s\S]*global-chat-sheet[\s\S]*renderGlobalChat\(\)/);
   assert.match(app, /#global-chat-sheet[\s\S]*classList\.contains\("is-hidden"\)/);
   assert.doesNotMatch(app, /globalChatCollapsed|is-collapsed/);
+});
+
+test("shared sheet controller exclusively owns close controls and backdrop dismissal", async () => {
+  const app = await readFile(`${root}/app.js`, "utf8");
+  assert.doesNotMatch(app, /\$\((?:"|')\[data-close-[^\]]+\](?:"|')\)\.addEventListener\("click"/);
+  assert.doesNotMatch(app, /\$\("#(?:stock-detail|rules|item|rank-detail|holdings|message|notifications|board|profile)-modal"\)\.addEventListener\("click"/);
+  assert.doesNotMatch(app, /\$\("#onboarding-sheet"\)\.addEventListener\("click"/);
+  assert.equal((app.match(/document\.addEventListener\("stock-survival:sheet-close"/g) || []).length, 1);
+  const closeStockDetail = functionSource(app, "closeStockDetail");
+  assert.match(closeStockDetail, /closeSheet\("stock-detail-modal"\)/);
+  assert.doesNotMatch(closeStockDetail, /restoreStockDetailPanels\(\)/);
+  assert.match(app, /stock-survival:sheet-close[\s\S]*stock-detail-modal[\s\S]*restoreStockDetailPanels\(\)[\s\S]*global-chat-sheet[\s\S]*renderGlobalChat\(\)/);
 });
 
 test("every mobile sheet exposes dialog semantics, an interior card, and a shared close control", async () => {
@@ -301,8 +313,14 @@ test("mobile HUD exposes live connected, reconnecting, and disconnected states",
     assert.match(setter, new RegExp(`${state}:`));
   }
   assert.match(setter, /dataset\.connectionState = state/);
-  assert.match(app, /eventStream\.onopen = \(\) => setConnectionStatus\("connected"\)/);
-  assert.match(app, /eventStream\.readyState === EventSource\.CLOSED[\s\S]*"disconnected"[\s\S]*"reconnecting"/);
+  const connect = functionSource(app, "connectToRoom");
+  assert.match(connect, /const stream = new EventSource/);
+  assert.match(connect, /eventStream = stream/);
+  assert.equal((connect.match(/if \(eventStream !== stream\) return;/g) || []).length, 3);
+  assert.match(connect, /stream\.onopen/);
+  assert.match(connect, /stream\.onmessage/);
+  assert.match(connect, /stream\.onerror[\s\S]*stream\.readyState === EventSource\.CLOSED/);
+  assert.doesNotMatch(connect, /eventStream\.readyState/);
 
   const hiddenLegacyIndex = mobileCss.lastIndexOf(".top-actions .connection { display:none; }");
   const visibleStatusIndex = mobileCss.lastIndexOf(".connection-status {");

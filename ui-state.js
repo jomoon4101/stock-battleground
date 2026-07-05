@@ -6,11 +6,12 @@ const openSheetStack = [];
 const FOCUSABLE_SELECTOR = [
   "button:not([disabled])",
   "[href]",
-  "input:not([disabled])",
+  "input:not([disabled]):not([type='hidden'])",
   "select:not([disabled])",
   "textarea:not([disabled])",
   "[tabindex]:not([tabindex='-1'])",
 ].join(",");
+const FOCUS_FALLBACK_SELECTOR = '[data-app-tab][aria-current="page"], #global-chat-toggle, #start-button';
 
 export function getActiveAppTab() {
   return activeTab;
@@ -60,19 +61,59 @@ function topOpenSheet() {
   return visibleSheets().at(-1) ?? null;
 }
 
+function isVisibleFocusTarget(element) {
+  if (!element?.isConnected || typeof element.focus !== "function") return false;
+  if (element.disabled || element.matches?.(":disabled") || element.getAttribute?.("aria-disabled") === "true") return false;
+  if (String(element.type || element.getAttribute?.("type") || "").toLowerCase() === "hidden") return false;
+  let ancestor = element;
+  while (ancestor) {
+    if (ancestor.hidden || ancestor.inert || ancestor.classList?.contains("is-hidden")
+      || ancestor.getAttribute?.("aria-hidden") === "true") return false;
+    const style = typeof globalThis.getComputedStyle === "function"
+      ? globalThis.getComputedStyle(ancestor)
+      : ancestor.style;
+    if (style?.display === "none" || ["hidden", "collapse"].includes(style?.visibility)) return false;
+    ancestor = ancestor.parentElement;
+  }
+  return true;
+}
+
+function tryFocus(element) {
+  if (!isVisibleFocusTarget(element)) return false;
+  element.focus();
+  return document.activeElement === element;
+}
+
 function focusableElements(sheet) {
-  return [...sheet.querySelectorAll(FOCUSABLE_SELECTOR)]
-    .filter((element) => !element.closest?.(".is-hidden, [hidden]"));
+  return [...sheet.querySelectorAll(FOCUSABLE_SELECTOR)].filter(isVisibleFocusTarget);
 }
 
 function focusSheet(sheet) {
-  const target = sheet.querySelector?.("[autofocus]") || focusableElements(sheet)[0];
-  if (target) {
-    target.focus();
-    return;
+  const autofocus = sheet.querySelector?.("[autofocus]");
+  if (autofocus && tryFocus(autofocus)) return true;
+  for (const target of focusableElements(sheet)) {
+    if (tryFocus(target)) return true;
   }
   if (sheet.getAttribute("tabindex") === null) sheet.setAttribute("tabindex", "-1");
-  sheet.focus?.();
+  return tryFocus(sheet);
+}
+
+function focusLiveFallback() {
+  const liveSheet = topOpenSheet();
+  if (liveSheet && focusSheet(liveSheet)) return true;
+  for (const control of document.querySelectorAll(FOCUS_FALLBACK_SELECTOR)) {
+    if (tryFocus(control)) return true;
+  }
+  return false;
+}
+
+function rewireNestedFocusOrigins(closingSheet) {
+  const replacement = sheetFocusOrigins.get(closingSheet);
+  for (const openSheet of openSheetStack) {
+    if (openSheet === closingSheet) continue;
+    const origin = sheetFocusOrigins.get(openSheet);
+    if (origin && closingSheet.contains(origin)) sheetFocusOrigins.set(openSheet, replacement);
+  }
 }
 
 function setTriggerExpanded(sheet, expanded) {
@@ -104,6 +145,7 @@ export function closeSheet(id) {
   if (!sheet) return false;
   const wasOpen = !sheet.classList.contains("is-hidden");
   const wasTopSheet = topOpenSheet() === sheet;
+  rewireNestedFocusOrigins(sheet);
   sheet.classList.add("is-hidden");
   sheet.setAttribute("aria-hidden", "true");
   const stackIndex = openSheetStack.indexOf(sheet);
@@ -117,8 +159,7 @@ export function closeSheet(id) {
   }));
   if (wasTopSheet) {
     const focusOrigin = sheetFocusOrigins.get(sheet);
-    if (focusOrigin?.isConnected !== false && typeof focusOrigin?.focus === "function") focusOrigin.focus();
-    else if (topOpenSheet()) focusSheet(topOpenSheet());
+    if (!tryFocus(focusOrigin)) focusLiveFallback();
   }
   sheetFocusOrigins.delete(sheet);
   return true;

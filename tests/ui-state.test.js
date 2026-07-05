@@ -33,15 +33,19 @@ function createFakeDocument({ appTabs = [], tabPanels = [], sheets = [] } = {}) 
   const listeners = new Map();
   const mutate = () => { mutations += 1; };
   let document;
-  const createElement = ({ id = "", classes = [], dataset = {}, focusable = false, tagName = "DIV" }) => {
+  const createElement = ({ id = "", classes = [], dataset = {}, focusable = false, tagName = "DIV", type = "" }) => {
     const attributes = new Map();
     let hidden = false;
     const element = {
       id,
       dataset,
       tagName,
+      type,
       disabled: false,
+      inert: false,
       focusable,
+      focusFails: false,
+      style: { display: "", visibility: "" },
       children: [],
       parentElement: null,
       isConnected: true,
@@ -62,25 +66,47 @@ function createFakeDocument({ appTabs = [], tabPanels = [], sheets = [] } = {}) 
             && (candidate.classList.contains("modal-backdrop") || candidate.classList.contains("global-chat-sheet"))) return candidate;
           if (selector === "[data-sheet-close]" && Object.hasOwn(candidate.dataset, "sheetClose")) return candidate;
           if (selector === ".sheet-card" && candidate.classList.contains("sheet-card")) return candidate;
+          if ([".is-hidden, [hidden]", "[inert], .is-hidden, [hidden]"].includes(selector)
+            && (candidate.inert || candidate.hidden || candidate.classList.contains("is-hidden"))) return candidate;
           candidate = candidate.parentElement;
         }
         return null;
+      },
+      matches(selector) {
+        if (selector !== ":disabled") return false;
+        let candidate = element;
+        while (candidate) {
+          if (candidate.disabled && (candidate === element || candidate.tagName === "FIELDSET")) return true;
+          candidate = candidate.parentElement;
+        }
+        return false;
       },
       querySelectorAll() {
         const descendants = [];
         const visit = (node) => {
           node.children.forEach((child) => {
-            if (child.focusable && !child.disabled) descendants.push(child);
+            if (child.focusable) descendants.push(child);
             visit(child);
           });
         };
         visit(element);
         return descendants;
       },
-      querySelector() {
+      querySelector(selector) {
+        if (selector === "[autofocus]") {
+          return element.querySelectorAll().find((candidate) => candidate.hasAttribute("autofocus")) ?? null;
+        }
         return element.querySelectorAll()[0] ?? null;
       },
       focus() {
+        let candidate = element;
+        while (candidate) {
+          if (candidate.hidden || candidate.inert || candidate.classList.contains("is-hidden")
+            || candidate.style.display === "none" || candidate.style.visibility === "hidden"
+            || (candidate.tagName === "FIELDSET" && candidate.disabled)) return;
+          candidate = candidate.parentElement;
+        }
+        if (!element.focusable || element.focusFails || element.disabled || element.type === "hidden") return;
         document.activeElement = element;
       },
       setAttribute(name, value) {
@@ -93,6 +119,9 @@ function createFakeDocument({ appTabs = [], tabPanels = [], sheets = [] } = {}) 
       },
       getAttribute(name) {
         return attributes.get(name) ?? null;
+      },
+      hasAttribute(name) {
+        return attributes.has(name);
       },
       get hidden() {
         return hidden;
@@ -131,7 +160,10 @@ function createFakeDocument({ appTabs = [], tabPanels = [], sheets = [] } = {}) 
   sheetElements.forEach(collect);
   const elementsById = new Map(allElements.map((element) => [element.id, element]));
   const body = createElement({});
+  const outsideContainer = createElement({ id: "outside-container" });
   const outside = createElement({ id: "outside-trigger", focusable: true, tagName: "BUTTON" });
+  outsideContainer.append(outside);
+  const stableControl = createElement({ id: "stable-app-control", focusable: true, tagName: "BUTTON" });
   const triggers = sheetElements.map((sheet) => {
     const trigger = createElement({ id: `${sheet.id}-trigger`, focusable: true, tagName: "BUTTON" });
     trigger.setAttribute("aria-controls", sheet.id);
@@ -144,6 +176,7 @@ function createFakeDocument({ appTabs = [], tabPanels = [], sheets = [] } = {}) 
       if (selector === "[data-app-tab]") return tabs;
       if (selector === "[data-tab-panel]") return panels;
       if (selector === ".modal-backdrop, .global-chat-sheet") return sheetElements;
+      if (selector === '[data-app-tab][aria-current="page"], #global-chat-toggle, #start-button') return [stableControl];
       const ariaControls = selector.match(/^\[aria-controls="(.+)"\]$/);
       if (ariaControls) return triggers.filter((trigger) => trigger.getAttribute("aria-controls") === ariaControls[1]);
       return [];
@@ -179,6 +212,9 @@ function createFakeDocument({ appTabs = [], tabPanels = [], sheets = [] } = {}) 
     document,
     events,
     outside,
+    outsideContainer,
+    stableControl,
+    createElement,
     triggers,
     dispatch,
     get mutations() {
@@ -293,6 +329,70 @@ test("nested sheets trap focus and restore the exact focused trigger in stack or
     closeSheet("profile-modal");
     assert.equal(fake.document.activeElement, fake.outside);
     assert.equal(fake.document.body.classList.contains("has-open-sheet"), false);
+  });
+});
+
+test("closing a sheet skips a hidden opener whose focus call fails and focuses a visible app control", async () => {
+  const fake = createFakeDocument({ sheets: [{ id: "onboarding-sheet" }] });
+  await withUiState(fake.document, async ({ openSheet, closeSheet }) => {
+    const sheet = fake.getElementById("onboarding-sheet");
+    fake.outside.focus();
+    openSheet("onboarding-sheet");
+    assert.equal(fake.document.activeElement, sheet.focusables[0]);
+
+    fake.outsideContainer.classList.add("is-hidden");
+    closeSheet("onboarding-sheet");
+
+    assert.equal(fake.document.activeElement, fake.stableControl);
+    assert.notEqual(fake.document.activeElement, fake.outside);
+  });
+});
+
+test("closing an underlying sheet rewires a nested sheet origin before the nested sheet closes", async () => {
+  const fake = createFakeDocument({
+    sheets: [{ id: "profile-modal" }, { id: "message-modal" }],
+  });
+  await withUiState(fake.document, async ({ openSheet, closeSheet }) => {
+    const profile = fake.getElementById("profile-modal");
+    const message = fake.getElementById("message-modal");
+    fake.outside.focus();
+    openSheet("profile-modal");
+    profile.focusables[1].focus();
+    openSheet("message-modal");
+
+    closeSheet("profile-modal");
+    assert.equal(fake.document.activeElement, message.focusables[0]);
+    closeSheet("message-modal");
+
+    assert.equal(fake.document.activeElement, fake.outside);
+    assert.notEqual(fake.document.activeElement, profile.focusables[1]);
+  });
+});
+
+test("sheet focus excludes hidden, inert, fieldset-disabled, and CSS-invisible controls", async () => {
+  const fake = createFakeDocument({ sheets: [{ id: "profile-modal", controls: 0 }] });
+  const sheet = fake.getElementById("profile-modal");
+  const hiddenInput = fake.createElement({ id: "hidden-input", focusable: true, tagName: "INPUT", type: "hidden" });
+  const displayNone = fake.createElement({ id: "display-none", focusable: true, tagName: "BUTTON" });
+  displayNone.style.display = "none";
+  const visibilityHidden = fake.createElement({ id: "visibility-hidden", focusable: true, tagName: "BUTTON" });
+  visibilityHidden.style.visibility = "hidden";
+  const inertWrapper = fake.createElement({ id: "inert-wrapper" });
+  inertWrapper.inert = true;
+  inertWrapper.append(fake.createElement({ id: "inert-control", focusable: true, tagName: "BUTTON" }));
+  const disabledFieldset = fake.createElement({ id: "disabled-fieldset", tagName: "FIELDSET" });
+  disabledFieldset.disabled = true;
+  disabledFieldset.append(fake.createElement({ id: "fieldset-control", focusable: true, tagName: "INPUT" }));
+  const hiddenWrapper = fake.createElement({ id: "hidden-wrapper" });
+  hiddenWrapper.hidden = true;
+  hiddenWrapper.append(fake.createElement({ id: "hidden-ancestor-control", focusable: true, tagName: "BUTTON" }));
+  const valid = fake.createElement({ id: "valid-control", focusable: true, tagName: "BUTTON" });
+  sheet.card.append(hiddenInput, displayNone, visibilityHidden, inertWrapper, disabledFieldset, hiddenWrapper, valid);
+
+  await withUiState(fake.document, async ({ openSheet }) => {
+    fake.outside.focus();
+    openSheet("profile-modal");
+    assert.equal(fake.document.activeElement, valid);
   });
 });
 

@@ -439,16 +439,22 @@ async function startMatchmaking() {
 
 function connectToRoom(code, token) {
   eventStream?.close();
-  eventStream = new EventSource(apiUrl(`/api/rooms/${encodeURIComponent(code)}/events?token=${encodeURIComponent(token)}`));
+  const stream = new EventSource(apiUrl(`/api/rooms/${encodeURIComponent(code)}/events?token=${encodeURIComponent(token)}`));
+  eventStream = stream;
   setConnectionStatus("reconnecting");
-  eventStream.onopen = () => setConnectionStatus("connected");
-  eventStream.onmessage = (event) => {
+  stream.onopen = () => {
+    if (eventStream !== stream) return;
+    setConnectionStatus("connected");
+  };
+  stream.onmessage = (event) => {
+    if (eventStream !== stream) return;
     try { applyServerState(JSON.parse(event.data)); }
     catch { showToast("게임 상태를 읽지 못했습니다.", "error"); }
   };
-  eventStream.onerror = () => setConnectionStatus(
-    eventStream.readyState === EventSource.CLOSED ? "disconnected" : "reconnecting",
-  );
+  stream.onerror = () => {
+    if (eventStream !== stream) return;
+    setConnectionStatus(stream.readyState === EventSource.CLOSED ? "disconnected" : "reconnecting");
+  };
 }
 
 function setConnectionStatus(state) {
@@ -1117,7 +1123,6 @@ function restoreStockDetailPanels() {
 
 function closeStockDetail() {
   closeSheet("stock-detail-modal");
-  restoreStockDetailPanels();
 }
 
 function openStockDetail(stockIndex = selectedStock, side = null) {
@@ -1844,7 +1849,6 @@ $("#onboarding-confirm").addEventListener("click", () => {
     closeSheet("onboarding-sheet");
   }
 });
-$('[data-close-onboarding]').addEventListener("click", () => closeSheet("onboarding-sheet"));
 $("#nickname").addEventListener("keydown", (event) => { if (event.key === "Enter") startMatchmaking(); });
 $("#language-choice").addEventListener("click", (event) => {
   const button = event.target.closest("[data-language]"); if (!button) return;
@@ -1861,10 +1865,6 @@ $("#profile-open-button").addEventListener("click", () => { openSheet("profile-m
 $("#profile-picker").addEventListener("click", (event) => { const button = event.target.closest("[data-profile-index]"); if (!button) return; selectedAvatar = { kind: "meme", index: Number(button.dataset.profileIndex) }; renderProfilePicker(); });
 $("#profile-upload").addEventListener("change", async (event) => { try { selectedAvatar = await resizeUploadedAvatar(event.target.files[0]); renderProfilePicker(); showToast("프로필 사진을 적용했습니다."); } catch (error) { showToast(error.message, "error"); } });
 $("#profile-confirm").addEventListener("click", () => closeSheet("profile-modal"));
-$('[data-close-profile]').addEventListener("click", () => closeSheet("profile-modal"));
-$("#stock-detail-modal").addEventListener("click", (event) => {
-  if (event.target.closest("[data-close-stock-detail]") || event.target === event.currentTarget) closeStockDetail();
-});
 $("#detail-buy").addEventListener("click", () => { setTradeSide("buy"); activateTradeTab("trade"); renderTradePanel(); $("#trade-quantity").focus(); });
 $("#detail-sell").addEventListener("click", () => { if ($("#detail-sell").disabled) return; setTradeSide("sell"); activateTradeTab("trade"); renderTradePanel(); $("#trade-quantity").focus(); });
 $("#room-code-input").addEventListener("input", (event) => { event.target.value = event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""); });
@@ -1913,8 +1913,6 @@ $("#open-trade-button").addEventListener("click", () => {
 $("#new-game-button").addEventListener("click", leaveOnlineRoom);
 $("#restart-button").addEventListener("click", leaveOnlineRoom);
 $("#rules-button").addEventListener("click", () => openSheet("rules-modal"));
-$("[data-close-modal]").addEventListener("click", () => closeSheet("rules-modal"));
-$("[data-close-item]").addEventListener("click", () => closeSheet("item-modal"));
 $("#stock-search").addEventListener("input", renderMarket);
 $(".stock-table-head").addEventListener("click", (event) => {
   const button = event.target.closest("[data-sort-key]");
@@ -2048,11 +2046,6 @@ $("#global-chat-toggle").addEventListener("click", () => {
   $("#global-chat-toggle").setAttribute("aria-expanded", "true");
   renderGlobalChat();
 });
-$("[data-close-global-chat]").addEventListener("click", () => {
-  closeSheet("global-chat-sheet");
-  $("#global-chat-toggle").setAttribute("aria-expanded", "false");
-  renderGlobalChat();
-});
 $("#global-chat-send").addEventListener("click", sendGlobalChatMessage);
 $("#global-chat-input").addEventListener("keydown", (event) => { if (event.key === "Enter") sendGlobalChatMessage(); });
 $("#developer-board-button").addEventListener("click", openBoard);
@@ -2078,24 +2071,10 @@ $("#rank-detail-stock").addEventListener("click", (event) => {
   const stock = event.target.closest("[data-rank-stock]");
   if (stock) jumpToHoldingStock(stock.dataset.rankStock);
 });
-$("[data-close-holdings]").addEventListener("click", () => closeSheet("holdings-modal"));
-$("[data-close-rank-detail]").addEventListener("click", () => closeSheet("rank-detail-modal"));
-$("[data-close-message]").addEventListener("click", () => closeSheet("message-modal"));
-$("[data-close-notifications]").addEventListener("click", () => closeSheet("notifications-modal"));
-$("[data-close-board]").addEventListener("click", () => closeSheet("board-modal"));
 document.addEventListener("stock-survival:sheet-close", (event) => {
   if (event.detail.id === "stock-detail-modal") restoreStockDetailPanels();
   if (event.detail.id === "global-chat-sheet") renderGlobalChat();
 });
-$("#rules-modal").addEventListener("click", (event) => { if (event.target.id === "rules-modal") closeSheet("rules-modal"); });
-$("#item-modal").addEventListener("click", (event) => { if (event.target.id === "item-modal") closeSheet("item-modal"); });
-$("#rank-detail-modal").addEventListener("click", (event) => { if (event.target.id === "rank-detail-modal") closeSheet("rank-detail-modal"); });
-$("#holdings-modal").addEventListener("click", (event) => { if (event.target.id === "holdings-modal") closeSheet("holdings-modal"); });
-$("#message-modal").addEventListener("click", (event) => { if (event.target.id === "message-modal") closeSheet("message-modal"); });
-$("#notifications-modal").addEventListener("click", (event) => { if (event.target.id === "notifications-modal") closeSheet("notifications-modal"); });
-$("#board-modal").addEventListener("click", (event) => { if (event.target.id === "board-modal") closeSheet("board-modal"); });
-$("#profile-modal").addEventListener("click", (event) => { if (event.target.id === "profile-modal") closeSheet("profile-modal"); });
-$("#onboarding-sheet").addEventListener("click", (event) => { if (event.target.id === "onboarding-sheet") closeSheet("onboarding-sheet"); });
 window.addEventListener("resize", () => requestAnimationFrame(drawChart));
 $("#price-chart").addEventListener("mousemove", (event) => {
   const chart = event.currentTarget._chart;

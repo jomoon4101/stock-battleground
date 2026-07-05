@@ -51,7 +51,7 @@ test("first-game onboarding is an accessible four-step shared bottom sheet", asy
   assert.doesNotMatch(functionSource(app, "showFirstGameOnboarding"), /localStorage\.(?:getItem|setItem)\(/);
   assert.match(build, /publicFiles\s*=\s*\[[^\]]*"onboarding-state\.js"/);
   assert.match(app, /#onboarding-confirm[\s\S]*try \{[\s\S]*markOnboardingSeen\(\)[\s\S]*\} finally \{[\s\S]*closeSheet\("onboarding-sheet"\)/);
-  assert.match(app, /data-close-onboarding[\s\S]*closeSheet\("onboarding-sheet"\)/);
+  assert.doesNotMatch(app, /data-close-onboarding[\s\S]*closeSheet\("onboarding-sheet"\)/);
   assert.doesNotMatch(app, /\$\("#onboarding-sheet"\)\.classList\.(?:add|remove)\("is-hidden"\)/);
   assert.match(functionSource(app, "resetToStart"), /closeSheet\("onboarding-sheet"\)/);
   assert.match(uiState, /event\.key === "Escape"[\s\S]*closeSheet\(sheet\.id\)/);
