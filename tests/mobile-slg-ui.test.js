@@ -343,46 +343,42 @@ test("active-room and portfolio empty states provide direct actions through exis
   assert.match(app, /#portfolio-list[\s\S]*data-open-market[\s\S]*activateAppView\("market"\)/);
 });
 
-test("post-legacy dark leader and modal readability floor wins the cascade", async () => {
-  const styles = await readFile(`${root}/styles.css`, "utf8");
-  const legacyLeaderIndex = styles.lastIndexOf(".leader-announcement { border-color:");
-  const floorIndex = styles.lastIndexOf("/* Mobile readability floor */");
-  assert.ok(legacyLeaderIndex >= 0, "legacy leader declaration must remain detectable");
-  assert.ok(floorIndex > legacyLeaderIndex, "readability floor must follow all legacy declarations");
-
-  const floor = styles.slice(floorIndex);
-  assert.match(floor, /\.leader-announcement\s*\{(?=[^}]*border:\s*1px solid var\(--line-soft\))(?=[^}]*background:\s*var\(--bg-panel\))(?=[^}]*color:\s*var\(--text-main\))(?=[^}]*box-shadow:)[^}]*\}/);
-  assert.doesNotMatch(floor, /\.leader-announcement\s*\{[^}]*background:\s*(?:white|#fff)/);
-  assert.match(floor, /\.leader-announcement strong\s*\{[^}]*color:\s*var\(--text-main\)[^}]*font-size:\s*14px/);
-  assert.match(floor, /\.rules-grid p,\.data-note\s*\{[^}]*font-size:\s*14px/);
-  assert.match(floor, /\.message-bubble,\.message-empty,\.notice-row,\.board-post p\s*\{[^}]*font-size:\s*14px/);
-  assert.match(floor, /\.message-bubble small,\.message-recipient small,\.message-contact small,\.board-post small\s*\{[^}]*font-size:\s*12px/);
-  assert.match(floor, /\.rank-number,\.rank-person small,\.rank-move,\.streak-mark,[^}]*font-size:\s*12px/);
-  assert.match(floor, /\.rank-person b,\.rank-assets,\.rank-detail-player strong,[^}]*font-size:\s*14px/);
-  assert.match(floor, /\.item-modal-card > p,\.item-option-label,\.modal-cost,[^}]*font-size:\s*14px/);
-  assert.match(floor, /\.rules-grid b,\.podium b,\.holdings-list:empty::after\s*\{[^}]*font-size:\s*14px/);
-  assert.match(floor, /\.rank-stock-jump b,\.top-stock-card b,\.holding-name small,[^}]*font-size:\s*12px/);
-  assert.match(floor, /\.elimination-stats small,\.elimination-activity > strong,[^}]*font-size:\s*12px/);
-  assert.match(floor, /\.holding-name strong,\.holding-value b,\.elimination-activity b\s*\{[^}]*font-size:\s*14px/);
-
-  const mobileCss = await readFile(`${root}/mobile-first.css`, "utf8");
-  assert.match(mobileCss, /\.profile-open-button small\s*\{[^}]*font-size:\s*12px/);
+test("canonical dark panels contain no light menu or header surface", async () => {
+  const [styles, mobileCss] = await Promise.all([
+    readFile(`${root}/styles.css`, "utf8"),
+    readFile(`${root}/mobile-first.css`, "utf8"),
+  ]);
+  assert.doesNotMatch(styles, /\.panel\s*\{[^}]*background:\s*(?:white|#fff)/);
+  assert.doesNotMatch(mobileCss, /\.panel-header\s*\{[^}]*background:\s*linear-gradient\([^}]*#fff/);
+  assert.match(styles, /\.panel,\s*\.game-card\s*\{[^}]*background:\s*var\(--bg-panel\)/);
+  assert.match(styles, /\.panel-header\s*\{[^}]*background:\s*var\(--bg-panel-2\)/);
 });
 
-test("final high-specificity intelligence block defeats light market surfaces", async () => {
-  const mobileCss = await readFile(`${root}/mobile-first.css`, "utf8");
-  const lightPanelIndex = mobileCss.lastIndexOf("background: linear-gradient(90deg,#eef6fd,#fff)");
-  const lightCardsIndex = mobileCss.lastIndexOf("background: #d4e0eb");
-  const darkIntelIndex = mobileCss.lastIndexOf("/* Final intelligence dark cascade */");
-  assert.ok(lightPanelIndex >= 0 && lightCardsIndex >= 0, "legacy light intel surfaces must remain detectable");
-  assert.ok(darkIntelIndex > lightPanelIndex && darkIntelIndex > lightCardsIndex, "dark intel cascade must be last");
+test("message and notification badges use a readable mobile size", async () => {
+  const styles = await readFile(`${root}/styles.css`, "utf8");
+  assert.match(styles, /#mail-unread,\s*#notice-unread,\s*#global-chat-unread\s*\{(?=[^}]*min-width:\s*18px)(?=[^}]*height:\s*18px)(?=[^}]*font-size:\s*11px)(?=[^}]*font-weight:\s*900)[^}]*\}/);
+});
 
-  const finalIntel = mobileCss.slice(darkIntelIndex);
-  assert.doesNotMatch(finalIntel, /background:\s*(?:#fff|#d4e0eb|linear-gradient\([^;]*#fff)/);
-  assert.match(finalIntel, /\.market-panel > \.intel-panel\s*\{(?=[^}]*border:\s*1px solid var\(--line-soft\))(?=[^}]*background:\s*linear-gradient\([^}]*var\(--bg-panel\))(?=[^}]*color:\s*var\(--text-main\))[^}]*\}/);
-  assert.match(finalIntel, /\.market-panel > \.intel-panel \.intel-cards\s*\{[^}]*background:\s*#0b1220/);
-  assert.match(finalIntel, /\.market-panel > \.intel-panel \.intel-feed-row\s*\{(?=[^}]*border-color:\s*var\(--line-soft\))(?=[^}]*background:\s*var\(--bg-panel\))[^}]*\}/);
-  assert.match(finalIntel, /\.market-panel > \.intel-panel \.intel-feed-card\s*\{(?=[^}]*border-color:\s*var\(--line-soft\))(?=[^}]*background:\s*var\(--bg-panel-2\))(?=[^}]*color:\s*var\(--text-sub\))[^}]*\}/);
+test("sector card owns the trade action without a duplicate button", async () => {
+  const app = await readFile(`${root}/app.js`, "utf8");
+  const market = functionSource(app, "renderMarket");
+  assert.doesNotMatch(market, /class="sector-open-button"/);
+  const card = market.indexOf('<article class="stock-row sector-card');
+  const heading = market.indexOf('<span class="sector-card-heading">');
+  const portrait = market.indexOf('<span class="sector-ceo');
+  assert.ok(card >= 0 && heading > card && portrait > heading);
+  assert.match(market, /role="listitem" tabindex="0"/);
+});
+
+test("intelligence renders one latest keyword item in three ordered rows", async () => {
+  const app = await readFile(`${root}/app.js`, "utf8");
+  const intel = functionSource(app, "renderIntelCards");
+  assert.match(intel, /const latestMarket/);
+  assert.match(intel, /const latestDisclosure/);
+  assert.match(intel, /const latestRumor/);
+  assert.doesNotMatch(intel, /slice\(0,\s*3\)/);
+  assert.match(intel, /intel-feed-row news[\s\S]*intel-feed-row report[\s\S]*intel-feed-row rumor/);
+  assert.equal((intel.match(/class="intel-latest-card/g) || []).length, 3);
 });
 
 test("final mobile controls, detail contrast and shell labels remain accessible", async () => {
@@ -394,10 +390,7 @@ test("final mobile controls, detail contrast and shell labels remain accessible"
   assert.match(uiShell, /id="pause-button"/);
   assert.match(uiShell, /id="rules-button"/);
 
-  const hiddenIconsIndex = mobileCss.lastIndexOf(".top-actions .connection,.top-actions .icon-button { display:none; }");
-  const restoredControlsIndex = mobileCss.lastIndexOf("/* Restored mobile controls and contrast */");
-  assert.ok(restoredControlsIndex > hiddenIconsIndex, "visible controls must follow the hidden legacy declaration");
-  const finalControls = mobileCss.slice(restoredControlsIndex);
+  const finalControls = mobileCss;
   assert.match(finalControls, /\.top-actions \.icon-button\s*\{(?=[^}]*display:\s*grid)(?=[^}]*width:\s*48px)(?=[^}]*height:\s*48px)[^}]*\}/);
   assert.match(finalControls, /@media \(min-width:\s*390px\)\s*\{[\s\S]*?\.topbar\s*\{[^}]*grid-template-columns:\s*40px minmax\(0,1fr\) auto/);
   assert.match(finalControls, /\.stock-detail-sector-switcher > div:first-child strong\s*\{[^}]*color:\s*var\(--text-main\)/);
