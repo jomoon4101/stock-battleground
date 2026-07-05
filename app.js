@@ -958,8 +958,6 @@ function renderAssets() {
   $("#asset-debt").textContent = `-${money(summary.debt)}`;
   $("#salary").textContent = money(summary.salary, true);
   $("#tax-rate").textContent = `${Math.round(summary.taxRate * 100)}%`;
-  $("#finance-debt").textContent = money(summary.debt);
-  $("#finance-bonds").textContent = money(summary.bonds);
 
   const actualIndex = realRanking.findIndex((entry) => entry.playerId === player.id);
   if (player.eliminated || actualIndex < 0) {
@@ -1066,6 +1064,7 @@ function closeStockDetail() {
 
 function openStockDetail(stockIndex = selectedStock, side = null) {
   selectedStock = Number(stockIndex);
+  activateAppView("trade");
   $("#limit-price").value = currencyInputValue(currentPrice(game, selectedStock));
   $("#trade-quantity").value = 1;
   if (side) setTradeSide(side);
@@ -1199,8 +1198,11 @@ function renderOrders() {
 
 function renderFinance() {
   const player = myPlayer();
+  const summary = playerSummary();
   const actionEnded = online && roomState?.turnEnded;
-  $("#borrow-button").disabled = game.finished || player.eliminated || playerSummary().assets < 0 || actionEnded;
+  $("#finance-debt").textContent = money(summary.debt);
+  $("#finance-bonds").textContent = money(summary.bonds);
+  $("#borrow-button").disabled = game.finished || player.eliminated || summary.assets < 0 || actionEnded;
   $("#repay-button").disabled = game.finished || player.eliminated || player.debt <= 0 || actionEnded;
   $("#bond-button").disabled = game.finished || player.eliminated || player.frozenTurn === game.turn || player.tradeLockTurn === game.turn || actionEnded;
 }

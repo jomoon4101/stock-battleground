@@ -164,6 +164,32 @@ test("ranking navigation keeps the live board in Survivors instead of opening it
   assert.doesNotMatch(app, /function initializeIntegratedLayout\(/);
 });
 
+test("Trade owns finance totals while Home renders only home asset fields", async () => {
+  const app = await readFile(`${root}/app.js`, "utf8");
+  const renderAssets = functionSource(app, "renderAssets");
+  const renderFinance = functionSource(app, "renderFinance");
+
+  assert.doesNotMatch(renderAssets, /#finance-debt|#finance-bonds/);
+  assert.match(renderFinance, /const summary = playerSummary\(\)/);
+  assert.match(renderFinance, /\$\("#finance-debt"\)\.textContent = money\(summary\.debt\)/);
+  assert.match(renderFinance, /\$\("#finance-bonds"\)\.textContent = money\(summary\.bonds\)/);
+});
+
+test("opening stock detail activates Trade before mounting or opening the modal", async () => {
+  const app = await readFile(`${root}/app.js`, "utf8");
+  const openStockDetail = functionSource(app, "openStockDetail");
+  const selectedIndex = openStockDetail.indexOf("selectedStock = Number(stockIndex)");
+  const activateIndex = openStockDetail.indexOf('activateAppView("trade")');
+  const mountIndex = openStockDetail.indexOf("mountStockDetailPanels()");
+  const openIndex = openStockDetail.indexOf('openSheet("stock-detail-modal")');
+
+  assert.ok(selectedIndex >= 0, "stock detail must select the requested stock");
+  assert.ok(activateIndex > selectedIndex, "Trade activation must follow stock selection");
+  assert.ok(mountIndex > activateIndex, "Trade activation must happen before temporary panel mounting");
+  assert.ok(openIndex > mountIndex, "temporary panel mounting must happen before the modal opens");
+  assert.doesNotMatch(functionSource(app, "activateAppView"), /openStockDetail\(/);
+});
+
 test("all modal backdrop flows use shared sheet state helpers", async () => {
   const app = await readFile(root + "/app.js", "utf8");
   const sheetIds = [
