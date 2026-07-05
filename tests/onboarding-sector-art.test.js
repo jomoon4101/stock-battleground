@@ -19,10 +19,12 @@ function functionSource(source, name) {
 }
 
 test("first-game onboarding is an accessible four-step shared bottom sheet", async () => {
-  const [shell, app, mobileCss] = await Promise.all([
+  const [shell, app, onboardingState, mobileCss, build] = await Promise.all([
     readFile(`${root}/ui-shell.js`, "utf8"),
     readFile(`${root}/app.js`, "utf8"),
+    readFile(`${root}/onboarding-state.js`, "utf8").catch(() => ""),
     readFile(`${root}/mobile-first.css`, "utf8"),
+    readFile(`${root}/scripts/build.mjs`, "utf8"),
   ]);
 
   assert.match(shell, /class="modal-backdrop onboarding-sheet is-hidden" id="onboarding-sheet" role="dialog" aria-modal="true" aria-labelledby="onboarding-title"/);
@@ -43,9 +45,11 @@ test("first-game onboarding is an accessible four-step shared bottom sheet", asy
   assert.equal((shell.match(/id="onboarding-confirm"/g) || []).length, 1);
   const shellIds = [...shell.matchAll(/\bid="([^"]+)"/g)].map((match) => match[1]);
   assert.equal(new Set(shellIds).size, shellIds.length, "mounted shell IDs must be unique");
-  assert.match(app, /const ONBOARDING_KEY = "stock-survival-onboarding-seen"/);
-  assert.match(app, /localStorage\.getItem\(ONBOARDING_KEY\) !== "1"/);
-  assert.match(app, /localStorage\.setItem\(ONBOARDING_KEY, "1"\)[\s\S]*closeSheet\("onboarding-sheet"\)/);
+  assert.match(onboardingState, /ONBOARDING_KEY = "stock-survival-onboarding-seen"/);
+  assert.match(app, /import \{ hasSeenOnboarding, markOnboardingSeen \} from "\.\/onboarding-state\.js"/);
+  assert.doesNotMatch(functionSource(app, "showFirstGameOnboarding"), /localStorage\.(?:getItem|setItem)\(/);
+  assert.match(build, /publicFiles\s*=\s*\[[^\]]*"onboarding-state\.js"/);
+  assert.match(app, /#onboarding-confirm[\s\S]*try \{[\s\S]*markOnboardingSeen\(\)[\s\S]*\} finally \{[\s\S]*closeSheet\("onboarding-sheet"\)/);
   assert.match(app, /data-close-onboarding[\s\S]*closeSheet\("onboarding-sheet"\)/);
   assert.doesNotMatch(app, /\$\("#onboarding-sheet"\)\.classList\.(?:add|remove)\("is-hidden"\)/);
   assert.match(functionSource(app, "resetToStart"), /closeSheet\("onboarding-sheet"\)/);
@@ -60,7 +64,10 @@ test("onboarding opens once per app entry source and does not reopen on running 
   const beginSolo = functionSource(app, "beginSoloGame");
   const applyServerState = functionSource(app, "applyServerState");
 
-  assert.match(showOnboarding, /localStorage\.getItem\(ONBOARDING_KEY\) !== "1"[\s\S]*openSheet\("onboarding-sheet"\)/);
+  assert.match(app, /let onboardingPrompted = false/);
+  assert.match(showOnboarding, /if \(onboardingPrompted \|\| hasSeenOnboarding\(\)\) return false/);
+  assert.match(showOnboarding, /onboardingPrompted = true[\s\S]*openSheet\("onboarding-sheet"\)/);
+  assert.match(showOnboarding, /requestAnimationFrame\([\s\S]*\$\("#onboarding-confirm"\)\?\.focus\(\)/);
   assert.match(beginSolo, /#app-shell[\s\S]*classList\.remove\("is-hidden"\)[\s\S]*renderAll\(\)[\s\S]*showFirstGameOnboarding\(\)/);
   assert.match(applyServerState, /const firstRunningState = state\.room\.status === "running" && !onlineGameEntered/);
   assert.match(applyServerState, /if \(state\.room\.status === "running"\) onlineGameEntered = true/);

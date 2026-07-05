@@ -26,6 +26,7 @@ import { getLanguage, localizeDocument, phrase, setLanguage, translateText } fro
 import { createAiChatLine, createAiConversationPlan } from "./ai-chat.js?v=20260701-23";
 import { mountAppShell } from "./ui-shell.js";
 import { closeSheet, getActiveAppTab, openSheet, setActiveAppTab } from "./ui-state.js";
+import { hasSeenOnboarding, markOnboardingSeen } from "./onboarding-state.js";
 import { applySectorArtProbeState, sectorArtPath } from "./sector-art.js";
 
 mountAppShell();
@@ -64,7 +65,6 @@ const escapeHtml = (value) => String(value).replace(/[&<>'"]/g, (character) => (
 const deployedOnVercel = globalThis.location?.hostname?.endsWith(".vercel.app") === true;
 const resolvedApiBaseUrl = String(API_BASE_URL || (deployedOnVercel ? DEFAULT_RENDER_API_BASE_URL : "")).replace(/\/$/, "");
 const apiUrl = (path) => `${resolvedApiBaseUrl}${path}`;
-const ONBOARDING_KEY = "stock-survival-onboarding-seen";
 const NICKNAME_WORDS = ["존버", "상한가", "떡상", "물타기", "풀매수", "단타", "급등", "반등", "배당", "차트", "몰빵", "손절", "매집", "불타기", "저점"];
 const NICKNAME_CREATURES = ["개미", "황소", "곰", "여우", "고래", "사마귀", "잠자리", "딱정벌레", "부엉이", "거북이", "매", "늑대", "토끼", "하이에나", "꿀벌"];
 // Synthetic game disclosures inspired by official Form 8-K material-event categories.
@@ -134,6 +134,7 @@ let seenRumorMessageIds = new Set();
 let seenGlobalChatIds = new Set();
 let localAiConversationGeneration = 0;
 let onlineGameEntered = false;
+let onboardingPrompted = false;
 const stockDetailPanelOrigins = new Map();
 const myPlayer = () => game?.players.find((player) => player.id === viewerId);
 const playerSummary = () => online ? game.viewerSummary : getPlayerSummary(game, viewerId);
@@ -312,11 +313,11 @@ function safeAction(action, successMessage) {
 }
 
 function showFirstGameOnboarding() {
-  try {
-    if (localStorage.getItem(ONBOARDING_KEY) !== "1") openSheet("onboarding-sheet");
-  } catch {
-    openSheet("onboarding-sheet");
-  }
+  if (onboardingPrompted || hasSeenOnboarding()) return false;
+  onboardingPrompted = true;
+  const opened = openSheet("onboarding-sheet");
+  if (opened) requestAnimationFrame(() => $("#onboarding-confirm")?.focus());
+  return opened;
 }
 
 function beginSoloGame() {
@@ -1815,8 +1816,11 @@ $("#active-survival-list").addEventListener("click", (event) => {
 $("#active-survival-refresh").addEventListener("click", loadActiveRooms);
 $("#solo-button").addEventListener("click", beginSoloGame);
 $("#onboarding-confirm").addEventListener("click", () => {
-  localStorage.setItem(ONBOARDING_KEY, "1");
-  closeSheet("onboarding-sheet");
+  try {
+    markOnboardingSeen();
+  } finally {
+    closeSheet("onboarding-sheet");
+  }
 });
 $('[data-close-onboarding]').addEventListener("click", () => closeSheet("onboarding-sheet"));
 $("#nickname").addEventListener("keydown", (event) => { if (event.key === "Enter") startMatchmaking(); });
