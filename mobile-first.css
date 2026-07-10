@@ -1117,7 +1117,7 @@ html,body { width:100%; min-width:320px; max-width:100%; overflow-x:hidden; }
 .selected-position-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1px; }
 .selected-position-grid div { min-height:64px; padding:10px 12px; }
 .selected-position-grid small { font-size:12px; line-height:1.25; }
-.selected-position-grid strong { margin-top:5px; font-size:15px; line-height:1.25; overflow-wrap:break-word; }
+.selected-position-grid strong { display:block; margin-top:5px; font-size:15px; line-height:1.25; overflow-wrap:break-word; }
 .chart-meta { min-height:52px; gap:10px; }
 .chart-stats { min-height:48px; padding:12px 14px; font-size:12px; }
 .trade-panel .tabs { display:flex; min-height:56px; padding:0 8px; overflow-x:auto; overflow-y:hidden; scrollbar-width:none; }

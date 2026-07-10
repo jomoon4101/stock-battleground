@@ -568,5 +568,6 @@ test("balanced readability system prevents compressed mobile game content", asyn
   assert.match(balanced, /\.trade-panel \.tab\s*\{[^}]*min-width:\s*max-content[^}]*font-size:\s*14px/);
   assert.match(balanced, /\.trade-grid\s*\{[^}]*grid-template-columns:\s*minmax\(0,1fr\)/);
   assert.match(balanced, /\.selected-position-grid\s*\{[^}]*display:\s*grid[^}]*grid-template-columns:\s*repeat\(2,minmax\(0,1fr\)\)/);
+  assert.match(balanced, /\.selected-position-grid strong\s*\{[^}]*display:\s*block/);
   assert.match(balanced, /\.turn-action-bar button,\s*\.game-bottom-nav button\s*\{[^}]*min-height:\s*48px/);
 });
