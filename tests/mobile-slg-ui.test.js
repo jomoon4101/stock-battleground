@@ -537,3 +537,31 @@ test("checkpoint overlay and remaining transaction controls fit mobile touch tar
     assert.match(finalTargets, new RegExp(`${selector}\\s*\\{[^}]*min-height:\\s*(?:48|5[0-9]|6[0-4])px`), selector);
   }
 });
+
+test("balanced readability system prevents compressed mobile game content", async () => {
+  const mobileCss = await readFile(`${root}/mobile-first.css`, "utf8");
+  const marker = mobileCss.lastIndexOf("/* Balanced readability system */");
+  assert.ok(marker >= 0, "final balanced readability layer must exist");
+  const balanced = mobileCss.slice(marker);
+
+  assert.match(balanced, /--ui-body:\s*15px/);
+  assert.match(balanced, /--ui-label:\s*12px/);
+  assert.match(balanced, /--ui-title:\s*18px/);
+  assert.match(balanced, /--ui-metric:\s*24px/);
+
+  assert.match(balanced, /\.survival-status\s*\{[^}]*grid-template-columns:\s*repeat\(3,minmax\(0,1fr\)\)/);
+  assert.match(balanced, /\.survival-status small\s*\{[^}]*font-size:\s*var\(--ui-label\)[^}]*white-space:\s*nowrap/);
+  assert.match(balanced, /\.survival-status strong\s*\{[^}]*font-size:\s*15px[^}]*white-space:\s*nowrap/);
+
+  assert.match(balanced, /\.identity-card\s*\{[^}]*grid-template-columns:\s*52px minmax\(0,1fr\) auto/);
+  assert.match(balanced, /\.my-goal-panel\s*\{[^}]*grid-column:\s*1\s*\/\s*-1[^}]*width:\s*100%/);
+  assert.match(balanced, /\.asset-panel \.panel-header,\s*\.portfolio-panel \.panel-header\s*\{[^}]*min-height:\s*64px/);
+
+  assert.match(balanced, /\.stock-row\.sector-card\s*\{(?=[^}]*height:\s*auto)(?=[^}]*min-height:\s*520px)(?=[^}]*overflow:\s*hidden)[^}]*\}/);
+  assert.match(balanced, /\.sector-stats small\s*\{[^}]*font-size:\s*11px/);
+  assert.match(balanced, /\.sector-position small\s*\{[^}]*font-size:\s*11px/);
+
+  assert.match(balanced, /\.trade-panel \.tab\s*\{[^}]*min-width:\s*max-content[^}]*font-size:\s*14px/);
+  assert.match(balanced, /\.trade-grid\s*\{[^}]*grid-template-columns:\s*minmax\(0,1fr\)/);
+  assert.match(balanced, /\.turn-action-bar button,\s*\.game-bottom-nav button\s*\{[^}]*min-height:\s*48px/);
+});
