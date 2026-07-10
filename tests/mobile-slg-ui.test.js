@@ -500,7 +500,8 @@ test("localizeDocument restores composed and new shell aria labels after English
 test("dynamic aria renderers provide stable Korean originals to localizeDocument", async () => {
   const app = await readFile(`${root}/app.js`, "utf8");
   const renderMarket = functionSource(app, "renderMarket");
-  assert.match(renderMarket, /aria-label="\$\{escapeHtml\(stock\.sector\)\} 거래창 열기"/);
+  assert.match(renderMarket, /aria-label="\$\{escapeHtml\(stock\.sector\)\} · \$\{escapeHtml\(stock\.name\)\} · \$\{percent\(change\)\}/);
+  assert.match(renderMarket, /open trading window" : "거래창 열기/);
   assert.ok(renderMarket.indexOf("localizeDocument(stockList)") > renderMarket.indexOf("stockList.innerHTML"));
   assert.match(functionSource(app, "renderRanking"), /aria-label="\$\{escapeHtml\(entry\.nickname\)\} 상세 정보"/);
 });
@@ -530,7 +531,7 @@ test("checkpoint overlay and remaining transaction controls fit mobile touch tar
   for (const selector of [
     "\\.trade-submit", "\\.stock-detail-body \\.trade-submit", "\\.trade-grid input",
     "\\.order-form input", "\\.order-form select", "\\.inline-form input",
-    "\\.sector-open-button", "\\.intel-trade-link", "\\.holding-actions button",
+    "\\.intel-trade-link", "\\.holding-actions button",
     "\\.stock-detail-body \\.tab", "\\.market-panel > \\.intel-panel \\.intel-title-block #open-intel-messages",
   ]) {
     assert.match(finalTargets, new RegExp(`${selector}\\s*\\{[^}]*min-height:\\s*(?:48|5[0-9]|6[0-4])px`), selector);

@@ -884,7 +884,6 @@ function renderMarket() {
     const stats = stock.sectorStats || {};
     return `
     <article class="stock-row sector-card sector-${stock.sectorKey} mood-${ceo.mood} ${index === selectedStock ? "is-active" : ""}" data-stock-index="${index}" data-open-stock-detail="${index}" role="listitem" tabindex="0" aria-label="${escapeHtml(stock.sector)} · ${escapeHtml(stock.name)} · ${percent(change)} · ${getLanguage() === "en" ? "open trading window" : "거래창 열기"}">
-      <button class="sector-open-button" type="button" data-open-stock-detail="${index}" aria-label="${escapeHtml(stock.sector)} 거래창 열기">${getLanguage() === "en" ? "OPEN TRADE" : "거래창 열기"} ›</button>
       <span class="sector-card-heading"><em>${stock.icon || "◆"} ${escapeHtml(stock.sector)}</em>${owned ? `<i class="owned-badge">${getLanguage() === "en" ? "OWNED" : "보유중"}</i>` : ""}</span>
       <span class="sector-ceo ${ceo.className} ${sectorArtFallbackClass(stock)}" style="${ceo.style}" role="img" data-sector-fallback="${escapeHtml(sectorFallbackLabel(stock))}" aria-label="${ceo.mood === "up" ? (getLanguage() === "en" ? "CEO cheering" : "CEO 환호") : ceo.mood === "down" ? (getLanguage() === "en" ? "CEO disappointed" : "CEO 우울") : (getLanguage() === "en" ? "CEO neutral" : "CEO 기본 표정")}">${sectorArtProbeMarkup(stock)}</span>
       <span class="sector-company"><b class="${streak.direction ? `streak-${streak.direction}` : ""}">${escapeHtml(stock.name)}</b><small>${stock.ticker} · ${escapeHtml(stock.sectorDescription || "")}</small></span>
@@ -975,26 +974,34 @@ function renderPortfolioPanel() {
 function renderIntelCards() {
   const stock = game.stocks[selectedStock];
   const english = getLanguage() === "en";
-  const marketEntries = Array.from({ length: Math.min(3, game.turn) }, (_, offset) => {
-    const turn = game.turn - offset;
-    const price = stock.prices[Math.max(0, turn - 1)];
-    const previous = stock.prices[Math.max(0, turn - 2)] || price;
-    const change = previous ? price / previous - 1 : 0;
-    return { turn, price, change, direction: change > 0 ? "up" : change < 0 ? "down" : "flat" };
-  });
-  const disclosureEntries = Array.from({ length: Math.min(3, game.stocks.length) }, (_, offset) => {
-    const stockIndex = offset === 0 ? selectedStock : (selectedStock + offset * 2) % game.stocks.length;
-    const reportStock = game.stocks[stockIndex];
-    const reportTurn = Math.max(1, game.turn - offset);
-    const templateIndex = Math.abs((Number(game.seed) + reportTurn * 17 + stockIndex * 31 + offset * 7) % DISCLOSURE_TEMPLATES.length);
-    const disclosure = DISCLOSURE_TEMPLATES[templateIndex];
-    return { stockIndex, stock: reportStock, reportTurn, disclosure, text: english ? disclosure.en(reportStock) : disclosure.ko(reportStock) };
-  });
-  const rumorEntries = [...(game.messages || [])].filter((message) => message.system === "rumor").reverse().slice(0, 3);
+  const price = stock.prices[Math.max(0, game.turn - 1)];
+  const previous = stock.prices[Math.max(0, game.turn - 2)] || price;
+  const marketChange = previous ? price / previous - 1 : 0;
+  const latestMarket = {
+    turn: game.turn,
+    change: marketChange,
+    direction: marketChange > 0 ? "up" : marketChange < 0 ? "down" : "flat",
+  };
+  const reportTurn = Math.max(1, game.turn);
+  const templateIndex = Math.abs((Number(game.seed) + reportTurn * 17 + selectedStock * 31) % DISCLOSURE_TEMPLATES.length);
+  const latestDisclosure = {
+    stockIndex: selectedStock,
+    stock,
+    reportTurn,
+    disclosure: DISCLOSURE_TEMPLATES[templateIndex],
+  };
+  const latestRumor = [...(game.messages || [])]
+    .filter((message) => message.system === "rumor" && message.toId === viewerId)
+    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))[0] || null;
+  const directionLabel = (direction) => direction === "up"
+    ? (english ? "UP" : "상승")
+    : direction === "down" ? (english ? "DOWN" : "하락") : (english ? "FLAT" : "보합");
+  const rumorStock = latestRumor ? game.stocks[latestRumor.stockIndex] : null;
+  const rumorDirection = latestRumor?.direction === "up" ? "up" : latestRumor?.direction === "down" ? "down" : "flat";
   $("#intel-cards").innerHTML = `
-    <div class="intel-ticker-item intel-feed-row news"><b class="intel-category">${english ? "[MARKET]" : "[시장]"}</b><div class="intel-feed-items">${marketEntries.map((entry, index) => `<div class="intel-feed-card age-${index}"><small>T${String(entry.turn).padStart(2, "0")}</small><button type="button" class="intel-sector-link" data-intel-stock="${selectedStock}">${escapeHtml(stock.sector)}</button><span>${escapeHtml(stock.name)}</span><strong class="intel-change-value ${entry.direction}">${percent(entry.change)}</strong><button type="button" class="intel-trade-link" data-intel-stock="${selectedStock}">${english ? "TRADE" : "거래"} ›</button></div>`).join("")}</div></div>
-    <div class="intel-ticker-item intel-feed-row report"><b class="intel-category">${english ? "[DISCLOSURE]" : "[공시]"}</b><div class="intel-feed-items">${disclosureEntries.map((entry, index) => `<div class="intel-feed-card disclosure-card age-${index}"><small>T${String(entry.reportTurn).padStart(2, "0")}</small><span class="intel-report-tag">${english ? entry.disclosure.tagEn : entry.disclosure.tagKo}</span><button type="button" class="intel-sector-link" data-intel-stock="${entry.stockIndex}">${escapeHtml(entry.stock.sector)}</button><span>${escapeHtml(entry.text)}</span><button type="button" class="intel-trade-link report-link" data-intel-stock="${entry.stockIndex}">${english ? "DETAIL" : "상세"} ›</button></div>`).join("")}</div></div>
-    <div class="intel-ticker-item intel-feed-row rumor"><b class="intel-category">${english ? "[RUMOR]" : "[찌라시]"}</b><div class="intel-feed-items">${rumorEntries.length ? rumorEntries.map((rumor, index) => { const rumorStock = game.stocks[rumor.stockIndex]; return `<button type="button" class="intel-feed-card rumor-card age-${index} ${rumor.read ? "" : "is-new"}" data-intel-rumor><small>T${String(rumor.startTurn || game.turn).padStart(2, "0")}</small><span>${escapeHtml(rumorStock ? `${rumorStock.sector} · ${rumorStock.name}` : (english ? "Market whisper" : "찌라시"))}</span><em>${escapeHtml(rumor.text)}</em><i>${english ? "OPEN" : "열기"} ›</i></button>`; }).join("") : `<div class="intel-feed-card age-0"><em>${english ? "No new rumor has arrived." : "새로 도착한 찌라시가 없습니다."}</em></div>`}</div></div>`;
+    <div class="intel-feed-row news"><b class="intel-category">${english ? "[MARKET]" : "[시장]"}</b><button class="intel-latest-card" type="button" data-intel-stock="${selectedStock}"><span>${escapeHtml(stock.sector)}</span><strong class="intel-change-value ${latestMarket.direction}">${directionLabel(latestMarket.direction)} · ${percent(latestMarket.change)}</strong></button></div>
+    <div class="intel-feed-row report"><b class="intel-category">${english ? "[DISCLOSURE]" : "[공시]"}</b><button class="intel-latest-card" type="button" data-intel-stock="${latestDisclosure.stockIndex}"><span class="intel-report-tag">${english ? latestDisclosure.disclosure.tagEn : latestDisclosure.disclosure.tagKo}</span><strong>${escapeHtml(latestDisclosure.stock.sector)}</strong></button></div>
+    <div class="intel-feed-row rumor"><b class="intel-category">${english ? "[RUMOR]" : "[찌라시]"}</b><button class="intel-latest-card ${latestRumor ? "" : "is-empty"}" type="button" ${latestRumor ? "data-intel-rumor" : "disabled"}><span>${escapeHtml(latestRumor ? (rumorStock?.sector || (english ? "Market" : "시장")) : (english ? "No new rumor" : "새 찌라시 없음"))}</span>${latestRumor ? `<strong class="intel-change-value ${rumorDirection}">${directionLabel(rumorDirection)} ${english ? "hint" : "암시"}</strong>` : ""}</button></div>`;
 }
 
 function renderAssets() {
@@ -1930,7 +1937,7 @@ $("#stock-list").addEventListener("click", (event) => {
   openStockDetail(Number(row.dataset.stockIndex));
 });
 $("#stock-list").addEventListener("keydown", (event) => {
-  if (!['Enter', ' '].includes(event.key) || event.target.closest(".sector-open-button")) return;
+  if (!['Enter', ' '].includes(event.key)) return;
   const row = event.target.closest("[data-stock-index]");
   if (!row) return;
   event.preventDefault();
@@ -1956,7 +1963,7 @@ $("#sector-scroll-next").addEventListener("click", () => scrollSectorRail(1));
   const rail = $("#stock-list");
   const drag = { active: false, startX: 0, scrollLeft: 0, moved: false, pointerId: null, stockIndex: null };
   rail.addEventListener("pointerdown", (event) => {
-    if (event.button !== 0 || event.target.closest(".sector-open-button")) return;
+    if (event.button !== 0) return;
     const card = event.target.closest("[data-stock-index]");
     drag.active = true; drag.startX = event.clientX; drag.scrollLeft = rail.scrollLeft; drag.moved = false; drag.pointerId = event.pointerId; drag.stockIndex = card ? Number(card.dataset.stockIndex) : null;
     rail.setPointerCapture(event.pointerId);
