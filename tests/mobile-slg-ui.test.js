@@ -561,8 +561,11 @@ test("balanced readability system prevents compressed mobile game content", asyn
   assert.match(balanced, /\.stock-row\.sector-card\s*\{(?=[^}]*height:\s*auto)(?=[^}]*min-height:\s*520px)(?=[^}]*overflow:\s*hidden)[^}]*\}/);
   assert.match(balanced, /\.sector-stats small\s*\{[^}]*font-size:\s*11px/);
   assert.match(balanced, /\.sector-position small\s*\{[^}]*font-size:\s*11px/);
+  assert.match(balanced, /\.market-panel > \.intel-panel \.intel-title-block\s*\{[^}]*display:\s*grid[^}]*grid-template-columns:\s*minmax\(0,1fr\) auto/);
+  assert.match(balanced, /#open-intel-messages\s*\{[^}]*min-width:\s*114px/);
 
   assert.match(balanced, /\.trade-panel \.tab\s*\{[^}]*min-width:\s*max-content[^}]*font-size:\s*14px/);
   assert.match(balanced, /\.trade-grid\s*\{[^}]*grid-template-columns:\s*minmax\(0,1fr\)/);
+  assert.match(balanced, /\.selected-position-grid\s*\{[^}]*display:\s*grid[^}]*grid-template-columns:\s*repeat\(2,minmax\(0,1fr\)\)/);
   assert.match(balanced, /\.turn-action-bar button,\s*\.game-bottom-nav button\s*\{[^}]*min-height:\s*48px/);
 });
