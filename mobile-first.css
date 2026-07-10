@@ -991,12 +991,12 @@ html,body { width:100%; min-width:320px; max-width:100%; overflow-x:hidden; }
 @media (max-width:899px) {
   .start-screen { padding:68px 16px 32px; }
   .hero-language { top:14px; right:16px; }
-  .logo-lockup { align-items:center; margin:8px 0 10px; }
+  .logo-lockup { min-height:50px; align-items:center; margin:8px 0 10px; }
   .logo-mark { width:44px; height:44px; flex-basis:44px; }
-  .logo-lockup h1 { max-width:calc(100vw - 86px); font-size:clamp(34px,10.5vw,48px); line-height:1; letter-spacing:-.065em; }
+  .logo-lockup h1 { max-width:calc(100vw - 86px); font-size:clamp(34px,10.5vw,48px); line-height:1.08; letter-spacing:-.065em; }
   .hero-slogan { margin:12px 0 6px; font-size:clamp(20px,5.7vw,25px); line-height:1.25; }
   .start-copy { margin-bottom:20px; font-size:14px; line-height:1.65; }
-  .feature-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+  .feature-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
   .feature-grid article { min-height:96px; display:flex; flex-direction:column; justify-content:center; padding:14px; }
   .feature-grid b { display:block; font-size:15px; line-height:1.35; }
   .feature-grid small { display:block; margin-top:5px; font-size:12px; line-height:1.45; }

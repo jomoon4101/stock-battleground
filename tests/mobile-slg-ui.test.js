@@ -548,6 +548,7 @@ test("balanced readability system prevents compressed mobile game content", asyn
   assert.match(balanced, /--ui-label:\s*12px/);
   assert.match(balanced, /--ui-title:\s*18px/);
   assert.match(balanced, /--ui-metric:\s*24px/);
+  assert.match(balanced, /\.feature-grid\s*\{[^}]*display:\s*grid[^}]*grid-template-columns:\s*repeat\(2,minmax\(0,1fr\)\)/);
 
   assert.match(balanced, /\.survival-status\s*\{[^}]*grid-template-columns:\s*repeat\(3,minmax\(0,1fr\)\)/);
   assert.match(balanced, /\.survival-status small\s*\{[^}]*font-size:\s*var\(--ui-label\)[^}]*white-space:\s*nowrap/);
