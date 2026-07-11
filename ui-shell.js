@@ -9,7 +9,7 @@ export function mountAppShell(root = document.querySelector("#stock-survival-roo
     <div class="start-grid"></div>
     <div class="start-card">
       <div class="language-choice hero-language" id="language-choice" data-no-i18n><button class="is-active" data-language="ko" aria-label="한국어">ko</button><button data-language="en" aria-label="English">En</button></div>
-      <div class="eyebrow">3–6 PLAYERS · SECTOR BATTLE · ONE SURVIVOR</div>
+      <div class="eyebrow">MODE-BASED MATCH · SECTOR BATTLE · ONE SURVIVOR</div>
       <div class="logo-lockup">
         <span class="logo-mark" aria-hidden="true"><svg viewBox="0 0 48 48" role="img"><path d="M8 36V12M8 36H40"/><path d="m12 31 8-9 7 5 12-15"/><path d="M32 12h7v7"/></svg></span>
         <h1 id="start-title"><em>주식</em>서바이벌</h1>
@@ -37,11 +37,10 @@ export function mountAppShell(root = document.querySelector("#stock-survival-roo
         <label id="game-mode-label">게임 모드</label>
         <input id="game-speed" type="hidden" value="quick">
         <div class="game-mode-buttons" id="game-mode-buttons" aria-labelledby="game-mode-label">
-          <button class="is-active" data-speed="quick"><b>빠른 게임</b><small>10라운드 · 11섹터</small></button>
-          <button data-speed="standard"><b>기본 게임</b><small>20라운드 · 11섹터</small></button>
-          <button data-speed="long"><b>장기 게임</b><small>30라운드 · 11섹터</small></button>
+          <button class="is-active" data-speed="quick"><b>빠른 게임</b><small>3명 · 10라운드 · 11섹터</small></button>
+          <button data-speed="standard"><b>기본 게임</b><small>5명 · 20라운드 · 11섹터</small></button>
+          <button data-speed="long"><b>장기 게임</b><small>6명 · 30라운드 · 11섹터</small></button>
         </div>
-        <label class="solo-player-count" for="solo-player-count">플레이어 인원 <select id="solo-player-count"><option value="3">3명</option><option value="4">4명</option><option value="5">5명</option><option value="6">6명</option></select></label>
         <button class="button button-primary button-xl" id="start-button">
           <span>멀티게임</span><span aria-hidden="true">→</span>
         </button>

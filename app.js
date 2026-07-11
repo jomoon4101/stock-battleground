@@ -95,7 +95,7 @@ const randomItem = (items) => items[Math.floor(Math.random() * items.length)];
 const randomNickname = () => `${randomItem(NICKNAME_WORDS)}${randomItem(NICKNAME_CREATURES)}`;
 const selectedSetup = () => {
   const mode = GAME_MODES[$("#game-speed").value] || GAME_MODES.standard;
-  return { playerCount: Number($("#solo-player-count")?.value || mode.playerCount), difficulty: "hard", totalTurns: mode.totalTurns };
+  return { playerCount: mode.playerCount, difficulty: "hard", totalTurns: mode.totalTurns };
 };
 
 function updateCurrencySymbols() {
@@ -340,9 +340,8 @@ function beginSoloGame() {
   online = false;
   roomState = null;
   viewerId = "PLAYER-001";
-  const playerCount = Number($("#solo-player-count")?.value || 3);
   const mode = GAME_MODES[$("#game-speed").value] || GAME_MODES.quick;
-  game = createSurvivalMvpGame({ nickname, seed: Date.now(), language: getLanguage(), avatar: selectedAvatar, playerCount, totalTurns: mode.totalTurns, requireSkillSelection: true });
+  game = createSurvivalMvpGame({ nickname, seed: Date.now(), language: getLanguage(), avatar: selectedAvatar, playerCount: mode.playerCount, totalTurns: mode.totalTurns, requireSkillSelection: true });
   game.messages = [];
   deliverLocalRumor();
   selectedStock = 0;
