@@ -376,6 +376,62 @@ textarea::placeholder { color: #b6c5d6; }
 .alternative-assets small { color: #d7e0eb; font-size: .75rem; }
 .skill-hand > small { color: #d7e0eb; font-size: .8125rem; }
 
+/* 좁은 3열 카드에서도 자산명과 증감 버튼이 같은 칸을 차지하지 않게 분리합니다. */
+.alternative-assets > div {
+  grid-template-columns: 24px minmax(0, 1fr);
+  grid-template-rows: auto auto auto;
+  align-items: center;
+  gap: 2px 6px;
+  min-height: 112px;
+  padding: 8px;
+  text-align: left;
+}
+
+.alternative-assets > div > .asset-icon {
+  grid-column: 1;
+  grid-row: 1;
+  width: 24px;
+  height: 24px;
+}
+
+.alternative-assets > div > b {
+  grid-column: 2;
+  grid-row: 1;
+  display: block;
+  margin: 0;
+  overflow: hidden;
+  font-size: .8125rem;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.alternative-assets > div > small {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  display: block;
+  overflow: hidden;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.alternative-assets > div > i {
+  grid-column: 1 / -1;
+  grid-row: 3;
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+  margin-top: 4px;
+}
+
+.alternative-assets > div > i button {
+  width: 100%;
+  min-width: 0;
+  min-height: 36px;
+}
+
 /* 자산과 스킬은 형태와 색을 모두 달리해 작은 화면에서도 즉시 구분합니다. */
 .asset-icon,
 .skill-icon,
