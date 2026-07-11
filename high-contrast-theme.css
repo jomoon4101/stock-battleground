@@ -326,6 +326,25 @@ textarea::placeholder { color: #b6c5d6; }
   box-shadow: 0 18px 38px rgba(0, 0, 0, .34);
 }
 
+/* CEO 이미지는 가로 3칸 스프라이트이므로 현재 감정 프레임 한 칸만 채웁니다. */
+.stock-row.sector-card > .sector-ceo {
+  background-repeat: no-repeat;
+  background-size: 300% 100%;
+}
+
+.stock-row.sector-card > .sector-ceo.ceo-technology {
+  background-size: 300% auto;
+}
+
+.stock-detail-character > .sector-ceo {
+  background-repeat: no-repeat;
+  background-size: 300% 100%;
+}
+
+.stock-detail-character > .sector-ceo.ceo-technology {
+  background-size: 300% auto;
+}
+
 .sector-card::after { background: linear-gradient(180deg, rgba(4, 10, 20, .03), rgba(4, 10, 20, .92) 78%); }
 .sector-card :where(h2, h3, strong, b) { text-shadow: 0 2px 8px rgba(0, 0, 0, .9); }
 .sector-card :where(p, small, span) { color: #f1f5f9; }
