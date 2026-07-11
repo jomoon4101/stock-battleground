@@ -12,6 +12,17 @@ test("고대비 테마는 기존 디자인 시스템 다음에 로드된다", as
   assert.ok(contrastTheme > designSystem);
 });
 
+test("모바일 메인 소개 영역은 컴팩트하고 언어 선택기가 잘리지 않는다", async () => {
+  const css = await read("high-contrast-theme.css");
+  assert.match(css, /\.start-card\s*\{[^}]*padding:\s*48px\s+14px\s+16px/i);
+  assert.match(css, /\.hero-language\s*\{[^}]*top:\s*10px[^}]*right:\s*10px[^}]*max-width:\s*calc\(100%\s*-\s*20px\)/i);
+  assert.match(css, /\.hero-language\s+button\s*\{[^}]*min-width:\s*38px[^}]*min-height:\s*34px/i);
+  assert.match(css, /\.logo-lockup\s+h1\s*\{[^}]*font-size:\s*clamp\(2rem,\s*10vw,\s*3rem\)/i);
+  assert.match(css, /\.feature-grid\s*\{[^}]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)[^}]*margin-top:\s*12px/i);
+  assert.match(css, /\.feature-grid\s+small\s*\{[^}]*display:\s*none/i);
+  assert.match(css, /@media\s*\(min-width:\s*768px\)[\s\S]*?\.feature-grid\s+small\s*\{[^}]*display:\s*block/i);
+});
+
 test("고대비 테마는 빌드와 오프라인 캐시에 포함된다", async () => {
   const build = await read("scripts/build.mjs");
   const serviceWorker = await read("service-worker.js");
