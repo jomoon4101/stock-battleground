@@ -266,6 +266,16 @@ function avatarPosition(index) {
   return `${(col / 3) * 100}% ${(row / 2) * 100}%`;
 }
 
+// [완료] 스킬마다 다른 형태를 사용해 카드 이름을 읽기 전에도 기능을 구분한다.
+function skillIconMarkup(skillId) {
+  const icons = {
+    "tax-audit": `<svg class="skill-icon skill-icon-tax-audit" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h10l4 4v14H5Z"/><path d="M15 3v5h5M8 12h5m-5 4h3"/><circle cx="16" cy="16" r="3"/><path d="m18 18 3 3"/></svg>`,
+    "short-sell": `<svg class="skill-icon skill-icon-short-sell" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M6 9l4 4 3-3 5 6"/><path d="M14 16h4v-4"/></svg>`,
+    "inside-info": `<svg class="skill-icon skill-icon-inside-info" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12s3-6 9-6 9 6 9 6-3 6-9 6-9-6-9-6Z"/><circle cx="12" cy="12" r="2.5"/></svg>`,
+  };
+  return icons[skillId] || `<svg class="skill-icon skill-icon-default" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.4 5.6L20 11l-5.6 2.4L12 19l-2.4-5.6L4 11l5.6-2.4Z"/></svg>`;
+}
+
 function applyAvatar(element, avatar) {
   if (!element) return;
   element.classList.add("profile-image");
@@ -800,8 +810,8 @@ function renderSurvivalExpansion() {
   status.classList.toggle("danger", player.bankruptcyDanger);
   $("#coin-all-in").classList.toggle("is-hidden", !player.bankruptcyDanger || !isMyActionPhase);
   if (!player.skillSelectionComplete) {
-    $("#skill-hand").innerHTML = player.skillDraft.map((id) => `<button class="${player.selectedSkillDraft.includes(id) ? "is-selected" : ""}" data-draft-skill="${id}" data-tooltip="${getLanguage() === "en" ? `${SKILL_CARDS[id].en}: ${SKILL_CARDS[id].descEn}` : `${SKILL_CARDS[id].ko}: ${SKILL_CARDS[id].descKo}`}" aria-pressed="${player.selectedSkillDraft.includes(id)}"><span>✦</span><b>${getLanguage() === "en" ? SKILL_CARDS[id].en : SKILL_CARDS[id].ko}</b></button>`).join("") + `<button class="skill-confirm" data-confirm-skills ${player.selectedSkillDraft.length !== 2 ? "disabled" : ""} aria-label="${getLanguage() === "en" ? "Confirm two skills" : "스킬 2장 선택 완료"}">✓</button>`;
-  } else $("#skill-hand").innerHTML = player.skills.length ? player.skills.map((id) => `<button data-use-skill="${id}" data-tooltip="${getLanguage() === "en" ? `${SKILL_CARDS[id].en}: ${SKILL_CARDS[id].descEn}` : `${SKILL_CARDS[id].ko}: ${SKILL_CARDS[id].descKo}`}" aria-label="${getLanguage() === "en" ? SKILL_CARDS[id].en : SKILL_CARDS[id].ko}" ${!isMyActionPhase ? "disabled" : ""}><span>✦</span><b>${getLanguage() === "en" ? SKILL_CARDS[id].en : SKILL_CARDS[id].ko}</b></button>`).join("") : `<small>${getLanguage() === "en" ? "No skill cards" : "보유 스킬카드 없음"}</small>`;
+    $("#skill-hand").innerHTML = player.skillDraft.map((id) => `<button class="${player.selectedSkillDraft.includes(id) ? "is-selected" : ""}" data-draft-skill="${id}" data-tooltip="${getLanguage() === "en" ? `${SKILL_CARDS[id].en}: ${SKILL_CARDS[id].descEn}` : `${SKILL_CARDS[id].ko}: ${SKILL_CARDS[id].descKo}`}" aria-pressed="${player.selectedSkillDraft.includes(id)}">${skillIconMarkup(id)}<b>${getLanguage() === "en" ? SKILL_CARDS[id].en : SKILL_CARDS[id].ko}</b></button>`).join("") + `<button class="skill-confirm" data-confirm-skills ${player.selectedSkillDraft.length !== 2 ? "disabled" : ""} aria-label="${getLanguage() === "en" ? "Confirm two skills" : "스킬 2장 선택 완료"}">✓</button>`;
+  } else $("#skill-hand").innerHTML = player.skills.length ? player.skills.map((id) => `<button data-use-skill="${id}" data-tooltip="${getLanguage() === "en" ? `${SKILL_CARDS[id].en}: ${SKILL_CARDS[id].descEn}` : `${SKILL_CARDS[id].ko}: ${SKILL_CARDS[id].descKo}`}" aria-label="${getLanguage() === "en" ? SKILL_CARDS[id].en : SKILL_CARDS[id].ko}" ${!isMyActionPhase ? "disabled" : ""}>${skillIconMarkup(id)}<b>${getLanguage() === "en" ? SKILL_CARDS[id].en : SKILL_CARDS[id].ko}</b></button>`).join("") : `<small>${getLanguage() === "en" ? "No skill cards" : "보유 스킬카드 없음"}</small>`;
   const skillIntel = $("#skill-intel");
   const intelLines = [];
   if (player.insideInfo?.turn === game.turn) intelLines.push(getLanguage() === "en" ? `Next event sector: ${game.stocks[player.insideInfo.nextSectorIndex]?.sector}` : `다음 이벤트 영향 섹터: ${game.stocks[player.insideInfo.nextSectorIndex]?.sector}`);

@@ -280,6 +280,13 @@ textarea::placeholder { color: #b6c5d6; }
 .panel-header h2, .identity-card, .identity-card strong, .identity-card b { color: #fff; }
 .identity-card small, .identity-card p { color: #d4dfeb; }
 
+/* 프로필 배경 단축 속성이 밈 스프라이트를 지우지 않도록 이미지를 다시 지정합니다. */
+.identity-card > .avatar.profile-image.meme {
+  background-image: url("assets/stock-meme-avatars.png");
+  background-repeat: no-repeat;
+  background-size: 400% 300%;
+}
+
 .my-goal-panel { border-color: #506985; background: #12243a; }
 
 .asset-total,
@@ -316,6 +323,45 @@ textarea::placeholder { color: #b6c5d6; }
 .asset-breakdown span, .asset-breakdown small, .asset-footer, .portfolio-empty p, .holding-row small { color: #d4dfeb; }
 .alternative-assets > div { border: 1px solid #526b88; }
 .alternative-assets button { border-color: #617996; color: #fff; }
+
+#portfolio-summary { color: #fff; font-size: .875rem; }
+.portfolio-empty strong { color: #fff; font-size: 1rem; }
+.portfolio-empty p { font-size: .875rem; }
+.alternative-assets b { color: #fff; font-size: .875rem; }
+.alternative-assets small { color: #d7e0eb; font-size: .75rem; }
+.skill-hand > small { color: #d7e0eb; font-size: .8125rem; }
+
+/* 자산과 스킬은 형태와 색을 모두 달리해 작은 화면에서도 즉시 구분합니다. */
+.asset-icon,
+.skill-icon,
+.nav-icon {
+  display: block;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.asset-icon { width: 28px; height: 28px; }
+.asset-icon-gold { color: #ffc857 !important; }
+.asset-icon-copper { color: #e98d52 !important; }
+.asset-icon-coin { color: #8b9cff !important; }
+
+.skill-icon { width: 22px; height: 22px; margin: 0 auto 4px; }
+.skill-icon-tax-audit { color: #54e2b6; }
+.skill-icon-short-sell { color: #ff6680; }
+.skill-icon-inside-info { color: #68aaff; }
+.skill-icon-default { color: #ffc857; }
+
+.nav-icon { width: 25px; height: 25px; }
+.nav-icon-home { color: #54e2b6; }
+.nav-icon-market { color: #ffc857; }
+.nav-icon-trade { color: #68aaff; }
+.nav-icon-ranking { color: #ff6680; }
+.nav-icon-logs { color: #b99cff; }
+.game-bottom-nav button.is-active .nav-icon,
+.game-bottom-nav button[aria-current="page"] .nav-icon { color: #062019; }
 
 .sector-market-panel, .survival-intelligence { border-color: #4e6784; }
 .sector-toolbar, .sector-search { border-color: #4e6784; background: #192d46; }
@@ -438,6 +484,16 @@ textarea::placeholder { color: #b6c5d6; }
   .survival-status > div {
     min-height: 62px;
     padding: 9px 12px;
+  }
+  .game-bottom-nav {
+    align-content: start;
+    padding-top: 84px;
+  }
+  #tab-home .identity-card {
+    position: sticky;
+    z-index: 65;
+    top: 142px;
+    background: linear-gradient(145deg, #263d5b, #17283f 74%);
   }
   .game-bottom-nav button.is-active,
   .game-bottom-nav button[aria-current="page"] { box-shadow: inset 4px 0 #78f0ca; }

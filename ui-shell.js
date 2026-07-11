@@ -175,9 +175,9 @@ export function mountAppShell(root = document.querySelector("#stock-survival-roo
         <article class="panel expansion-panel is-hidden" id="expansion-panel">
           <div class="panel-header"><div><span class="section-kicker">WAR CHEST</span><h2>대체자산 · 스킬</h2></div><strong id="bankruptcy-status">SAFE</strong></div>
           <div class="alternative-assets" id="alternative-assets">
-            <div><span>◆</span><b id="alt-gold">금 0</b><small id="alt-gold-price">100</small><i><button data-alt-asset="gold" data-alt-side="buy" data-tooltip="금 매수" aria-label="금 1개 매수">＋</button><button data-alt-asset="gold" data-alt-side="sell" data-tooltip="금 매도" aria-label="금 1개 매도">−</button></i></div>
-            <div><span>⬡</span><b id="alt-copper">구리 0</b><small id="alt-copper-price">100</small><i><button data-alt-asset="copper" data-alt-side="buy" data-tooltip="구리 매수" aria-label="구리 1개 매수">＋</button><button data-alt-asset="copper" data-alt-side="sell" data-tooltip="구리 매도" aria-label="구리 1개 매도">−</button></i></div>
-            <div><span>◉</span><b id="alt-coin">코인 0</b><small id="alt-coin-price">100</small><i><button data-alt-asset="coin" data-alt-side="buy" data-tooltip="코인 매수 · 수수료 5%" aria-label="코인 1개 매수">＋</button><button data-alt-asset="coin" data-alt-side="sell" data-tooltip="코인 매도 · 수수료 5%" aria-label="코인 1개 매도">−</button></i></div>
+            <div><span class="asset-icon asset-icon-gold" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m5 9 3-4h8l3 4-2 8H7Z"/><path d="M8 13h8"/></svg></span><b id="alt-gold">금 0개</b><small id="alt-gold-price">100</small><i><button data-alt-asset="gold" data-alt-side="buy" data-tooltip="금 매수" aria-label="금 1개 매수">＋</button><button data-alt-asset="gold" data-alt-side="sell" data-tooltip="금 매도" aria-label="금 1개 매도">−</button></i></div>
+            <div><span class="asset-icon asset-icon-copper" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M8 9h6a3 3 0 0 1 0 6H8M10 7v10"/></svg></span><b id="alt-copper">구리 0개</b><small id="alt-copper-price">100</small><i><button data-alt-asset="copper" data-alt-side="buy" data-tooltip="구리 매수" aria-label="구리 1개 매수">＋</button><button data-alt-asset="copper" data-alt-side="sell" data-tooltip="구리 매도" aria-label="구리 1개 매도">−</button></i></div>
+            <div><span class="asset-icon asset-icon-coin" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 8h4a3 3 0 0 1 0 6H9m3-8v12m-3-2h5"/></svg></span><b id="alt-coin">코인 0개</b><small id="alt-coin-price">100</small><i><button data-alt-asset="coin" data-alt-side="buy" data-tooltip="코인 매수 · 수수료 5%" aria-label="코인 1개 매수">＋</button><button data-alt-asset="coin" data-alt-side="sell" data-tooltip="코인 매도 · 수수료 5%" aria-label="코인 1개 매도">−</button></i></div>
           </div>
           <button class="coin-all-in is-hidden" id="coin-all-in" data-tooltip="현금 80%를 코인에 올인" aria-label="코인 올인">🔥</button>
           <div class="skill-hand" id="skill-hand" aria-label="보유 스킬카드"></div>
@@ -353,11 +353,11 @@ export function mountAppShell(root = document.querySelector("#stock-survival-roo
     </div>
 
     <nav class="game-bottom-nav" id="game-bottom-nav" aria-label="게임 메뉴">
-      <button data-app-tab="home" data-nav-target="assets" data-tooltip="홈" aria-label="홈"><span>⌂</span><small>홈</small></button>
-      <button data-app-tab="market" data-nav-target="market" data-tooltip="섹터 시장" aria-label="섹터 시장"><span>▥</span><small>시장</small></button>
-      <button data-app-tab="trade" data-nav-target="trade" data-tooltip="거래" aria-label="거래"><span>⇄</span><small>거래</small></button>
-      <button data-app-tab="survivors" data-nav-target="ranking" data-tooltip="생존 순위" aria-label="생존 순위"><span>♟</span><small>순위</small></button>
-      <button data-app-tab="logs" data-nav-target="messages" data-tooltip="전투 로그" aria-label="전투 로그"><span>▤</span><small>로그</small></button>
+      <button data-app-tab="home" data-nav-target="assets" data-tooltip="홈" aria-label="홈"><svg class="nav-icon nav-icon-home" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 9-8 9 8"/><path d="M5 10v10h14V10M9 20v-6h6v6"/></svg><small>홈</small></button>
+      <button data-app-tab="market" data-nav-target="market" data-tooltip="섹터 시장" aria-label="섹터 시장"><svg class="nav-icon nav-icon-market" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V10m5 10V4m5 16v-7m4 7V7"/><path d="M3 20h18"/></svg><small>시장</small></button>
+      <button data-app-tab="trade" data-nav-target="trade" data-tooltip="거래" aria-label="거래"><svg class="nav-icon nav-icon-trade" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h14m0 0-4-4m4 4-4 4M20 16H6m0 0 4-4m-4 4 4 4"/></svg><small>거래</small></button>
+      <button data-app-tab="survivors" data-nav-target="ranking" data-tooltip="생존 순위" aria-label="생존 순위"><svg class="nav-icon nav-icon-ranking" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8v4a4 4 0 0 1-8 0Z"/><path d="M8 6H4v2a4 4 0 0 0 4 4m8-6h4v2a4 4 0 0 1-4 4M12 12v5m-4 3h8m-6-3h4"/></svg><small>순위</small></button>
+      <button data-app-tab="logs" data-nav-target="messages" data-tooltip="전투 로그" aria-label="전투 로그"><svg class="nav-icon nav-icon-logs" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h9l3 3v15H6Z"/><path d="M15 3v4h4M9 11h6m-6 4h6"/></svg><small>로그</small></button>
     </nav>
   </div>
 
