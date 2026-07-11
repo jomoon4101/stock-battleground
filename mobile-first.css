@@ -1173,3 +1173,56 @@ html,body { width:100%; min-width:320px; max-width:100%; overflow-x:hidden; }
 .battle-result { display:flex; align-items:center; justify-content:space-between; min-height:42px; margin-top:9px; padding:7px 10px; border-radius:10px; background:#091322; color:#b8c6da; font-size:12px; }
 .battle-result strong { display:grid; width:30px; height:30px; place-items:center; border-radius:8px; background:#f5f7fb; color:#0a1627; font-size:18px; }
 @media (min-width:900px) { .battle-arena-panel { right:24px; bottom:84px; left:auto; width:430px; } }
+
+/* 2026 reference theme: clean infographic arena */
+:root {
+  --arena-navy:#061a3a;
+  --arena-blue:#1167d8;
+  --arena-red:#e30019;
+  --arena-coral:#ff3b48;
+  --arena-ink:#07152c;
+  --arena-paper:#f7fbff;
+  --arena-line:#c8d9ee;
+}
+.start-screen { background:linear-gradient(180deg,rgba(247,251,255,.88),rgba(238,246,255,.96)),url("./assets/stock-survival-theme-reference.png") center top/cover no-repeat; color:var(--arena-ink); }
+.start-grid { background-image:radial-gradient(#1268d51c 1px,transparent 1px),linear-gradient(120deg,transparent 49.8%,#e300190b 50%); background-size:18px 18px,100% 100%; }
+.start-card { border:1px solid #b8cde6; background:rgba(255,255,255,.88); box-shadow:0 24px 70px #082e641f; backdrop-filter:blur(14px); }
+.logo-lockup h1,.start-card label,.start-card h2,.start-card b { color:var(--arena-ink); }
+.logo-lockup h1 em,.hero-slogan { color:var(--arena-red); }
+.logo-mark,.button-primary { background:linear-gradient(135deg,var(--arena-red),#ff3958); box-shadow:0 12px 28px #e3001930; }
+.feature-grid article,.start-form,.active-survivals { border-color:#c8d9ee; background:rgba(247,251,255,.92); color:#465b75; }
+.game-mode-buttons button,.profile-open-button,.solo-player-count,.join-form input { border-color:#b8cde6; background:#fff; color:var(--arena-ink); }
+.game-mode-buttons button.is-active { border-color:var(--arena-red); background:linear-gradient(180deg,#fff4f5,#fff); box-shadow:inset 0 -3px var(--arena-red); }
+.mobile-app-shell { background:linear-gradient(180deg,#eff7ff 0,#f9fbfe 44%,#e8f2ff 100%); color:var(--arena-ink); }
+.battle-hud,.game-bottom-nav,.turn-action-bar { background:var(--arena-navy); color:#fff; }
+.panel,.identity-card,.survival-status>div,.stock-row.sector-card { border-color:var(--arena-line); background:linear-gradient(150deg,#fff,#eef6ff); color:var(--arena-ink); box-shadow:0 12px 30px #0c376218; }
+.panel h2,.identity-card strong,.asset-panel strong,.portfolio-panel strong { color:var(--arena-ink); }
+.section-kicker { color:var(--arena-blue); }
+.stock-row.sector-card.up { box-shadow:inset 0 0 0 2px #e3001955,0 12px 30px #e300191a; }
+.stock-row.sector-card.down { box-shadow:inset 0 0 0 2px #1167d855,0 12px 30px #1167d81a; }
+.battle-arena-panel { border-color:#9dbbe0; background:linear-gradient(145deg,rgba(255,255,255,.99),rgba(230,242,255,.99)); box-shadow:0 22px 55px #06234d38; color:var(--arena-ink); }
+.battle-actions button { border-color:#b6cae1; background:#fff; color:var(--arena-ink); }
+.battle-result { background:var(--arena-navy); color:#dceaff; }
+.game-bottom-nav button,.turn-action-bar button { color:#dceaff; }
+.game-bottom-nav button[aria-current="page"],.game-bottom-nav button.is-active { color:#fff; background:#11396b; }
+[data-tooltip] { position:relative; }
+[data-tooltip]::after { position:absolute; z-index:100; right:50%; bottom:calc(100% + 8px); width:max-content; max-width:170px; padding:6px 9px; border-radius:7px; background:#061a3af2; color:#fff; content:attr(data-tooltip); font-size:11px; font-weight:800; line-height:1.2; opacity:0; pointer-events:none; transform:translate(50%,5px); transition:.16s ease; }
+[data-tooltip]:hover::after,[data-tooltip]:focus-visible::after { opacity:1; transform:translate(50%,0); }
+@media (max-width:480px) {
+  .game-bottom-nav button small,.battle-actions button b { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+  .game-bottom-nav button span { font-size:23px; }
+  .battle-actions button span { margin:0; font-size:22px; }
+  .battle-actions button { min-height:50px; }
+}
+.expansion-panel { overflow:visible; }
+.alternative-assets { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; padding:12px 14px; }
+.alternative-assets button { min-height:72px; border:1px solid #b9cee6; border-radius:12px; background:#fff; color:var(--arena-ink); }
+.alternative-assets span,.alternative-assets b,.alternative-assets small { display:block; }
+.alternative-assets span { color:var(--arena-red); font-size:20px; }
+.alternative-assets b { margin:3px 0; font-size:13px; }
+.alternative-assets small { color:#45617f; font-size:11px; }
+.skill-hand { display:flex; gap:8px; padding:0 14px 14px; overflow-x:auto; }
+.skill-hand button { flex:0 0 92px; min-height:52px; border:1px solid #173f73; border-radius:11px; background:var(--arena-navy); color:#fff; }
+.skill-hand span { color:#ffcf3b; }
+.skill-hand b { display:block; margin-top:3px; overflow:hidden; font-size:11px; text-overflow:ellipsis; white-space:nowrap; }
+#bankruptcy-status.danger { color:var(--arena-red); animation:pulse 1s infinite alternate; }

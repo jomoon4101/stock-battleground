@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const dist = join(root, "dist");
-const publicFiles = ["index.html", "styles.css", "mobile-first.css", "app.js", "ui-shell.js", "ui-state.js", "onboarding-state.js", "sector-art.js", "engine.js", "i18n.js", "ai-chat.js"];
+const publicFiles = ["index.html", "styles.css", "mobile-first.css", "app.js", "ui-shell.js", "ui-state.js", "onboarding-state.js", "sector-art.js", "engine.js", "i18n.js", "ai-chat.js", "manifest.webmanifest", "service-worker.js"];
 
 async function loadLocalEnv() {
   const file = join(root, ".env");
@@ -32,7 +32,7 @@ await mkdir(join(dist, "survival-mvp"), { recursive: true });
 const survivalMvpFiles = (await readdir(join(root, "survival-mvp"))).filter((file) => file.endsWith(".js"));
 await Promise.all(survivalMvpFiles.map((file) => copyFile(join(root, "survival-mvp", file), join(dist, "survival-mvp", file))));
 await mkdir(join(dist, "assets"), { recursive: true });
-const assetFiles = (await readdir(join(root, "assets"))).filter((file) => file === "stock-meme-avatars.png" || /^sector-ceo-.+-v2\.webp$/.test(file));
+const assetFiles = (await readdir(join(root, "assets"))).filter((file) => file === "stock-meme-avatars.png" || file === "stock-survival-theme-reference.png" || file === "app-icon.svg" || /^sector-ceo-.+-v2\.webp$/.test(file));
 await Promise.all(assetFiles.map((file) => copyFile(join(root, "assets", file), join(dist, "assets", file))));
 await writeFile(
   join(dist, "config.js"),

@@ -14,4 +14,4 @@ export const MVP_RULES = Object.freeze({
   defendEffectMultiplier: 0.5,
 });
 
-export const MVP_ACTIONS = Object.freeze(["buy", "sell", "interfere", "defend", "gamble"]);
+export const MVP_ACTIONS = Object.freeze(["buy", "sell", "interfere", "defend", "gamble", "all-in"]);

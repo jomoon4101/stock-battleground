@@ -172,6 +172,15 @@ export function mountAppShell(root = document.querySelector("#stock-survival-roo
           <div class="panel-header"><div><span class="section-kicker">MY SURVIVAL BAG</span><h2>내 보유 종목</h2></div><strong id="portfolio-summary">0개 종목</strong></div>
           <div class="portfolio-list" id="portfolio-list"><p>아직 보유한 종목이 없습니다. 종목을 선택해 매수해보세요.</p></div>
         </article>
+        <article class="panel expansion-panel is-hidden" id="expansion-panel">
+          <div class="panel-header"><div><span class="section-kicker">WAR CHEST</span><h2>대체자산 · 스킬</h2></div><strong id="bankruptcy-status">SAFE</strong></div>
+          <div class="alternative-assets" id="alternative-assets">
+            <button data-alt-asset="gold" data-tooltip="금 1개 매수" aria-label="금 1개 매수"><span>◆</span><b id="alt-gold">금 0</b><small id="alt-gold-price">100</small></button>
+            <button data-alt-asset="copper" data-tooltip="구리 1개 매수" aria-label="구리 1개 매수"><span>⬡</span><b id="alt-copper">구리 0</b><small id="alt-copper-price">100</small></button>
+            <button data-alt-asset="coin" data-tooltip="코인 1개 매수 · 수수료 5%" aria-label="코인 1개 매수"><span>◉</span><b id="alt-coin">코인 0</b><small id="alt-coin-price">100</small></button>
+          </div>
+          <div class="skill-hand" id="skill-hand" aria-label="보유 스킬카드"></div>
+        </article>
         </section>
       </section>
 
@@ -328,8 +337,8 @@ export function mountAppShell(root = document.querySelector("#stock-survival-roo
       <header><div><span>MOBILE BATTLE LOOP</span><h2 id="battle-arena-title">이번 턴 행동</h2></div><strong id="battle-phase-badge">ACTION</strong></header>
       <div class="battle-stepper" aria-label="턴 진행 단계"><i data-mvp-step="action">1 <b>행동</b></i><i data-mvp-step="dice">2 <b>주사위</b></i><i data-mvp-step="resolved">3 <b>결과</b></i></div>
       <div class="battle-actions" id="battle-actions">
-        <button data-mvp-action="buy"><span>＋</span><b>매수</b></button><button data-mvp-action="sell"><span>−</span><b>매도</b></button>
-        <button data-mvp-action="interfere"><span>⚡</span><b>방해</b></button><button data-mvp-action="defend"><span>◆</span><b>방어</b></button><button data-mvp-action="gamble"><span>?</span><b>도박</b></button>
+        <button data-mvp-action="buy" data-tooltip="매수" aria-label="매수"><span>＋</span><b>매수</b></button><button data-mvp-action="sell" data-tooltip="매도" aria-label="매도"><span>−</span><b>매도</b></button>
+        <button data-mvp-action="interfere" data-tooltip="견제" aria-label="견제"><span>⚡</span><b>견제</b></button><button data-mvp-action="defend" data-tooltip="방어" aria-label="방어"><span>◆</span><b>방어</b></button><button data-mvp-action="gamble" data-tooltip="도박" aria-label="도박"><span>?</span><b>도박</b></button><button class="is-hidden" data-mvp-action="all-in" data-tooltip="파산 위기 올인" aria-label="올인"><span>🔥</span><b>올인</b></button>
       </div>
       <div class="battle-result" id="battle-result"><span>행동 하나를 선택하세요.</span><strong id="battle-die">—</strong></div>
     </section>
@@ -339,11 +348,11 @@ export function mountAppShell(root = document.querySelector("#stock-survival-roo
     </div>
 
     <nav class="game-bottom-nav" id="game-bottom-nav" aria-label="게임 메뉴">
-      <button data-app-tab="home" data-nav-target="assets"><span>⌂</span><small>홈</small></button>
-      <button data-app-tab="market" data-nav-target="market"><span>▥</span><small>시장</small></button>
-      <button data-app-tab="trade" data-nav-target="trade"><span>⇄</span><small>거래</small></button>
-      <button data-app-tab="survivors" data-nav-target="ranking"><span>♟</span><small>생존자</small></button>
-      <button data-app-tab="logs" data-nav-target="messages"><span>▤</span><small>로그</small></button>
+      <button data-app-tab="home" data-nav-target="assets" data-tooltip="홈" aria-label="홈"><span>⌂</span><small>홈</small></button>
+      <button data-app-tab="market" data-nav-target="market" data-tooltip="섹터 시장" aria-label="섹터 시장"><span>▥</span><small>시장</small></button>
+      <button data-app-tab="trade" data-nav-target="trade" data-tooltip="거래" aria-label="거래"><span>⇄</span><small>거래</small></button>
+      <button data-app-tab="survivors" data-nav-target="ranking" data-tooltip="생존 순위" aria-label="생존 순위"><span>♟</span><small>순위</small></button>
+      <button data-app-tab="logs" data-nav-target="messages" data-tooltip="전투 로그" aria-label="전투 로그"><span>▤</span><small>로그</small></button>
     </nav>
   </div>
 

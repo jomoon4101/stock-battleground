@@ -2,6 +2,8 @@ import { getRanking, netWorth } from "../engine.js";
 import { MVP_ACTIONS, MVP_RULES } from "./config.js";
 import { eventForRoll } from "./events.js";
 import { calculateTurnOrder } from "./game-state.js";
+import { buyAlternativeAsset } from "./assets.js";
+import { settleSurvivalRound } from "./progression.js";
 
 const playerById = (game, id) => {
   const player = game.players.find((candidate) => candidate.id === id);
@@ -43,6 +45,25 @@ export function applyAction(game, action, playerId, random = Math.random) {
       if (!player.holdings[stockIndex]) player.averagePrices[stockIndex] = 0;
     }
     result = { type: action.type, stockIndex, quantity, amount: price * quantity };
+  } else if (action.type === "all-in") {
+    if (!player.bankruptcyDanger) throw new Error("올인은 파산 위기에서만 사용할 수 있습니다.");
+    const budget = Math.floor(player.cash * 0.8);
+    if (action.assetKey === "coin") {
+      const price = game.survivalMvp.alternativeMarkets.coin.price;
+      const quantity = Math.max(1, Math.floor(budget / (price * 1.05)));
+      result = { type: "all-in", target: "coin", ...buyAlternativeAsset(game, playerId, "coin", quantity), multiplier: 2 };
+    } else {
+      const stockIndex = Math.floor(Number(action.stockIndex));
+      const price = game.stocks[stockIndex]?.prices[priceIndex(game)];
+      if (!price) throw new Error("올인할 섹터를 선택하세요.");
+      const quantity = Math.max(1, Math.min(MVP_RULES.maxHoldingPerCompany - player.holdings[stockIndex], game.survivalMvp.stockSupply[stockIndex], Math.floor(budget / price)));
+      if (quantity < 1) throw new Error("올인할 수량을 확보할 수 없습니다.");
+      player.cash -= price * quantity;
+      player.holdings[stockIndex] += quantity;
+      game.survivalMvp.stockSupply[stockIndex] -= quantity;
+      result = { type: "all-in", target: "stock", stockIndex, quantity, multiplier: 2 };
+    }
+    game.survivalMvp.allIn = { playerId, ...result, expiresAfterEvent: true };
   } else if (action.type === "defend") {
     if (!game.survivalMvp.defendedPlayerIds.includes(playerId)) game.survivalMvp.defendedPlayerIds.push(playerId);
     result = { type: "defend" };
@@ -90,11 +111,11 @@ export function resolveDice(game, playerId, forcedRoll = null, random = Math.ran
 }
 
 export function completeRound(game) {
-  game.players.filter((player) => !player.eliminated).forEach((player) => { player.cash += MVP_RULES.survivalIncome; });
-  if (game.turn >= game.totalTurns) {
+  const settlement = settleSurvivalRound(game);
+  if (game.finished || game.turn >= game.totalTurns) {
     game.finished = true;
-    game.finalRanking = getRanking(game, { display: false });
-    return { finished: true, ranking: game.finalRanking };
+    game.finalRanking = [...game.players].sort((a, b) => netWorth(b, game.stocks, game.turn) - netWorth(a, game.stocks, game.turn)).map((player, index) => ({ playerId: player.id, nickname: player.nickname, assets: netWorth(player, game.stocks, game.turn), rank: index + 1 }));
+    return { finished: true, ranking: game.finalRanking, settlement };
   }
   game.turn += 1;
   game.survivalMvp.turnOrder = calculateTurnOrder(game);
@@ -104,7 +125,7 @@ export function completeRound(game) {
   game.survivalMvp.diceResult = null;
   game.survivalMvp.defendedPlayerIds = [];
   game.survivalMvp.actedPlayerIds = [];
-  return { finished: false, turn: game.turn, order: game.survivalMvp.turnOrder };
+  return { finished: false, turn: game.turn, order: game.survivalMvp.turnOrder, settlement };
 }
 
 export function runAiTurns(game, random = Math.random) {

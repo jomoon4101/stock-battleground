@@ -1,6 +1,6 @@
 const ACTION_COPY = {
-  ko: { buy: "매수", sell: "매도", interfere: "방해", defend: "방어", gamble: "도박" },
-  en: { buy: "Buy", sell: "Sell", interfere: "Interfere", defend: "Defend", gamble: "Gamble" },
+  ko: { buy: "매수", sell: "매도", interfere: "견제", defend: "방어", gamble: "도박", "all-in": "올인" },
+  en: { buy: "Buy", sell: "Sell", interfere: "Interfere", defend: "Defend", gamble: "Gamble", "all-in": "All In" },
 };
 
 export function battleArenaMarkup() {
@@ -23,6 +23,7 @@ export function renderBattleArena(panel, game, language = "ko") {
   if (!mvp) return;
   const copy = ACTION_COPY[language] || ACTION_COPY.ko;
   panel.querySelectorAll("[data-mvp-action]").forEach((button) => {
+    if (button.dataset.mvpAction === "all-in") button.classList.toggle("is-hidden", !game.players.find((player) => player.isHuman)?.bankruptcyDanger);
     button.disabled = mvp.phase !== "action";
     button.querySelector("b").textContent = copy[button.dataset.mvpAction];
   });

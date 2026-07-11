@@ -31,9 +31,14 @@ import { applySectorArtProbeState, sectorArtPath } from "./sector-art.js";
 import { createSurvivalMvpGame } from "./survival-mvp/game-state.js";
 import { applyAction as applyMvpAction, autoCompletePhase, runAiTurns } from "./survival-mvp/game-logic.js";
 import { renderBattleArena } from "./survival-mvp/ui.js";
+import { buyAlternativeAsset } from "./survival-mvp/assets.js";
+import { SKILL_CARDS, useSkill } from "./survival-mvp/skills.js";
 
 mountAppShell();
 setActiveAppTab("home");
+if ("serviceWorker" in navigator && !location.hostname.includes("localhost") && location.hostname !== "127.0.0.1") {
+  navigator.serviceWorker.register("/service-worker.js").catch(() => {});
+}
 
 document.addEventListener("error", (event) => applySectorArtProbeState(event, true), true);
 document.addEventListener("load", (event) => applySectorArtProbeState(event, false), true);
@@ -739,9 +744,27 @@ function renderAll() {
   renderGlobalChat();
   announceNewRumorMessages();
   renderBattleArena($("#battle-arena-panel"), game, getLanguage());
+  renderSurvivalExpansion();
   if (!$("#message-modal").classList.contains("is-hidden")) renderMessages();
   renderActiveBattleTab();
   localizeDocument($("#app-shell"));
+}
+
+function renderSurvivalExpansion() {
+  const panel = $("#expansion-panel");
+  const player = myPlayer();
+  panel?.classList.toggle("is-hidden", !game?.survivalMvp);
+  if (!panel || !game?.survivalMvp || !player) return;
+  const names = getLanguage() === "en" ? { gold: "Gold", copper: "Copper", coin: "Coin" } : { gold: "금", copper: "구리", coin: "코인" };
+  panel.querySelector("h2").textContent = getLanguage() === "en" ? "Alternative Assets · Skills" : "대체자산 · 스킬";
+  for (const key of ["gold", "copper", "coin"]) {
+    $("#alt-" + key).textContent = `${names[key]} ${player.alternativeAssets[key]}`;
+    $("#alt-" + key + "-price").textContent = money(game.survivalMvp.alternativeMarkets[key].price);
+  }
+  const status = $("#bankruptcy-status");
+  status.textContent = player.bankruptcyDanger ? (getLanguage() === "en" ? "BANKRUPTCY RISK" : "파산 위기") : "SAFE";
+  status.classList.toggle("danger", player.bankruptcyDanger);
+  $("#skill-hand").innerHTML = player.skills.length ? player.skills.map((id) => `<button data-use-skill="${id}" data-tooltip="${getLanguage() === "en" ? SKILL_CARDS[id].en : SKILL_CARDS[id].ko}" aria-label="${getLanguage() === "en" ? SKILL_CARDS[id].en : SKILL_CARDS[id].ko}"><span>✦</span><b>${getLanguage() === "en" ? SKILL_CARDS[id].en : SKILL_CARDS[id].ko}</b></button>`).join("") : `<small>${getLanguage() === "en" ? "No skill cards" : "보유 스킬카드 없음"}</small>`;
 }
 
 function renderHeader() {
@@ -1881,8 +1904,19 @@ $("#battle-actions").addEventListener("click", (event) => {
     action.quantity = 1;
   } else if (type === "interfere") {
     action.targetPlayerId = getRanking(game, { display: false }).find((entry) => entry.playerId !== viewerId)?.playerId;
-  }
+  } else if (type === "all-in") { action.stockIndex = selectedStock; }
   safeAction(() => applyMvpAction(game, action, viewerId), () => getLanguage() === "en" ? "Action locked. Roll the die." : "행동이 확정되었습니다. 주사위를 굴리세요.");
+});
+$("#alternative-assets").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-alt-asset]");
+  if (!button || !game?.survivalMvp) return;
+  safeAction(() => buyAlternativeAsset(game, viewerId, button.dataset.altAsset, 1), () => getLanguage() === "en" ? "Asset purchased." : "대체자산 1개를 매수했습니다.");
+});
+$("#skill-hand").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-use-skill]");
+  if (!button || !game?.survivalMvp) return;
+  const payload = { stockIndex: selectedStock, targetPlayerId: getRanking(game, { display: false }).find((entry) => entry.playerId !== viewerId)?.playerId };
+  safeAction(() => useSkill(game, viewerId, button.dataset.useSkill, payload), () => getLanguage() === "en" ? "Skill used." : "스킬카드를 사용했습니다.");
 });
 $("#onboarding-confirm").addEventListener("click", () => {
   try {

@@ -1,0 +1,13 @@
+{
+  "name": "주식서바이벌: 개미전쟁",
+  "short_name": "주식서바이벌",
+  "description": "모바일 턴제 경제 배틀로얄 게임",
+  "lang": "ko",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f7fbff",
+  "theme_color": "#061a3a",
+  "icons": [{ "src": "/assets/app-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

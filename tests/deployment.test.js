@@ -37,7 +37,9 @@ test("production build emits the complete mobile SLG shell and required assets",
     "index.html", "404.html", "app.js", "engine.js", "ai-chat.js", "ui-shell.js", "ui-state.js", "sector-art.js",
     "onboarding-state.js", "styles.css", "mobile-first.css", "i18n.js", "config.js",
     "survival-mvp/config.js", "survival-mvp/events.js", "survival-mvp/game-state.js", "survival-mvp/game-logic.js", "survival-mvp/ui.js",
-    "assets/stock-meme-avatars.png",
+    "survival-mvp/assets.js", "survival-mvp/progression.js", "survival-mvp/skills.js",
+    "manifest.webmanifest", "service-worker.js", "assets/app-icon.svg",
+    "assets/stock-meme-avatars.png", "assets/stock-survival-theme-reference.png",
   ];
   const sectorKeys = [
     "technology", "financials", "health-care", "consumer-discretionary",
