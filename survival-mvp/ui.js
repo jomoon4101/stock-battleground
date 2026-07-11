@@ -36,7 +36,7 @@ export function renderBattleArena(panel, game, language = "ko") {
   else result.textContent = language === "en" ? mvp.diceResult?.event?.labelEn : mvp.diceResult?.event?.labelKo;
   die.textContent = mvp.diceResult?.roll || "—";
   const reveal = panel.querySelector("#event-reveal");
-  const card = mvp.diceResult?.eventCards?.at(-1);
+  const card = mvp.diceResult?.eventCards?.at(-1) || mvp.skillEventResult?.card;
   reveal.className = `event-reveal ${card ? `grade-${card.grade}` : "is-hidden"}`;
   if (card) {
     panel.querySelector("#event-grade").textContent = card.grade.toUpperCase();

@@ -52,6 +52,7 @@ export function createSurvivalMvpGame({ nickname = "플레이어", seed = Date.n
     leaderStreak: 0,
     lastFameBonusRound: 0,
     activeEffects: [],
+    skillEventResult: null,
   };
   game.survivalMvp.turnOrder = calculateTurnOrder(game);
   game.survivalMvp.activePlayerId = game.survivalMvp.turnOrder[0];

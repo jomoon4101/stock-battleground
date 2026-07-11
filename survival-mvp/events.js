@@ -11,12 +11,18 @@ export const EVENT_TEMPLATES = Object.freeze([
   Object.freeze({ id: "rate-shock", nameKo: "금리 충격", nameEn: "Rate Shock", target: "stock", sectorIndex: 1, direction: -1 }),
   Object.freeze({ id: "medical-breakthrough", nameKo: "신약 임상 성공", nameEn: "Medical Breakthrough", target: "stock", sectorIndex: 2, direction: 1 }),
   Object.freeze({ id: "consumer-freeze", nameKo: "소비 심리 급랭", nameEn: "Consumer Freeze", target: "stock", sectorIndex: 3, direction: -1 }),
+  Object.freeze({ id: "staples-demand", nameKo: "필수품 사재기", nameEn: "Staples Demand", target: "stock", sectorIndex: 4, direction: 1 }),
+  Object.freeze({ id: "factory-orders", nameKo: "공장 수주 급증", nameEn: "Factory Orders Surge", target: "stock", sectorIndex: 5, direction: 1 }),
+  Object.freeze({ id: "ad-slump", nameKo: "광고 시장 침체", nameEn: "Advertising Slump", target: "stock", sectorIndex: 6, direction: -1 }),
+  Object.freeze({ id: "mineral-shortage", nameKo: "핵심 광물 품귀", nameEn: "Critical Mineral Shortage", target: "stock", sectorIndex: 7, direction: 1 }),
+  Object.freeze({ id: "oil-glut", nameKo: "원유 공급 과잉", nameEn: "Oil Supply Glut", target: "stock", sectorIndex: 8, direction: -1 }),
   Object.freeze({ id: "supply-crisis", nameKo: "공급망 대란", nameEn: "Supply Crisis", target: "market", direction: -1 }),
   Object.freeze({ id: "global-boom", nameKo: "글로벌 경기 호황", nameEn: "Global Boom", target: "market", direction: 1, assetModifiers: { copper: 0.12, gold: -0.03 } }),
   Object.freeze({ id: "global-inflation", nameKo: "글로벌 인플레이션", nameEn: "Global Inflation", target: "market", direction: -1, assetModifiers: { gold: 0.14, copper: 0.08 } }),
   Object.freeze({ id: "war-risk", nameKo: "전쟁 위험 고조", nameEn: "War Risk", target: "asset", assetKey: "gold", direction: 1, assetModifiers: { gold: 0.22, copper: -0.1, coin: 0.08 } }),
   Object.freeze({ id: "coin-panic", nameKo: "코인 광풍", nameEn: "Crypto Mania", target: "asset", assetKey: "coin", direction: 1, assetModifiers: { coin: 0.35 } }),
   Object.freeze({ id: "utility-subsidy", nameKo: "공공요금 지원", nameEn: "Utility Subsidy", target: "stock", sectorIndex: 9, direction: 1, duration: 2 }),
+  Object.freeze({ id: "property-rebound", nameKo: "부동산 거래 회복", nameEn: "Property Rebound", target: "stock", sectorIndex: 10, direction: 1 }),
 ]);
 
 export const DICE_EVENTS = Object.freeze({

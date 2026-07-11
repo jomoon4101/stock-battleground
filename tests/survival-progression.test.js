@@ -20,6 +20,18 @@ test("gold copper and coin obey fees and allocation limits", () => {
   assert.equal(player.cash, 790);
 });
 
+test("an alternative-asset order consumes the one action for the turn", () => {
+  const game = createSurvivalMvpGame({ seed: 311, playerCount: 3 });
+  const player = game.players[0];
+  player.cash = 1_000;
+  const result = applyAction(game, { type: "buy", assetKey: "gold", quantity: 2 }, player.id);
+  assert.equal(result.assetKey, "gold");
+  assert.equal(result.quantity, 2);
+  assert.equal(player.alternativeAssets.gold, 2);
+  assert.equal(game.survivalMvp.phase, "dice");
+  assert.throws(() => applyAction(game, { type: "defend" }, player.id), /행동 선택 단계/);
+});
+
 test("a sole holder with at least three shares is the major shareholder", () => {
   const game = createSurvivalMvpGame({ seed: 32, playerCount: 3 });
   game.players[0].holdings[0] = 3;
@@ -58,6 +70,50 @@ test("one-use skills are consumed and apply their rule", () => {
   useSkill(game, player.id, "tax-audit");
   assert.deepEqual(player.skills, ["rumor"]);
   assert.ok(game.players[1].cash < 2_000);
+});
+
+test("skills require the owner's active action phase and are not consumed on rejection", () => {
+  const game = createSurvivalMvpGame({ seed: 352, playerCount: 3 });
+  const active = game.players[0];
+  const waiting = game.players[1];
+  waiting.skills = ["rumor"];
+  assert.throws(() => useSkill(game, waiting.id, "rumor", { stockIndex: 0 }, () => 0.9), /현재.*턴/);
+  assert.deepEqual(waiting.skills, ["rumor"]);
+  active.skills = ["rumor"];
+  applyAction(game, { type: "defend" }, active.id);
+  assert.throws(() => useSkill(game, active.id, "rumor", { stockIndex: 0 }, () => 0.9), /행동 단계/);
+  assert.deepEqual(active.skills, ["rumor"]);
+});
+
+test("inside information previews and resolves the exact privately queued event", () => {
+  const game = createSurvivalMvpGame({ seed: 353, playerCount: 3 });
+  const player = game.players[0];
+  player.skills = ["inside-info"];
+  const values = [0, 0.1, 0, 0.5];
+  const preview = useSkill(game, player.id, "inside-info", {}, () => values.shift() ?? 0);
+  const queuedId = player.queuedInsideInfoCard.id;
+  assert.equal(preview.nextSectorIndex, player.insideInfo.nextSectorIndex);
+  assert.equal(Object.hasOwn(preview, "card"), false);
+  applyAction(game, { type: "defend" }, player.id);
+  const resolved = resolveDice(game, player.id, 6, () => 0.99);
+  assert.equal(resolved.eventCards[0].id, queuedId);
+  assert.equal(player.queuedInsideInfoCard, undefined);
+  assert.equal(player.insideInfo, null);
+});
+
+test("tabloid reveals and applies its extra event immediately", () => {
+  const game = createSurvivalMvpGame({ seed: 354, playerCount: 3 });
+  const player = game.players[0];
+  player.skills = ["tabloid"];
+  const before = game.stocks.map((stock) => stock.prices[0]);
+  const values = [0.1, 0, 0.5];
+  const result = useSkill(game, player.id, "tabloid", {}, () => values.shift() ?? 0);
+  assert.ok(result.immediateEvent);
+  assert.equal(game.survivalMvp.skillEventResult.card.id, result.immediateEvent.id);
+  assert.equal(game.survivalMvp.phase, "action");
+  assert.equal(player.skills.includes("tabloid"), false);
+  assert.notDeepEqual(game.stocks.map((stock) => stock.prices[0]), before);
+  assert.ok(game.logs.some((entry) => entry.card?.id === result.immediateEvent.id));
 });
 
 test("human players choose exactly two of three dealt skills before acting", () => {

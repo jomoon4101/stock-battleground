@@ -22,6 +22,8 @@ test("latest mobile battle UI exposes every remaining PDF system", async () => {
   for (const endpoint of ["mvp-action", "mvp-progress", "mvp-asset", "mvp-skill", "mvp-skill-draft", "mvp-skill-confirm", "mvp-emergency-sell"]) assert.match(server, new RegExp(`case "${endpoint}"`));
   assert.match(app, /calculateMajorShareholders/);
   assert.match(app, /hidden-safe-asset-king/);
+  assert.match(app, /sendAction\("mvp-action", action,[\s\S]*Asset action locked/);
+  assert.match(server, /queuedInsideInfoCard:\s*_privateQueuedEvent/);
 });
 
 test("PWA and Android packaging artifacts target the production dist", async () => {
@@ -33,5 +35,6 @@ test("PWA and Android packaging artifacts target the production dist", async () 
   assert.equal(manifest.display, "standalone");
   assert.equal(manifest.orientation, "portrait-primary");
   assert.match(worker, /survival-mvp\/game-logic\.js/);
+  assert.match(worker, /survival-mvp\/event-effects\.js/);
   assert.equal(capacitor.webDir, "dist");
 });

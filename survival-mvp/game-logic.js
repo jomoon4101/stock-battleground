@@ -1,20 +1,18 @@
 import { MVP_ACTIONS, MVP_RULES } from "./config.js";
 import { drawEventCard, eventForRoll } from "./events.js";
 import { calculateTurnOrder } from "./game-state.js";
-import { alternativeAssetValue } from "./assets.js";
-import { calculateMajorShareholders, getSurvivalRanking, settleSurvivalRound, survivalNetWorth } from "./progression.js";
+import { alternativeAssetValue, buyAlternativeAsset, sellAlternativeAsset } from "./assets.js";
+import { getSurvivalRanking, settleSurvivalRound, survivalNetWorth } from "./progression.js";
 import { confirmSkillSelection } from "./skills.js";
+import { applyEventCard, changeStockPrice, eventPriceIndex } from "./event-effects.js";
 
 const playerById = (game, id) => {
   const player = game.players.find((candidate) => candidate.id === id);
   if (!player) throw new Error("플레이어를 찾을 수 없습니다.");
   return player;
 };
-const priceIndex = (game) => Math.max(0, Math.min(game.turn - 1, game.stocks[0].prices.length - 1));
-const changePrice = (game, index, rate) => {
-  const cursor = priceIndex(game);
-  game.stocks[index].prices[cursor] = Math.max(1, Math.round(game.stocks[index].prices[cursor] * (1 + rate)));
-};
+const priceIndex = eventPriceIndex;
+const changePrice = changeStockPrice;
 const largestHoldingIndex = (player) => player.holdings.reduce((best, quantity, index, all) => quantity > all[best] ? index : best, 0);
 const portfolioValue = (game, player) => player.holdings.reduce((sum, quantity, index) => sum + quantity * game.stocks[index].prices[priceIndex(game)], 0) + alternativeAssetValue(game, player);
 const pushLog = (game, playerId, type, message, meta = {}) => {
@@ -28,7 +26,12 @@ export function applyAction(game, action, playerId, random = Math.random) {
   const player = playerById(game, playerId);
   if (player.isHuman && !player.skillSelectionComplete) throw new Error("먼저 스킬카드 3장 중 2장을 선택하세요.");
   let result;
-  if (action.type === "buy" || action.type === "sell") {
+  if ((action.type === "buy" || action.type === "sell") && action.assetKey) {
+    const order = action.type === "sell"
+      ? sellAlternativeAsset(game, playerId, action.assetKey, action.quantity)
+      : buyAlternativeAsset(game, playerId, action.assetKey, action.quantity);
+    result = { type: action.type, assetKey: action.assetKey, ...order };
+  } else if (action.type === "buy" || action.type === "sell") {
     const stockIndex = Math.floor(Number(action.stockIndex));
     const quantity = Math.floor(Number(action.quantity));
     if (!game.stocks[stockIndex] || quantity < 1) throw new Error("종목과 수량을 확인하세요.");
@@ -123,7 +126,9 @@ export function resolveDice(game, playerId, forcedRoll = null, random = Math.ran
       : player.insideInfo?.turn === game.turn ? player.insideInfo.nextSectorIndex : null;
     const count = 1 + Number(game.survivalMvp.extraEventCount || 0);
     for (let index = 0; index < count; index += 1) {
-      const card = drawEventCard(random, index === 0 ? preferred : null);
+      const card = index === 0 && player.queuedInsideInfoCard
+        ? player.queuedInsideInfoCard
+        : drawEventCard(random, index === 0 ? preferred : null);
       applyEventCard(game, card);
       eventCards.push(card);
       const allIn = game.survivalMvp.allIn;
@@ -131,7 +136,10 @@ export function resolveDice(game, playerId, forcedRoll = null, random = Math.ran
       if (allIn?.target === "stock" && (card.target === "market" || (card.target === "stock" && Number(card.sectorIndex) === allIn.stockIndex))) allInApplied = true;
     }
     game.survivalMvp.extraEventCount = 0;
-    if (player.insideInfo?.turn === game.turn) player.insideInfo = null;
+    if (player.insideInfo?.turn === game.turn) {
+      player.insideInfo = null;
+      delete player.queuedInsideInfoCard;
+    }
   } else if (event.direction) {
     const rate = event.direction * event.rate;
     if (event.scope === "market") game.stocks.forEach((_, index) => {
@@ -149,7 +157,9 @@ export function resolveDice(game, playerId, forcedRoll = null, random = Math.ran
   }
   if (event.scope !== "card" && Number(game.survivalMvp.extraEventCount || 0) > 0) {
     for (let index = 0; index < game.survivalMvp.extraEventCount; index += 1) {
-      const card = drawEventCard(random, player.insideInfo?.turn === game.turn ? player.insideInfo.nextSectorIndex : null);
+      const card = index === 0 && player.queuedInsideInfoCard
+        ? player.queuedInsideInfoCard
+        : drawEventCard(random, player.insideInfo?.turn === game.turn ? player.insideInfo.nextSectorIndex : null);
       applyEventCard(game, card);
       eventCards.push(card);
       const allIn = game.survivalMvp.allIn;
@@ -157,7 +167,10 @@ export function resolveDice(game, playerId, forcedRoll = null, random = Math.ran
       if (allIn?.target === "stock" && (card.target === "market" || (card.target === "stock" && Number(card.sectorIndex) === allIn.stockIndex))) allInApplied = true;
     }
     game.survivalMvp.extraEventCount = 0;
-    if (player.insideInfo?.turn === game.turn) player.insideInfo = null;
+    if (player.insideInfo?.turn === game.turn) {
+      player.insideInfo = null;
+      delete player.queuedInsideInfoCard;
+    }
   }
   for (const [id, before] of defendedSnapshots) {
     const defendedPlayer = playerById(game, id);
@@ -171,56 +184,6 @@ export function resolveDice(game, playerId, forcedRoll = null, random = Math.ran
   game.survivalMvp.phase = "resolved";
   pushLog(game, playerId, "dice", `주사위 ${roll} · ${event.labelKo}`, { roll, eventCards });
   return result;
-}
-
-function applyEventCard(game, card) {
-  const shareholders = calculateMajorShareholders(game);
-  const multiplierFor = (stockIndex) => {
-    const allIn = game.survivalMvp.allIn;
-    return allIn?.target === "stock" && allIn.stockIndex === stockIndex ? 2 : 1;
-  };
-  const shareholderAdjustedRate = (index, baseRate) => {
-    const owner = shareholders[index];
-    if (!owner) return baseRate;
-    const key = game.stocks[index].sectorKey;
-    let rate = baseRate;
-    if (key === "technology" && rate > 0) rate += 0.05;
-    if (key === "consumer-discretionary" && card.id === "global-boom" && rate > 0) rate += 0.1;
-    if (key === "consumer-staples" && rate < 0) rate *= 0.7;
-    if (key === "materials" && card.id === "global-inflation" && rate > 0) rate += 0.1;
-    if (key === "energy" && card.id === "war-risk" && rate > 0) rate += 0.15;
-    return rate;
-  };
-  if (card.target === "market") game.stocks.forEach((_, index) => changePrice(game, index, shareholderAdjustedRate(index, card.rate) * multiplierFor(index)));
-  if (card.target === "stock") {
-    const index = Math.max(0, Math.min(game.stocks.length - 1, Number(card.sectorIndex) || 0));
-    changePrice(game, index, shareholderAdjustedRate(index, card.rate) * multiplierFor(index));
-  }
-  if (card.assetModifiers) {
-    for (const [key, rate] of Object.entries(card.assetModifiers)) {
-      const market = game.survivalMvp.alternativeMarkets[key];
-      if (!market) continue;
-      const allInMultiplier = game.survivalMvp.allIn?.target === key || (key === "coin" && game.survivalMvp.allIn?.target === "coin") ? 2 : 1;
-      market.previousPrice = market.price;
-      market.price = Math.max(1, Math.round(market.price * (1 + rate * allInMultiplier)));
-      market.changeRate = market.price / market.previousPrice - 1;
-      market.history.push(market.price);
-    }
-    if ((card.assetModifiers.copper || 0) > 0) {
-      const industrialIndex = game.stocks.findIndex((stock) => stock.sectorKey === "industrials");
-      if (shareholders[industrialIndex]) changePrice(game, industrialIndex, 0.03);
-    }
-    if (card.id === "global-inflation") {
-      const materialsIndex = game.stocks.findIndex((stock) => stock.sectorKey === "materials");
-      if (shareholders[materialsIndex]) changePrice(game, materialsIndex, 0.1);
-    }
-    if (card.id === "war-risk") {
-      const energyIndex = game.stocks.findIndex((stock) => stock.sectorKey === "energy");
-      changePrice(game, energyIndex, shareholders[energyIndex] ? 0.15 : 0.08);
-    }
-  }
-  pushLog(game, null, `event-${card.grade}`, `${card.nameKo} · ${card.rate >= 0 ? "+" : ""}${Math.round(card.rate * 100)}%`, { card });
-  if (card.duration > 0 && !game.survivalMvp.activeEffects.some((effect) => effect.card.id === card.id)) game.survivalMvp.activeEffects.push({ card: { ...card }, remaining: card.duration });
 }
 
 function settleShortPosition(game) {
@@ -262,6 +225,7 @@ export function completeRound(game) {
   game.survivalMvp.phase = "action";
   game.survivalMvp.actionResult = null;
   game.survivalMvp.diceResult = null;
+  game.survivalMvp.skillEventResult = null;
   game.survivalMvp.defendedPlayerIds = [];
   game.survivalMvp.actedPlayerIds = [];
   return { finished: false, turn: game.turn, order: game.survivalMvp.turnOrder, settlement };

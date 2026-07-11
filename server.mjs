@@ -25,7 +25,6 @@ import {
 import { createAiChatLine, createAiConversationPlan } from "./ai-chat.js";
 import { calculateTurnOrder, createSurvivalMvpGame } from "./survival-mvp/game-state.js";
 import { applyAction as applyMvpAction, advanceAfterResolved, autoCompletePhase as autoCompleteMvpPhase, emergencySell as emergencySellMvp, resolveDice as resolveMvpDice } from "./survival-mvp/game-logic.js";
-import { buyAlternativeAsset, sellAlternativeAsset } from "./survival-mvp/assets.js";
 import { getSurvivalRanking, survivalNetWorth } from "./survival-mvp/progression.js";
 import { confirmSkillSelection as confirmMvpSkills, toggleSkillDraft as toggleMvpSkillDraft, useSkill as useMvpSkill } from "./survival-mvp/skills.js";
 
@@ -274,9 +273,11 @@ function publicState(room, member) {
       prices: stock.prices.map((price, index) => index < revealedPriceCount ? price : null),
       candles: stock.candles.map((candle, index) => index < revealedPriceCount ? candle : null),
     })),
-    players: game.players.map((player) => player.id === member.playerId
-      ? { ...player, bonds: player.bonds.map((bond) => ({ ...bond })), orders: player.orders.map((order) => ({ ...order })) }
-      : { id: player.id, nickname: player.nickname, avatar: player.avatar, isHuman: player.isHuman, eliminated: player.eliminated }),
+    players: game.players.map((player) => {
+      if (player.id !== member.playerId) return { id: player.id, nickname: player.nickname, avatar: player.avatar, isHuman: player.isHuman, eliminated: player.eliminated };
+      const { queuedInsideInfoCard: _privateQueuedEvent, ...visiblePlayer } = player;
+      return { ...visiblePlayer, bonds: player.bonds.map((bond) => ({ ...bond })), orders: player.orders.map((order) => ({ ...order })) };
+    }),
     viewerSummary: game.survivalMvp ? { ...getPlayerSummary(game, member.playerId), assets: survivalNetWorth(game, viewer), alternativeAssets: { ...viewer.alternativeAssets } } : getPlayerSummary(game, member.playerId),
     displayRanking: visibleRanking,
     actualRanking: rankingBlocked || checkpoint ? visibleRanking : enrichRanking(room, game.survivalMvp ? getSurvivalRanking(game) : getRanking(game, { display: false, viewerId: member.playerId })),
@@ -693,7 +694,7 @@ function applyAction(room, member, type, payload = {}) {
     }
     case "mvp-asset":
       if (!game.survivalMvp || game.survivalMvp.activePlayerId !== playerId || game.survivalMvp.phase !== "action") throw new Error("현재 행동 단계가 아닙니다.");
-      return payload.side === "sell" ? sellAlternativeAsset(game, playerId, payload.assetKey, payload.quantity) : buyAlternativeAsset(game, playerId, payload.assetKey, payload.quantity);
+      return applyMvpAction(game, { type: payload.side === "sell" ? "sell" : "buy", assetKey: payload.assetKey, quantity: payload.quantity }, playerId);
     case "mvp-skill":
       if (!game.survivalMvp) throw new Error("스킬을 사용할 수 없는 방입니다.");
       return useMvpSkill(game, playerId, String(payload.skillId), payload.options || {});

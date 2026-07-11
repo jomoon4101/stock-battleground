@@ -1,5 +1,7 @@
 import { getRanking } from "../engine.js";
 import { calculateMajorShareholders, getSurvivalRanking } from "./progression.js";
+import { drawEventCard } from "./events.js";
+import { applyEventCard } from "./event-effects.js";
 
 export const SKILL_CARDS = Object.freeze({
   "short-sell": { ko: "공매도", en: "Short Sell", descKo: "현금 30%를 걸고 다음 하락률만큼 수익", descEn: "Stake 30% cash and profit from the next drop" },
@@ -47,6 +49,9 @@ export function confirmSkillSelection(game, playerId) {
 export function useSkill(game, playerId, skillId, payload = {}, random = Math.random) {
   const player = game.players.find((candidate) => candidate.id === playerId);
   if (!player?.skills?.includes(skillId)) throw new Error("보유하지 않은 스킬카드입니다.");
+  if (player.eliminated) throw new Error("탈락한 플레이어는 스킬카드를 사용할 수 없습니다.");
+  if (game.survivalMvp?.activePlayerId !== playerId) throw new Error("현재 내 턴에만 스킬카드를 사용할 수 있습니다.");
+  if (game.survivalMvp?.phase !== "action") throw new Error("행동 단계에서만 스킬카드를 사용할 수 있습니다.");
   const consume = () => { player.skills = player.skills.filter((id) => id !== skillId); };
   let result = { skillId };
   if (skillId === "tax-audit") {
@@ -82,6 +87,7 @@ export function useSkill(game, playerId, skillId, payload = {}, random = Math.ra
     game.survivalMvp.haltedRound = game.turn;
   } else if (skillId === "inside-info") {
     const nextSectorIndex = Math.floor(random() * game.stocks.length);
+    player.queuedInsideInfoCard = drawEventCard(random, nextSectorIndex);
     player.insideInfo = { turn: game.turn, nextSectorIndex };
     result = { ...result, nextSectorIndex };
   } else if (skillId === "fat-finger") {
@@ -94,7 +100,14 @@ export function useSkill(game, playerId, skillId, payload = {}, random = Math.ra
     game.survivalMvp.rallyStockIndex = Number(payload.stockIndex);
     game.survivalMvp.rallyRound = game.turn + 1;
   } else if (skillId === "tabloid") {
-    game.survivalMvp.extraEventCount = (game.survivalMvp.extraEventCount || 0) + 1;
+    const immediateEvent = player.queuedInsideInfoCard || drawEventCard(random);
+    applyEventCard(game, immediateEvent);
+    game.survivalMvp.skillEventResult = { playerId, turn: game.turn, card: immediateEvent };
+    if (player.queuedInsideInfoCard) {
+      delete player.queuedInsideInfoCard;
+      player.insideInfo = null;
+    }
+    result = { ...result, immediateEvent };
   } else if (skillId === "short-sell") {
     game.survivalMvp.shortPosition = { playerId, stockIndex: Number(payload.stockIndex), stake: Math.floor(player.cash * 0.3), price: game.stocks[payload.stockIndex].prices[game.turn - 1] };
   }
