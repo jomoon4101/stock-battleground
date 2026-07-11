@@ -36,6 +36,14 @@ test("모바일 종목 상세창은 선명한 CEO 카드와 한 화면용 컴팩
   assert.match(css, /\.stock-detail-body\s+\.trade-grid\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+minmax\(0,\s*1fr\)/i);
 });
 
+test("경고 토스트는 글자 높이에 맞고 게임 본문에는 이전 검정 배경이 남지 않는다", async () => {
+  const css = await read("high-contrast-theme.css");
+  assert.match(css, /\.toast-region\s*\{(?=[^}]*right:\s*auto)(?=[^}]*bottom:\s*auto)(?=[^}]*align-items:\s*start)[^}]*\}/i);
+  assert.match(css, /\.toast\s*\{(?=[^}]*height:\s*auto)(?=[^}]*max-width:\s*100%)(?=[^}]*line-height:\s*1\.45)[^}]*\}/i);
+  assert.match(css, /\.toast\.error\s*\{(?=[^}]*background:\s*#9f1831)(?=[^}]*color:\s*#fff)[^}]*\}/i);
+  assert.match(css, /\.game-layout\s*\{[^}]*background:\s*transparent/i);
+});
+
 test("고대비 테마는 빌드와 오프라인 캐시에 포함된다", async () => {
   const build = await read("scripts/build.mjs");
   const serviceWorker = await read("service-worker.js");

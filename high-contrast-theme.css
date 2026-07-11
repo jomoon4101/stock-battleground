@@ -264,6 +264,9 @@ textarea::placeholder { color: #b6c5d6; }
   background: linear-gradient(180deg, #0b1728, var(--contrast-navy) 28rem);
 }
 
+/* 이전 모바일 테마의 검정 본문색을 제거하고 앱 셸의 네이비 배경을 그대로 사용합니다. */
+.game-layout { background: transparent; }
+
 .battle-hud {
   border-color: #526b88;
   background: rgba(9, 22, 38, .97);
@@ -463,6 +466,32 @@ textarea::placeholder { color: #b6c5d6; }
 
 /* 채팅, 모달, 바텀시트 */
 .global-chat-sheet, .modal-backdrop { background: rgba(3, 10, 20, .82); }
+
+/* 구형 bottom 좌표가 남아 알림 영역 전체가 늘어나지 않도록 위치 축을 초기화합니다. */
+.toast-region {
+  right: auto;
+  bottom: auto;
+  width: min(calc(100% - 24px), 380px);
+  align-items: start;
+}
+
+.toast {
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  padding: 10px 12px;
+  border: 1px solid rgba(147, 167, 189, .7);
+  border-left-width: 4px;
+  background: #172b44;
+  color: #fff;
+  line-height: 1.45;
+}
+
+.toast.error {
+  border-color: #ff4968;
+  background: #9f1831;
+  color: #fff;
+}
 
 .global-chat,
 .modal,
