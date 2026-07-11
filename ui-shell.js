@@ -41,6 +41,7 @@ export function mountAppShell(root = document.querySelector("#stock-survival-roo
           <button class="is-active" data-speed="standard"><b>기본 게임</b><small>5명 · 20라운드 · 8섹터</small></button>
           <button data-speed="long"><b>장기 게임</b><small>7명 · 30라운드 · 11섹터</small></button>
         </div>
+        <label class="solo-player-count" for="solo-player-count">혼자 테스트 인원 <select id="solo-player-count"><option value="3">3명</option><option value="4">4명</option><option value="5">5명</option><option value="6">6명</option></select></label>
         <button class="button button-primary button-xl" id="start-button">
           <span>멀티게임</span><span aria-hidden="true">→</span>
         </button>
@@ -323,6 +324,15 @@ export function mountAppShell(root = document.querySelector("#stock-survival-roo
     </section>
     </aside>
 
+    <section class="battle-arena-panel is-hidden" id="battle-arena-panel" aria-labelledby="battle-arena-title">
+      <header><div><span>MOBILE BATTLE LOOP</span><h2 id="battle-arena-title">이번 턴 행동</h2></div><strong id="battle-phase-badge">ACTION</strong></header>
+      <div class="battle-stepper" aria-label="턴 진행 단계"><i data-mvp-step="action">1 <b>행동</b></i><i data-mvp-step="dice">2 <b>주사위</b></i><i data-mvp-step="resolved">3 <b>결과</b></i></div>
+      <div class="battle-actions" id="battle-actions">
+        <button data-mvp-action="buy"><span>＋</span><b>매수</b></button><button data-mvp-action="sell"><span>−</span><b>매도</b></button>
+        <button data-mvp-action="interfere"><span>⚡</span><b>방해</b></button><button data-mvp-action="defend"><span>◆</span><b>방어</b></button><button data-mvp-action="gamble"><span>?</span><b>도박</b></button>
+      </div>
+      <div class="battle-result" id="battle-result"><span>행동 하나를 선택하세요.</span><strong id="battle-die">—</strong></div>
+    </section>
     <div class="turn-action-bar" aria-label="턴 행동">
       <button class="open-trade-button" id="open-trade-button" type="button"><span>⇄</span><b>거래</b><small>주문 열기</small></button>
       <button class="end-turn-button" id="end-turn-button" type="button"><span>✓</span><b>턴 종료</b><small>행동 완료</small></button>

@@ -28,6 +28,9 @@ import { mountAppShell } from "./ui-shell.js";
 import { closeSheet, getActiveAppTab, openSheet, setActiveAppTab } from "./ui-state.js";
 import { hasSeenOnboarding, markOnboardingSeen } from "./onboarding-state.js";
 import { applySectorArtProbeState, sectorArtPath } from "./sector-art.js";
+import { createSurvivalMvpGame } from "./survival-mvp/game-state.js";
+import { applyAction as applyMvpAction, autoCompletePhase, runAiTurns } from "./survival-mvp/game-logic.js";
+import { renderBattleArena } from "./survival-mvp/ui.js";
 
 mountAppShell();
 setActiveAppTab("home");
@@ -326,8 +329,8 @@ function beginSoloGame() {
   online = false;
   roomState = null;
   viewerId = "PLAYER-001";
-  const setup = selectedSetup();
-  game = createGame({ nickname, seed: Date.now(), language: getLanguage(), avatar: selectedAvatar, ...setup });
+  const playerCount = Number($("#solo-player-count")?.value || 3);
+  game = createSurvivalMvpGame({ nickname, seed: Date.now(), language: getLanguage(), avatar: selectedAvatar, playerCount });
   game.messages = [];
   deliverLocalRumor();
   selectedStock = 0;
@@ -647,6 +650,20 @@ function renderClock() {
 
 function endCurrentTurn() {
   if (online) return;
+  if (game?.survivalMvp) {
+    const phase = game.survivalMvp.phase;
+    const result = safeAction(() => phase === "resolved" ? runAiTurns(game) : autoCompletePhase(game, viewerId));
+    if (!result) return;
+    if (game.finished) {
+      clearInterval(timerHandle);
+      renderAll();
+      showResults();
+    } else {
+      setupTurnClock();
+      renderAll();
+    }
+    return;
+  }
   const beforeRanking = getRanking(game, { display: false, viewerId });
   const beforeRanks = new Map(beforeRanking.map((entry) => [entry.playerId, entry.rank]));
   const result = safeAction(() => advanceTurn(game));
@@ -721,6 +738,7 @@ function renderAll() {
   renderMessageBadges();
   renderGlobalChat();
   announceNewRumorMessages();
+  renderBattleArena($("#battle-arena-panel"), game, getLanguage());
   if (!$("#message-modal").classList.contains("is-hidden")) renderMessages();
   renderActiveBattleTab();
   localizeDocument($("#app-shell"));
@@ -767,6 +785,10 @@ function renderSurvivalStatus() {
   const ended = online && Boolean(roomState?.turnEnded);
   $("#end-turn-button").disabled = game.finished || myPlayer()?.eliminated || ended;
   $("#end-turn-button b").textContent = ended ? (getLanguage() === "en" ? "WAITING" : "종료 완료") : (getLanguage() === "en" ? "END TURN" : "턴 종료");
+  if (game.survivalMvp && !ended) {
+    const labels = getLanguage() === "en" ? { action: "AUTO ACTION", dice: "ROLL DICE", resolved: "NEXT ROUND" } : { action: "자동 행동", dice: "주사위 굴리기", resolved: "다음 라운드" };
+    $("#end-turn-button b").textContent = labels[game.survivalMvp.phase];
+  }
 }
 
 function stockChange(index) {
@@ -1849,6 +1871,19 @@ $("#active-survival-list").addEventListener("click", (event) => {
 });
 $("#active-survival-refresh").addEventListener("click", loadActiveRooms);
 $("#solo-button").addEventListener("click", beginSoloGame);
+$("#battle-actions").addEventListener("click", (event) => {
+  const button = event.target.closest("[data-mvp-action]");
+  if (!button || !game?.survivalMvp || game.survivalMvp.phase !== "action") return;
+  const type = button.dataset.mvpAction;
+  const action = { type };
+  if (type === "buy" || type === "sell") {
+    action.stockIndex = selectedStock;
+    action.quantity = 1;
+  } else if (type === "interfere") {
+    action.targetPlayerId = getRanking(game, { display: false }).find((entry) => entry.playerId !== viewerId)?.playerId;
+  }
+  safeAction(() => applyMvpAction(game, action, viewerId), () => getLanguage() === "en" ? "Action locked. Roll the die." : "행동이 확정되었습니다. 주사위를 굴리세요.");
+});
 $("#onboarding-confirm").addEventListener("click", () => {
   try {
     markOnboardingSeen();

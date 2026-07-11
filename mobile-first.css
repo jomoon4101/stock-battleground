@@ -1152,3 +1152,24 @@ html,body { width:100%; min-width:320px; max-width:100%; overflow-x:hidden; }
   .stock-row.sector-card { grid-template-columns:58px minmax(0,1fr) 72px; padding-inline:11px; }
   .sector-stats small { width:56px; min-height:56px; }
 }
+
+/* PDF milestone: C-type mobile battle arena */
+.solo-player-count { display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:48px; padding:0 14px; border:1px solid #273952; border-radius:12px; background:#0c1627; color:#b8c6da; font-weight:700; }
+.solo-player-count select { min-width:92px; min-height:38px; border:1px solid #365071; border-radius:9px; background:#13223a; color:#fff; font:inherit; text-align:center; }
+.battle-arena-panel { position:fixed; z-index:34; right:max(12px,calc((100vw - 480px)/2 + 12px)); bottom:126px; left:max(12px,calc((100vw - 480px)/2 + 12px)); padding:14px; border:1px solid #304662; border-radius:18px; background:linear-gradient(145deg,rgba(17,31,52,.98),rgba(7,15,28,.99)); box-shadow:0 20px 50px #000b; color:#fff; }
+.battle-arena-panel > header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+.battle-arena-panel header span { color:#59a8ff; font-size:10px; font-weight:900; letter-spacing:.12em; }
+.battle-arena-panel h2 { margin:2px 0 0; font-size:18px; }
+#battle-phase-badge { padding:6px 9px; border-radius:8px; background:#e51e42; font-size:11px; letter-spacing:.08em; }
+.battle-stepper { display:grid; grid-template-columns:repeat(3,1fr); gap:5px; margin-bottom:10px; }
+.battle-stepper i { padding:5px 7px; border-radius:7px; background:#0a1322; color:#61738c; font-size:10px; font-style:normal; }
+.battle-stepper i.is-active { background:#193554; color:#7fc4ff; }
+.battle-actions { display:grid; grid-template-columns:repeat(5,1fr); gap:6px; }
+.battle-actions button { min-width:0; min-height:54px; padding:6px 2px; border:1px solid #314761; border-radius:10px; background:#13223a; color:#fff; }
+.battle-actions button span,.battle-actions button b { display:block; }
+.battle-actions button span { margin-bottom:3px; color:#ff3156; font-size:17px; }
+.battle-actions button b { font-size:11px; }
+.battle-actions button:disabled { opacity:.4; }
+.battle-result { display:flex; align-items:center; justify-content:space-between; min-height:42px; margin-top:9px; padding:7px 10px; border-radius:10px; background:#091322; color:#b8c6da; font-size:12px; }
+.battle-result strong { display:grid; width:30px; height:30px; place-items:center; border-radius:8px; background:#f5f7fb; color:#0a1627; font-size:18px; }
+@media (min-width:900px) { .battle-arena-panel { right:24px; bottom:84px; left:auto; width:430px; } }

@@ -28,6 +28,9 @@ if (apiBaseUrl && !/^https?:\/\//.test(apiBaseUrl)) {
 await rm(dist, { recursive: true, force: true });
 await mkdir(dist, { recursive: true });
 await Promise.all(publicFiles.map((file) => copyFile(join(root, file), join(dist, file))));
+await mkdir(join(dist, "survival-mvp"), { recursive: true });
+const survivalMvpFiles = (await readdir(join(root, "survival-mvp"))).filter((file) => file.endsWith(".js"));
+await Promise.all(survivalMvpFiles.map((file) => copyFile(join(root, "survival-mvp", file), join(dist, "survival-mvp", file))));
 await mkdir(join(dist, "assets"), { recursive: true });
 const assetFiles = (await readdir(join(root, "assets"))).filter((file) => file === "stock-meme-avatars.png" || /^sector-ceo-.+-v2\.webp$/.test(file));
 await Promise.all(assetFiles.map((file) => copyFile(join(root, "assets", file), join(dist, "assets", file))));
