@@ -40,3 +40,13 @@ test("고대비 테마는 메인, 게임, 오버레이와 선택 색상을 모�
   assert.match(css, /@media\s*\(min-width:\s*768px\)/i);
   assert.match(css, /@media\s*\(min-width:\s*1180px\)/i);
 });
+
+test("상단 HUD는 로고 겹침을 막고 상태 영역을 글자 높이에 맞춘다", async () => {
+  const css = await read("high-contrast-theme.css");
+  assert.match(css, /\.brand-mark\s*\{[^}]*flex:\s*0\s+0\s+40px/i);
+  assert.match(css, /\.brand\s*>\s*span:last-child\s*\{[^}]*min-width:\s*0/i);
+  assert.match(css, /\.survival-status\s*\{[^}]*min-height:\s*0/i);
+  assert.match(css, /\.survival-status\s*>\s*div\s*\{[^}]*min-height:\s*58px/i);
+  assert.match(css, /@media\s*\(min-width:\s*1180px\)[\s\S]*?\.topbar\s*\{[^}]*grid-template-columns:\s*minmax\(210px,\s*auto\)/i);
+  assert.match(css, /@media\s*\(min-width:\s*1180px\)[\s\S]*?\.survival-status\s*\{[^}]*grid-template-columns:\s*repeat\(6,\s*minmax\(132px,\s*1fr\)\)/i);
+});

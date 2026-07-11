@@ -229,6 +229,19 @@ textarea::placeholder { color: #b6c5d6; }
 }
 
 .topbar { background: transparent; }
+
+/* 로고 아이콘은 축소되지 않게 고정하고 긴 닉네임은 진행 막대 영역을 밀지 않습니다. */
+.brand { min-width: 0; overflow: hidden; }
+.brand-mark { flex: 0 0 40px; }
+.brand > span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.brand > span:last-child small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.round-status { overflow: hidden; }
+.timer-wrap { width: 100%; }
 .timer-line span, .turn-badge span, .turn-badge small { color: #d8e2ed; }
 .progress-track { background: #4b617b; }
 .progress-track > div { background: linear-gradient(90deg, var(--contrast-mint), #4e9fff); }
@@ -237,7 +250,13 @@ textarea::placeholder { color: #b6c5d6; }
 .icon-button { border-color: #607895; background: #1b304b; }
 .game-room-code small { color: #66ecc4; }
 
+.survival-status {
+  min-height: 0;
+  align-items: stretch;
+}
+
 .survival-status > div {
+  min-height: 58px;
   border-color: #49627f;
   background: #162941;
 }
@@ -388,6 +407,19 @@ textarea::placeholder { color: #b6c5d6; }
   .start-card { padding: 78px 32px 32px; }
   .start-rules { margin-top: 64px; padding: 28px; }
   .battle-hud { padding-left: 104px; }
+  .topbar {
+    grid-template-columns: minmax(210px, auto) minmax(0, 1fr) auto;
+    column-gap: 18px;
+  }
+  .brand { width: auto; }
+  .survival-status {
+    grid-template-columns: repeat(6, minmax(132px, 1fr));
+    min-height: 0;
+  }
+  .survival-status > div {
+    min-height: 62px;
+    padding: 9px 12px;
+  }
   .game-bottom-nav button.is-active,
   .game-bottom-nav button[aria-current="page"] { box-shadow: inset 4px 0 #78f0ca; }
 }
