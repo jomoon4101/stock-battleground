@@ -57,3 +57,14 @@ test("섹터 CEO 카드는 현재 감정 상태 프레임 하나만 표시한다
   assert.match(css, /\.stock-row\.sector-card\s*>\s*\.sector-ceo\.ceo-technology\s*\{[^}]*background-size:\s*300%\s+auto/i);
   assert.match(css, /\.stock-detail-character\s*>\s*\.sector-ceo\s*\{[^}]*background-repeat:\s*no-repeat[^}]*background-size:\s*300%\s+100%/i);
 });
+
+test("메인 페이지는 화이트 혼합 없이 푸른색 계열로 통일된다", async () => {
+  const css = await read("high-contrast-theme.css");
+  assert.match(css, /\.start-screen\s*\{[^}]*background:[^}]*#081728/i);
+  assert.match(css, /\.start-form,\s*\n\.active-survivals\s*\{[^}]*background:\s*#172b44[^}]*color:\s*#fff/i);
+  assert.match(css, /\.start-rules\s*\{[^}]*background:\s*#172b44[^}]*color:\s*#fff/i);
+  assert.match(css, /\.start-form\s+input,[\s\S]*?\.start-form\s+select\s*\{[^}]*background:\s*#10243c[^}]*color:\s*#fff/i);
+  assert.match(css, /\.profile-open-button,[\s\S]*?\.game-mode-buttons\s+button\s*\{[^}]*background:\s*#203852[^}]*color:\s*#fff/i);
+  assert.match(css, /\.profile-open-button\s+b\s*\{[^}]*color:\s*#fff/i);
+  assert.match(css, /\.hall-row\s*\{[^}]*color:\s*#eef5fc[^}]*font-size:\s*\.75rem/i);
+});
