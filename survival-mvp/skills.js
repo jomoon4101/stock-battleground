@@ -46,6 +46,7 @@ export function confirmSkillSelection(game, playerId) {
   return [...player.skills];
 }
 
+// [완료] 스킬은 살아 있는 현재 플레이어의 행동 단계에서만 검증 후 한 번 소모한다.
 export function useSkill(game, playerId, skillId, payload = {}, random = Math.random) {
   const player = game.players.find((candidate) => candidate.id === playerId);
   if (!player?.skills?.includes(skillId)) throw new Error("보유하지 않은 스킬카드입니다.");

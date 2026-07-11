@@ -1,3 +1,4 @@
+// [완료] 화면의 고정 DOM 구조와 ID는 여기서 만들고, 실제 상태 변경은 app.js에 맡긴다.
 export function mountAppShell(root = document.querySelector("#stock-survival-root")) {
   if (!root) {
     throw new Error("주식 서바이벌 앱을 마운트할 루트 요소를 찾을 수 없습니다.");

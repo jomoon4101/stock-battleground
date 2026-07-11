@@ -1,5 +1,6 @@
 import { calculateMajorShareholders } from "./progression.js";
 
+// [완료] 모든 이벤트 가격 변화는 이 파일을 통과해 주식·대체자산·최대주주 보너스를 한 번만 계산한다.
 export const eventPriceIndex = (game) => Math.max(0, Math.min(game.turn - 1, game.stocks[0].prices.length - 1));
 
 export function changeStockPrice(game, stockIndex, rate) {

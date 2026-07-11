@@ -3,6 +3,7 @@ const ACTION_COPY = {
   en: { buy: "Buy", sell: "Sell", interfere: "Interfere", defend: "Defend", gamble: "Gamble", "all-in": "All In" },
 };
 
+// [완료] 이 UI 모듈은 게임 상태를 바꾸지 않고 전투 진행 상태만 화면에 표시한다.
 export function battleArenaMarkup() {
   return `<section class="battle-arena-panel is-hidden" id="battle-arena-panel" aria-labelledby="battle-arena-title">
     <header><div><span>MOBILE BATTLE LOOP</span><h2 id="battle-arena-title">이번 턴 행동</h2></div><strong id="battle-phase-badge">ACTION</strong></header>

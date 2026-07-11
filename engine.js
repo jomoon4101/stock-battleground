@@ -1,3 +1,4 @@
+// [완료] 기존 경제 모드와 공통 거래·세금 규칙은 이 엔진에서만 계산한다.
 export const CONFIG = Object.freeze({
   playerMin: 3,
   playerMax: 6,

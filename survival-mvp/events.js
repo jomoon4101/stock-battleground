@@ -1,3 +1,4 @@
+// [완료] 주사위 이벤트의 등급 확률과 카드 원본 데이터는 이 목록이 단일 기준이다.
 export const EVENT_GRADES = Object.freeze([
   Object.freeze({ id: "common", probability: 0.6, min: 0.05, max: 0.1 }),
   Object.freeze({ id: "advanced", probability: 0.3, min: 0.15, max: 0.2 }),

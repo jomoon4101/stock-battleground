@@ -8,12 +8,10 @@ import {
   buyBond,
   buyStock,
   cancelOrder,
-  createGame,
   createRumor,
   currentPrice,
   getPlayerSummary,
   getRanking,
-  nextPrice,
   placeLimitOrder,
   repay,
   sellStock,
@@ -782,6 +780,7 @@ function playSurvivalEventCue() {
   } catch { /* Sound is optional when browser audio is unavailable. */ }
 }
 
+// [완료] 서바이벌 확장 패널은 현재 플레이어가 실제로 할 수 있는 행동만 활성화한다.
 function renderSurvivalExpansion() {
   const panel = $("#expansion-panel");
   const player = myPlayer();

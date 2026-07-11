@@ -223,6 +223,7 @@ function updateRankTracking(room) {
   }
 }
 
+// [완료] 서버 원본 상태에서 상대 비공개 정보와 내부정보 예약 카드를 제거해 전달한다.
 function publicState(room, member) {
   const base = {
     room: {
@@ -692,9 +693,6 @@ function applyAction(room, member, type, payload = {}) {
       updateRankTracking(room);
       return result;
     }
-    case "mvp-asset":
-      if (!game.survivalMvp || game.survivalMvp.activePlayerId !== playerId || game.survivalMvp.phase !== "action") throw new Error("현재 행동 단계가 아닙니다.");
-      return applyMvpAction(game, { type: payload.side === "sell" ? "sell" : "buy", assetKey: payload.assetKey, quantity: payload.quantity }, playerId);
     case "mvp-skill":
       if (!game.survivalMvp) throw new Error("스킬을 사용할 수 없는 방입니다.");
       return useMvpSkill(game, playerId, String(payload.skillId), payload.options || {});

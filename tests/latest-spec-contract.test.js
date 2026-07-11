@@ -19,7 +19,7 @@ test("latest mobile battle UI exposes every remaining PDF system", async () => {
   const [shell, app, server] = await Promise.all([readFile(`${root}/ui-shell.js`, "utf8"), readFile(`${root}/app.js`, "utf8"), readFile(`${root}/server.mjs`, "utf8")]);
   for (const id of ["alternative-assets", "skill-hand", "hidden-objective", "coin-all-in", "emergency-sell-button", "event-reveal"]) assert.match(shell, new RegExp(`id="${id}"`));
   for (const action of ["buy", "sell", "interfere", "defend", "gamble", "all-in"]) assert.match(shell, new RegExp(`data-mvp-action="${action}"`));
-  for (const endpoint of ["mvp-action", "mvp-progress", "mvp-asset", "mvp-skill", "mvp-skill-draft", "mvp-skill-confirm", "mvp-emergency-sell"]) assert.match(server, new RegExp(`case "${endpoint}"`));
+  for (const endpoint of ["mvp-action", "mvp-progress", "mvp-skill", "mvp-skill-draft", "mvp-skill-confirm", "mvp-emergency-sell"]) assert.match(server, new RegExp(`case "${endpoint}"`));
   assert.match(app, /calculateMajorShareholders/);
   assert.match(app, /hidden-safe-asset-king/);
   assert.match(app, /sendAction\("mvp-action", action,[\s\S]*Asset action locked/);

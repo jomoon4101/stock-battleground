@@ -15,7 +15,7 @@ Complete the rule-level gaps left after the PDF milestone implementation without
 
 ### Alternative-asset action
 
-Gold, copper, and coin orders reuse `applyAction` with `type: buy|sell`, `assetKey`, and `quantity`. A successful order records the normal action result and moves the phase to `dice`. The old `mvp-asset` server action remains as a compatibility alias but delegates to the same transition.
+Gold, copper, and coin orders reuse `applyAction` with `type: buy|sell`, `assetKey`, and `quantity`. A successful order records the normal action result and moves the phase to `dice`. After every client migrated to `mvp-action`, the duplicate `mvp-asset` alias was removed.
 
 ### Skill timing
 

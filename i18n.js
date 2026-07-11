@@ -2,6 +2,7 @@ let language = "ko";
 const textOriginals = new WeakMap();
 const attributeOriginals = new WeakMap();
 
+// [완료] 한국어 원문을 기준 키로 사용해 영어 화면 문구를 한곳에서 관리한다.
 const EN = {
   "주문 열기": "Open order", "턴 행동": "Turn actions",
   "프로필": "Profile", "프로필 선택": "Choose profile", "아이콘을 눌러 변경하거나 사진을 올리세요": "Tap the icon to choose or upload a photo", "게임에서 사용할 프로필을 선택하세요.": "Choose the profile used in the game.", "내 사진 업로드": "Upload my photo", "선택 완료": "Done", "종목 상세": "Stock details", "바로 매수": "Buy now", "바로 매도": "Sell now", "일반 라운드 · 제한시간": "Live round · Time limit", "블라인드 라운드 · 추가 시간": "Blind round · Bonus time",

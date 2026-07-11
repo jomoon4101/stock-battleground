@@ -4,15 +4,13 @@ import { calculateTurnOrder } from "./game-state.js";
 import { alternativeAssetValue, buyAlternativeAsset, sellAlternativeAsset } from "./assets.js";
 import { getSurvivalRanking, settleSurvivalRound, survivalNetWorth } from "./progression.js";
 import { confirmSkillSelection } from "./skills.js";
-import { applyEventCard, changeStockPrice, eventPriceIndex } from "./event-effects.js";
+import { applyEventCard, changeStockPrice as changePrice, eventPriceIndex as priceIndex } from "./event-effects.js";
 
 const playerById = (game, id) => {
   const player = game.players.find((candidate) => candidate.id === id);
   if (!player) throw new Error("플레이어를 찾을 수 없습니다.");
   return player;
 };
-const priceIndex = eventPriceIndex;
-const changePrice = changeStockPrice;
 const largestHoldingIndex = (player) => player.holdings.reduce((best, quantity, index, all) => quantity > all[best] ? index : best, 0);
 const portfolioValue = (game, player) => player.holdings.reduce((sum, quantity, index) => sum + quantity * game.stocks[index].prices[priceIndex(game)], 0) + alternativeAssetValue(game, player);
 const pushLog = (game, playerId, type, message, meta = {}) => {
@@ -20,6 +18,7 @@ const pushLog = (game, playerId, type, message, meta = {}) => {
   game.logs = game.logs.slice(0, 120);
 };
 
+// [완료] 주식과 대체자산을 포함한 모든 기본 행동은 성공 후 주사위 단계로 한 번만 전환된다.
 export function applyAction(game, action, playerId, random = Math.random) {
   if (!game.survivalMvp || game.survivalMvp.phase !== "action") throw new Error("지금은 행동 선택 단계가 아닙니다.");
   if (!MVP_ACTIONS.includes(action?.type)) throw new Error("사용할 수 없는 행동입니다.");
@@ -107,6 +106,7 @@ export function applyAction(game, action, playerId, random = Math.random) {
   return result;
 }
 
+// [완료] 주사위 결과와 예약된 내부정보 카드는 같은 이벤트 적용 경로에서 순서대로 처리된다.
 export function resolveDice(game, playerId, forcedRoll = null, random = Math.random) {
   if (game.survivalMvp.phase !== "dice") throw new Error("먼저 행동을 선택하세요.");
   const player = playerById(game, playerId);
@@ -124,18 +124,12 @@ export function resolveDice(game, playerId, forcedRoll = null, random = Math.ran
     const preferred = game.survivalMvp.rallyRound === game.turn && random() < 0.5
       ? game.survivalMvp.rallyStockIndex
       : player.insideInfo?.turn === game.turn ? player.insideInfo.nextSectorIndex : null;
-    const count = 1 + Number(game.survivalMvp.extraEventCount || 0);
-    for (let index = 0; index < count; index += 1) {
-      const card = index === 0 && player.queuedInsideInfoCard
-        ? player.queuedInsideInfoCard
-        : drawEventCard(random, index === 0 ? preferred : null);
-      applyEventCard(game, card);
-      eventCards.push(card);
-      const allIn = game.survivalMvp.allIn;
-      if (allIn?.target === "coin" && card.assetModifiers?.coin) allInApplied = true;
-      if (allIn?.target === "stock" && (card.target === "market" || (card.target === "stock" && Number(card.sectorIndex) === allIn.stockIndex))) allInApplied = true;
-    }
-    game.survivalMvp.extraEventCount = 0;
+    const card = player.queuedInsideInfoCard || drawEventCard(random, preferred);
+    applyEventCard(game, card);
+    eventCards.push(card);
+    const allIn = game.survivalMvp.allIn;
+    if (allIn?.target === "coin" && card.assetModifiers?.coin) allInApplied = true;
+    if (allIn?.target === "stock" && (card.target === "market" || (card.target === "stock" && Number(card.sectorIndex) === allIn.stockIndex))) allInApplied = true;
     if (player.insideInfo?.turn === game.turn) {
       player.insideInfo = null;
       delete player.queuedInsideInfoCard;
@@ -153,23 +147,6 @@ export function resolveDice(game, playerId, forcedRoll = null, random = Math.ran
       const doubled = game.survivalMvp.allIn?.target === "stock" && game.survivalMvp.allIn.stockIndex === index;
       changePrice(game, index, rate * (doubled ? 2 : 1));
       if (doubled) allInApplied = true;
-    }
-  }
-  if (event.scope !== "card" && Number(game.survivalMvp.extraEventCount || 0) > 0) {
-    for (let index = 0; index < game.survivalMvp.extraEventCount; index += 1) {
-      const card = index === 0 && player.queuedInsideInfoCard
-        ? player.queuedInsideInfoCard
-        : drawEventCard(random, player.insideInfo?.turn === game.turn ? player.insideInfo.nextSectorIndex : null);
-      applyEventCard(game, card);
-      eventCards.push(card);
-      const allIn = game.survivalMvp.allIn;
-      if (allIn?.target === "coin" && card.assetModifiers?.coin) allInApplied = true;
-      if (allIn?.target === "stock" && (card.target === "market" || (card.target === "stock" && Number(card.sectorIndex) === allIn.stockIndex))) allInApplied = true;
-    }
-    game.survivalMvp.extraEventCount = 0;
-    if (player.insideInfo?.turn === game.turn) {
-      player.insideInfo = null;
-      delete player.queuedInsideInfoCard;
     }
   }
   for (const [id, before] of defendedSnapshots) {

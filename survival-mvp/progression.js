@@ -6,6 +6,7 @@ export const BANKRUPTCY_DANGER_THRESHOLD = 58;
 export const BANKRUPTCY_RECOVERY_THRESHOLD = 155;
 export const TENBAGGER_TARGET = 3_870;
 
+// [완료] 순위·최대주주·파산·승리 판정은 라운드 정산 모듈에서 같은 자산 기준을 사용한다.
 export function survivalNetWorth(game, player) {
   return netWorth(player, game.stocks, game.turn) + alternativeAssetValue(game, player);
 }

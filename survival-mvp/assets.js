@@ -1,3 +1,4 @@
+// [완료] 금·구리·코인의 수수료, 보유 제한과 가격 변화는 이 모듈에서만 처리한다.
 export const ALTERNATIVE_ASSETS = Object.freeze({
   gold: Object.freeze({ startPrice: 100, minRate: -0.03, maxRate: 0.06, buyFee: 0, sellFee: 0 }),
   copper: Object.freeze({ startPrice: 100, minRate: -0.08, maxRate: 0.12, buyFee: 0, sellFee: 0 }),

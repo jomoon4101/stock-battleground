@@ -1,3 +1,4 @@
+// [완료] 서바이벌 밸런스 수치는 화면 코드에 흩어놓지 않고 이 설정에서 관리한다.
 export const MVP_RULES = Object.freeze({
   minPlayers: 3,
   maxPlayers: 6,

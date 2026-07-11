@@ -3,6 +3,7 @@ import { MVP_RULES } from "./config.js";
 import { ALTERNATIVE_ASSETS, alternativeAssetValue } from "./assets.js";
 import { dealSkills } from "./skills.js";
 
+// [완료] 게임 시작 시 필요한 플레이어 비공개 정보와 서바이벌 상태를 한 번만 초기화한다.
 export function calculateTurnOrder(game) {
   return [...game.players]
     .filter((player) => !player.eliminated)
