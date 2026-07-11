@@ -2,8 +2,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createSurvivalMvpGame } from "../survival-mvp/game-state.js";
 import { buyAlternativeAsset, sellAlternativeAsset } from "../survival-mvp/assets.js";
-import { calculateMajorShareholders, settleSurvivalRound, checkVictory } from "../survival-mvp/progression.js";
-import { useSkill } from "../survival-mvp/skills.js";
+import { calculateMajorShareholders, settleSurvivalRound, checkVictory, checkHiddenVictory, updateBankruptcy } from "../survival-mvp/progression.js";
+import { confirmSkillSelection, toggleSkillDraft, useSkill } from "../survival-mvp/skills.js";
+import { drawEventCard } from "../survival-mvp/events.js";
+import { applyAction, emergencySell, resolveDice } from "../survival-mvp/game-logic.js";
 
 test("gold copper and coin obey fees and allocation limits", () => {
   const game = createSurvivalMvpGame({ seed: 31, playerCount: 3 });
@@ -56,4 +58,109 @@ test("one-use skills are consumed and apply their rule", () => {
   useSkill(game, player.id, "tax-audit");
   assert.deepEqual(player.skills, ["rumor"]);
   assert.ok(game.players[1].cash < 2_000);
+});
+
+test("human players choose exactly two of three dealt skills before acting", () => {
+  const game = createSurvivalMvpGame({ seed: 351, playerCount: 3, requireSkillSelection: true });
+  const player = game.players[0];
+  assert.equal(player.skillDraft.length, 3);
+  assert.equal(player.skillSelectionComplete, false);
+  assert.throws(() => applyAction(game, { type: "defend" }, player.id), /스킬카드/);
+  toggleSkillDraft(game, player.id, player.skillDraft[0]);
+  toggleSkillDraft(game, player.id, player.skillDraft[1]);
+  confirmSkillSelection(game, player.id);
+  assert.equal(player.skills.length, 2);
+  assert.equal(player.skillSelectionComplete, true);
+  assert.doesNotThrow(() => applyAction(game, { type: "defend" }, player.id));
+});
+
+test("hidden victory conditions are private and checked before ordinary wins", () => {
+  const game = createSurvivalMvpGame({ seed: 36, playerCount: 3 });
+  const player = game.players[0];
+  player.hiddenVictory = "safe-asset-king";
+  player.alternativeAssets.gold = 15;
+  player.cash = 3_000;
+  assert.equal(checkHiddenVictory(game, player)?.reason, "hidden-safe-asset-king");
+  assert.equal(checkVictory(game)?.reason, "hidden-safe-asset-king");
+});
+
+test("event cards use weighted grades and carry complete event metadata", () => {
+  const common = drawEventCard(() => 0.1, 0);
+  const disaster = drawEventCard(() => 0.999, 0);
+  assert.equal(common.grade, "common");
+  assert.equal(disaster.grade, "disaster");
+  for (const card of [common, disaster]) {
+    assert.equal(typeof card.nameKo, "string");
+    assert.equal(typeof card.rate, "number");
+    assert.ok(card.target);
+  }
+});
+
+test("trading halt and fat finger are enforced by the action engine", () => {
+  const game = createSurvivalMvpGame({ seed: 37, playerCount: 3 });
+  const player = game.players[0];
+  player.cash = 10_000;
+  game.survivalMvp.haltedStockIndex = 0;
+  game.survivalMvp.haltedRound = game.turn;
+  assert.throws(() => applyAction(game, { type: "buy", stockIndex: 0, quantity: 1 }, player.id), /거래정지/);
+  game.survivalMvp.haltedRound = 0;
+  game.survivalMvp.evenQuantityRound = game.turn;
+  assert.throws(() => applyAction(game, { type: "buy", stockIndex: 0, quantity: 3 }, player.id), /짝수/);
+});
+
+test("short sell settles from the next dice event and is then cleared", () => {
+  const game = createSurvivalMvpGame({ seed: 38, playerCount: 3 });
+  const player = game.players[0];
+  player.skills = ["short-sell"];
+  const before = player.cash;
+  useSkill(game, player.id, "short-sell", { stockIndex: 0 });
+  applyAction(game, { type: "defend" }, player.id);
+  resolveDice(game, player.id, 2, () => 0);
+  assert.ok(player.cash > before);
+  assert.equal(game.survivalMvp.shortPosition, null);
+});
+
+test("emergency sale pays 90 percent or 70 percent during a halt", () => {
+  const game = createSurvivalMvpGame({ seed: 39, playerCount: 3 });
+  const player = game.players[0];
+  player.holdings[0] = 2;
+  const first = emergencySell(game, player.id, 0, 1);
+  assert.equal(first.proceeds, Math.floor(game.stocks[0].prices[0] * 0.9));
+  game.survivalMvp.haltedStockIndex = 0;
+  game.survivalMvp.haltedRound = game.turn;
+  const second = emergencySell(game, player.id, 0, 1);
+  assert.equal(second.proceeds, Math.floor(game.stocks[0].prices[0] * 0.7));
+});
+
+test("all-in doubles the next relevant sector event", () => {
+  const game = createSurvivalMvpGame({ seed: 40, playerCount: 3 });
+  const player = game.players[0];
+  player.bankruptcyDanger = true;
+  const before = game.stocks[0].prices[0];
+  applyAction(game, { type: "all-in", stockIndex: 0 }, player.id);
+  resolveDice(game, player.id, 4, () => 0);
+  assert.equal(game.stocks[0].prices[0], Math.round(before * 1.08));
+  assert.equal(game.survivalMvp.allIn, null);
+});
+
+test("healthcare shareholder blocks bankruptcy once", () => {
+  const game = createSurvivalMvpGame({ seed: 41, playerCount: 3 });
+  const player = game.players[0];
+  player.holdings[2] = 3;
+  player.cash = -400;
+  assert.equal(updateBankruptcy(game, player), "rescued");
+  assert.equal(player.healthcareRescueUsed, true);
+  player.cash = -400;
+  assert.equal(updateBankruptcy(game, player), "bankrupt");
+});
+
+test("three-round first place streak awards 30 fame money once", () => {
+  const game = createSurvivalMvpGame({ seed: 42, playerCount: 3 });
+  game.players[0].cash = 900;
+  game.players[1].cash = 100;
+  game.players[2].cash = 100;
+  const before = game.players[0].cash;
+  for (let turn = 1; turn <= 3; turn += 1) { game.turn = turn; settleSurvivalRound(game, () => 0.5); }
+  assert.equal(game.players[0].cash, before + 29 * 3 + 30);
+  assert.ok(game.logs.some((entry) => entry.type === "fame"));
 });

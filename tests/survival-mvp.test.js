@@ -26,17 +26,42 @@ test("buy action enforces action and holding limits", () => {
 test("defend halves the following dice event and gamble changes cash", () => {
   const game = createSurvivalMvpGame({ playerCount: 3, seed: 9 });
   const player = game.players[0];
+  player.holdings[0] = 1;
   applyAction(game, { type: "defend" }, player.id);
   const before = game.stocks[0].prices[0];
+  const cashBefore = player.cash;
   resolveDice(game, player.id, 2, () => 0);
   const after = game.stocks[0].prices[0];
-  assert.ok(after < before);
-  assert.ok(after > Math.round(before * 0.95));
+  assert.equal(after, Math.round(before * 0.95));
+  assert.equal(player.cash, cashBefore + Math.round((before - after) * 0.5));
 
   const second = createSurvivalMvpGame({ playerCount: 3, seed: 10 });
   const cash = second.players[0].cash;
   applyAction(second, { type: "gamble" }, second.players[0].id, () => 0.9);
   assert.equal(second.players[0].cash, cash + Math.floor(cash * 0.3));
+});
+
+test("bankruptcy-risk gamble pays triple and defense lasts through later players", () => {
+  const gamble = createSurvivalMvpGame({ playerCount: 3, seed: 91 });
+  const gambler = gamble.players[0];
+  gambler.bankruptcyDanger = true;
+  const cash = gambler.cash;
+  applyAction(gamble, { type: "gamble" }, gambler.id, () => 0.9);
+  assert.equal(gambler.cash, cash + Math.floor(cash * 0.3) * 2);
+
+  const game = createSurvivalMvpGame({ playerCount: 3, seed: 92 });
+  const defender = game.players[0];
+  defender.holdings[0] = 1;
+  applyAction(game, { type: "defend" }, defender.id);
+  resolveDice(game, defender.id, 3, () => 0);
+  game.survivalMvp.phase = "action";
+  game.survivalMvp.activePlayerId = game.players[1].id;
+  applyAction(game, { type: "defend" }, game.players[1].id);
+  const priceBefore = game.stocks[0].prices[0];
+  const cashBefore = defender.cash;
+  resolveDice(game, game.players[1].id, 2, () => 0);
+  const loss = priceBefore - game.stocks[0].prices[0];
+  assert.equal(defender.cash, cashBefore + Math.round(loss * 0.5));
 });
 
 test("round settlement pays 29 and recalculates low-asset-first order", () => {

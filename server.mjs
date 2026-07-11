@@ -23,6 +23,11 @@ import {
   useSpecialItem,
 } from "./engine.js";
 import { createAiChatLine, createAiConversationPlan } from "./ai-chat.js";
+import { calculateTurnOrder, createSurvivalMvpGame } from "./survival-mvp/game-state.js";
+import { applyAction as applyMvpAction, advanceAfterResolved, autoCompletePhase as autoCompleteMvpPhase, emergencySell as emergencySellMvp, resolveDice as resolveMvpDice } from "./survival-mvp/game-logic.js";
+import { buyAlternativeAsset, sellAlternativeAsset } from "./survival-mvp/assets.js";
+import { getSurvivalRanking, survivalNetWorth } from "./survival-mvp/progression.js";
+import { confirmSkillSelection as confirmMvpSkills, toggleSkillDraft as toggleMvpSkillDraft, useSkill as useMvpSkill } from "./survival-mvp/skills.js";
 
 const sourceRoot = fileURLToPath(new URL(".", import.meta.url));
 const root = process.env.STATIC_ROOT ? resolve(sourceRoot, process.env.STATIC_ROOT) : sourceRoot;
@@ -53,6 +58,7 @@ const types = {
   ".js": "text/javascript; charset=utf-8",
   ".css": "text/css; charset=utf-8",
   ".json": "application/json; charset=utf-8",
+  ".webmanifest": "application/manifest+json; charset=utf-8",
   ".svg": "image/svg+xml",
   ".png": "image/png",
   ".webp": "image/webp",
@@ -174,8 +180,12 @@ function enrichRanking(room, ranking) {
   }));
 }
 
+function rankingFor(room) {
+  return room.game?.survivalMvp ? getSurvivalRanking(room.game) : getRanking(room.game, { display: false });
+}
+
 function initializeRankTracking(room) {
-  const ranking = getRanking(room.game, { display: false });
+  const ranking = rankingFor(room);
   room.lastRanks = new Map(ranking.map((entry) => [entry.playerId, entry.rank]));
   room.lastAssets = new Map(ranking.map((entry) => [entry.playerId, entry.assets]));
   room.rankMovements = new Map();
@@ -187,7 +197,7 @@ function initializeRankTracking(room) {
 }
 
 function updateRankTracking(room) {
-  const ranking = getRanking(room.game, { display: false });
+  const ranking = rankingFor(room);
   const movements = new Map();
   const streaks = new Map();
   for (const entry of ranking) {
@@ -251,7 +261,7 @@ function publicState(room, member) {
   const revealedPriceCount = Math.min(game.turn, game.totalTurns + 1);
   const rankingBlocked = game.rankBlindTurn === game.turn;
   const checkpoint = game.turn % 10 === 0 && !game.finished;
-  const visibleRanking = rankingBlocked ? [] : enrichRanking(room, getRanking(game, { display: true, viewerId: member.playerId }));
+  const visibleRanking = rankingBlocked ? [] : enrichRanking(room, game.survivalMvp ? getSurvivalRanking(game) : getRanking(game, { display: true, viewerId: member.playerId }));
   base.game = {
     version: game.version,
     turn: game.turn,
@@ -267,9 +277,9 @@ function publicState(room, member) {
     players: game.players.map((player) => player.id === member.playerId
       ? { ...player, bonds: player.bonds.map((bond) => ({ ...bond })), orders: player.orders.map((order) => ({ ...order })) }
       : { id: player.id, nickname: player.nickname, avatar: player.avatar, isHuman: player.isHuman, eliminated: player.eliminated }),
-    viewerSummary: getPlayerSummary(game, member.playerId),
+    viewerSummary: game.survivalMvp ? { ...getPlayerSummary(game, member.playerId), assets: survivalNetWorth(game, viewer), alternativeAssets: { ...viewer.alternativeAssets } } : getPlayerSummary(game, member.playerId),
     displayRanking: visibleRanking,
-    actualRanking: rankingBlocked || checkpoint ? visibleRanking : enrichRanking(room, getRanking(game, { display: false, viewerId: member.playerId })),
+    actualRanking: rankingBlocked || checkpoint ? visibleRanking : enrichRanking(room, game.survivalMvp ? getSurvivalRanking(game) : getRanking(game, { display: false, viewerId: member.playerId })),
     rankAnimationTurn: room.rankAnimationTurn,
     leaderNotice: room.leaderNotice,
     notices: room.notices.filter((notice) => !notice.playerId || notice.playerId === member.playerId).slice(-30),
@@ -285,6 +295,10 @@ function publicState(room, member) {
     rankBlindTurn: game.rankBlindTurn,
     logs: game.logs.filter((log) => !log.playerId || log.playerId === member.playerId),
     reveal: game.reveal?.playerId === member.playerId ? game.reveal : null,
+    survivalMvp: game.survivalMvp ? {
+      ...game.survivalMvp,
+      shortPosition: game.survivalMvp.shortPosition?.playerId === member.playerId ? game.survivalMvp.shortPosition : null,
+    } : null,
   };
   return base;
 }
@@ -310,9 +324,7 @@ function createRoom({ nickname, speed, language, avatar, playerCount, difficulty
   const token = randomUUID();
   const safeSpeed = Object.hasOwn(GAME_MODES, speed) && speed !== "test" ? speed : process.env.NODE_ENV === "test" && speed === "test" ? "test" : "standard";
   const mode = GAME_MODES[safeSpeed] || GAME_MODES.standard;
-  const safePlayerCount = safeSpeed === "test"
-    ? Math.max(CONFIG.playerMin, Math.min(CONFIG.playerMax, Math.floor(Number(playerCount) || mode.playerCount)))
-    : mode.playerCount;
+  const safePlayerCount = Math.max(CONFIG.playerMin, Math.min(CONFIG.playerMax, Math.floor(Number(playerCount) || mode.playerCount)));
   const member = { token, playerId: "PLAYER-001", nickname: cleanNickname(nickname), avatar: cleanAvatar(avatar), isHost: true };
   const room = {
     code,
@@ -367,6 +379,14 @@ function joinRoom(room, nickname, avatar) {
     seat.avatar = member.avatar;
     seat.isHuman = true;
     seat.joinedTurn = room.game.turn;
+    if (room.game.survivalMvp) {
+      seat.skills = [];
+      seat.selectedSkillDraft = [];
+      seat.skillSelectionComplete = false;
+      room.game.survivalMvp.turnOrder = room.game.survivalMvp.turnOrder.map((id) => id === oldPlayerId ? member.playerId : id);
+      if (room.game.survivalMvp.activePlayerId === oldPlayerId) room.game.survivalMvp.activePlayerId = member.playerId;
+      room.game.survivalMvp.actedPlayerIds = room.game.survivalMvp.actedPlayerIds.map((id) => id === oldPlayerId ? member.playerId : id);
+    }
     room.game.rankingSnapshot = [];
     room.messages = room.messages.filter((message) => message.fromId !== oldPlayerId && message.toId !== oldPlayerId);
   }
@@ -398,9 +418,12 @@ function leaveRoom(room, member) {
 }
 
 function launchRoom(room) {
-  const game = createGame({
+  const game = room.speed === "test" ? createGame({
     nickname: room.members[0].nickname, seed: randomBytes(4).readUInt32LE(0), language: room.language,
     avatar: room.members[0].avatar, playerCount: room.playerCount, totalTurns: room.totalTurns, difficulty: room.difficulty,
+  }) : createSurvivalMvpGame({
+    nickname: room.members[0].nickname, seed: randomBytes(4).readUInt32LE(0), language: room.language,
+    avatar: room.members[0].avatar, playerCount: room.playerCount, totalTurns: room.totalTurns, requireSkillSelection: true,
   });
   room.members.forEach((joined, index) => {
     const player = game.players[index];
@@ -408,7 +431,16 @@ function launchRoom(room) {
     player.nickname = joined.nickname;
     player.avatar = joined.avatar;
     player.isHuman = true;
+    if (game.survivalMvp) {
+      player.skills = [];
+      player.selectedSkillDraft = [];
+      player.skillSelectionComplete = false;
+    }
   });
+  if (game.survivalMvp) {
+    game.survivalMvp.turnOrder = calculateTurnOrder(game);
+    game.survivalMvp.activePlayerId = game.survivalMvp.turnOrder[0];
+  }
   room.game = game;
   initializeRankTracking(room);
   room.status = "running";
@@ -599,6 +631,22 @@ function sendGlobalMessage(room, fromId, rawText) {
 
 function advanceRoom(room, now = Date.now()) {
   if (room.status !== "running" || !room.game || room.game.finished) return null;
+  if (room.game.survivalMvp) {
+    const mvp = room.game.survivalMvp;
+    const playerId = mvp.activePlayerId;
+    const phase = mvp.phase;
+    const result = phase === "resolved" ? advanceAfterResolved(room.game, playerId) : autoCompleteMvpPhase(room.game, playerId);
+    room.updatedAt = now;
+    if (room.game.finished) {
+      room.status = "finished";
+      room.deadline = null;
+      updateHallOfFame(room);
+      room.messages = [];
+    } else room.deadline = nextTurnDeadline(room);
+    updateRankTracking(room);
+    broadcast(room);
+    return result;
+  }
   const result = advanceTurn(room.game);
   room.readyPlayers.clear();
   updateRankTracking(room);
@@ -624,6 +672,40 @@ function applyAction(room, member, type, payload = {}) {
     throw new Error("이번 라운드 행동을 이미 종료했습니다.");
   }
   switch (type) {
+    case "mvp-action": {
+      if (!game.survivalMvp) throw new Error("서바이벌 행동을 사용할 수 없는 방입니다.");
+      if (game.survivalMvp.activePlayerId !== playerId) throw new Error("현재 내 턴이 아닙니다.");
+      const result = applyMvpAction(game, payload, playerId);
+      room.deadline = nextTurnDeadline(room);
+      return result;
+    }
+    case "mvp-progress": {
+      if (!game.survivalMvp || game.survivalMvp.activePlayerId !== playerId) throw new Error("현재 내 턴이 아닙니다.");
+      const result = game.survivalMvp.phase === "dice" ? resolveMvpDice(game, playerId) : advanceAfterResolved(game, playerId);
+      if (game.finished) {
+        room.status = "finished";
+        room.deadline = null;
+        updateHallOfFame(room);
+        room.messages = [];
+      } else room.deadline = nextTurnDeadline(room);
+      updateRankTracking(room);
+      return result;
+    }
+    case "mvp-asset":
+      if (!game.survivalMvp || game.survivalMvp.activePlayerId !== playerId || game.survivalMvp.phase !== "action") throw new Error("현재 행동 단계가 아닙니다.");
+      return payload.side === "sell" ? sellAlternativeAsset(game, playerId, payload.assetKey, payload.quantity) : buyAlternativeAsset(game, playerId, payload.assetKey, payload.quantity);
+    case "mvp-skill":
+      if (!game.survivalMvp) throw new Error("스킬을 사용할 수 없는 방입니다.");
+      return useMvpSkill(game, playerId, String(payload.skillId), payload.options || {});
+    case "mvp-skill-draft":
+      if (!game.survivalMvp) throw new Error("스킬을 선택할 수 없는 방입니다.");
+      return toggleMvpSkillDraft(game, playerId, String(payload.skillId));
+    case "mvp-skill-confirm":
+      if (!game.survivalMvp) throw new Error("스킬을 선택할 수 없는 방입니다.");
+      return confirmMvpSkills(game, playerId);
+    case "mvp-emergency-sell":
+      if (!game.survivalMvp) throw new Error("긴급매도를 사용할 수 없는 방입니다.");
+      return emergencySellMvp(game, playerId, Number(payload.stockIndex), Number(payload.quantity));
     case "end-turn": {
       room.readyPlayers.add(playerId);
       const activeMemberIds = room.members
@@ -634,6 +716,7 @@ function applyAction(room, member, type, payload = {}) {
       return { ended: true, advanced: allReady };
     }
     case "trade":
+      if (game.survivalMvp) throw new Error("서바이벌 모드에서는 하단 행동 버튼으로 거래하세요.");
       return payload.side === "sell"
         ? sellStock(game, Number(payload.stockIndex), Number(payload.quantity), playerId)
         : buyStock(game, Number(payload.stockIndex), Number(payload.quantity), playerId);
@@ -681,9 +764,7 @@ function enterMatchmaking(body) {
   const allowedSpeeds = ["quick", "standard", "long", ...(process.env.NODE_ENV === "test" ? ["test"] : [])];
   const speed = allowedSpeeds.includes(body.speed) ? body.speed : "standard";
   const mode = GAME_MODES[speed] || GAME_MODES.standard;
-  const playerCount = speed === "test"
-    ? Math.max(CONFIG.playerMin, Math.min(CONFIG.playerMax, Math.floor(Number(body.playerCount) || mode.playerCount)))
-    : mode.playerCount;
+  const playerCount = Math.max(CONFIG.playerMin, Math.min(CONFIG.playerMax, Math.floor(Number(body.playerCount) || mode.playerCount)));
   const difficulty = speed === "test" && ["easy", "normal", "hard"].includes(body.difficulty) ? body.difficulty : mode.difficulty;
   let room = [...rooms.values()].find((candidate) => candidate.status === "matching"
     && candidate.language === language && candidate.speed === speed && candidate.playerCount === playerCount

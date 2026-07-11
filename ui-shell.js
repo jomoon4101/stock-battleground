@@ -9,7 +9,7 @@ export function mountAppShell(root = document.querySelector("#stock-survival-roo
     <div class="start-grid"></div>
     <div class="start-card">
       <div class="language-choice hero-language" id="language-choice" data-no-i18n><button class="is-active" data-language="ko" aria-label="한국어">ko</button><button data-language="en" aria-label="English">En</button></div>
-      <div class="eyebrow">3–7 PLAYERS · SECTOR BATTLE · ONE SURVIVOR</div>
+      <div class="eyebrow">3–6 PLAYERS · SECTOR BATTLE · ONE SURVIVOR</div>
       <div class="logo-lockup">
         <span class="logo-mark" aria-hidden="true"><svg viewBox="0 0 48 48" role="img"><path d="M8 36V12M8 36H40"/><path d="m12 31 8-9 7 5 12-15"/><path d="M32 12h7v7"/></svg></span>
         <h1 id="start-title"><em>주식</em>서바이벌</h1>
@@ -35,13 +35,13 @@ export function mountAppShell(root = document.querySelector("#stock-survival-roo
           </button>
         </div>
         <label id="game-mode-label">게임 모드</label>
-        <input id="game-speed" type="hidden" value="standard">
+        <input id="game-speed" type="hidden" value="quick">
         <div class="game-mode-buttons" id="game-mode-buttons" aria-labelledby="game-mode-label">
-          <button data-speed="quick"><b>빠른 게임</b><small>3명 · 10라운드 · 5섹터</small></button>
-          <button class="is-active" data-speed="standard"><b>기본 게임</b><small>5명 · 20라운드 · 8섹터</small></button>
-          <button data-speed="long"><b>장기 게임</b><small>7명 · 30라운드 · 11섹터</small></button>
+          <button class="is-active" data-speed="quick"><b>빠른 게임</b><small>10라운드 · 11섹터</small></button>
+          <button data-speed="standard"><b>기본 게임</b><small>20라운드 · 11섹터</small></button>
+          <button data-speed="long"><b>장기 게임</b><small>30라운드 · 11섹터</small></button>
         </div>
-        <label class="solo-player-count" for="solo-player-count">혼자 테스트 인원 <select id="solo-player-count"><option value="3">3명</option><option value="4">4명</option><option value="5">5명</option><option value="6">6명</option></select></label>
+        <label class="solo-player-count" for="solo-player-count">플레이어 인원 <select id="solo-player-count"><option value="3">3명</option><option value="4">4명</option><option value="5">5명</option><option value="6">6명</option></select></label>
         <button class="button button-primary button-xl" id="start-button">
           <span>멀티게임</span><span aria-hidden="true">→</span>
         </button>
@@ -175,11 +175,14 @@ export function mountAppShell(root = document.querySelector("#stock-survival-roo
         <article class="panel expansion-panel is-hidden" id="expansion-panel">
           <div class="panel-header"><div><span class="section-kicker">WAR CHEST</span><h2>대체자산 · 스킬</h2></div><strong id="bankruptcy-status">SAFE</strong></div>
           <div class="alternative-assets" id="alternative-assets">
-            <button data-alt-asset="gold" data-tooltip="금 1개 매수" aria-label="금 1개 매수"><span>◆</span><b id="alt-gold">금 0</b><small id="alt-gold-price">100</small></button>
-            <button data-alt-asset="copper" data-tooltip="구리 1개 매수" aria-label="구리 1개 매수"><span>⬡</span><b id="alt-copper">구리 0</b><small id="alt-copper-price">100</small></button>
-            <button data-alt-asset="coin" data-tooltip="코인 1개 매수 · 수수료 5%" aria-label="코인 1개 매수"><span>◉</span><b id="alt-coin">코인 0</b><small id="alt-coin-price">100</small></button>
+            <div><span>◆</span><b id="alt-gold">금 0</b><small id="alt-gold-price">100</small><i><button data-alt-asset="gold" data-alt-side="buy" data-tooltip="금 매수" aria-label="금 1개 매수">＋</button><button data-alt-asset="gold" data-alt-side="sell" data-tooltip="금 매도" aria-label="금 1개 매도">−</button></i></div>
+            <div><span>⬡</span><b id="alt-copper">구리 0</b><small id="alt-copper-price">100</small><i><button data-alt-asset="copper" data-alt-side="buy" data-tooltip="구리 매수" aria-label="구리 1개 매수">＋</button><button data-alt-asset="copper" data-alt-side="sell" data-tooltip="구리 매도" aria-label="구리 1개 매도">−</button></i></div>
+            <div><span>◉</span><b id="alt-coin">코인 0</b><small id="alt-coin-price">100</small><i><button data-alt-asset="coin" data-alt-side="buy" data-tooltip="코인 매수 · 수수료 5%" aria-label="코인 1개 매수">＋</button><button data-alt-asset="coin" data-alt-side="sell" data-tooltip="코인 매도 · 수수료 5%" aria-label="코인 1개 매도">−</button></i></div>
           </div>
+          <button class="coin-all-in is-hidden" id="coin-all-in" data-tooltip="현금 80%를 코인에 올인" aria-label="코인 올인">🔥</button>
           <div class="skill-hand" id="skill-hand" aria-label="보유 스킬카드"></div>
+          <div class="skill-intel is-hidden" id="skill-intel"></div>
+          <div class="hidden-objective" id="hidden-objective"><span>SECRET GOAL</span><b id="hidden-objective-name">비밀 목표</b><small id="hidden-objective-progress">본인만 확인할 수 있습니다.</small></div>
         </article>
         </section>
       </section>
@@ -264,6 +267,7 @@ export function mountAppShell(root = document.querySelector("#stock-survival-roo
               </div>
               <div class="order-summary"><span>예상 주문 금액</span><strong id="order-total">₩0</strong></div>
               <button class="button trade-submit buy" id="trade-submit">매수 주문</button>
+              <button class="emergency-sell-button" id="emergency-sell-button" type="button" data-tooltip="현재가의 90%로 즉시 현금화" aria-label="긴급매도">⚠</button>
             </div>
             <div class="holdings-mini" id="holdings-mini"></div>
           </div>
@@ -341,6 +345,7 @@ export function mountAppShell(root = document.querySelector("#stock-survival-roo
         <button data-mvp-action="interfere" data-tooltip="견제" aria-label="견제"><span>⚡</span><b>견제</b></button><button data-mvp-action="defend" data-tooltip="방어" aria-label="방어"><span>◆</span><b>방어</b></button><button data-mvp-action="gamble" data-tooltip="도박" aria-label="도박"><span>?</span><b>도박</b></button><button class="is-hidden" data-mvp-action="all-in" data-tooltip="파산 위기 올인" aria-label="올인"><span>🔥</span><b>올인</b></button>
       </div>
       <div class="battle-result" id="battle-result"><span>행동 하나를 선택하세요.</span><strong id="battle-die">—</strong></div>
+      <div class="event-reveal is-hidden" id="event-reveal" aria-live="assertive"><small id="event-grade">COMMON</small><strong id="event-name">시장 이벤트</strong><span id="event-impact">+0%</span></div>
     </section>
     <div class="turn-action-bar" aria-label="턴 행동">
       <button class="open-trade-button" id="open-trade-button" type="button"><span>⇄</span><b>거래</b><small>주문 열기</small></button>
@@ -402,12 +407,12 @@ export function mountAppShell(root = document.querySelector("#stock-survival-roo
       <button class="modal-close" data-close-modal data-sheet-close aria-label="닫기">×</button>
       <span class="section-kicker">HOW TO SURVIVE</span><h2 id="rules-title">게임 규칙</h2>
       <div class="rules-grid">
-        <div><b>3~7명 · 3가지 자동 모드</b><p>빠른 게임은 3명·10라운드·5섹터, 기본 게임은 5명·20라운드·8섹터, 장기 게임은 7명·30라운드·11섹터입니다.</p></div>
-        <div><b>월급과 세금</b><p>시작 및 10턴 종료마다 월급을 받습니다. 순자산 구간에 따라 5~30%가 자동 납부됩니다.</p></div>
-        <div><b>대출</b><p>월급의 10배까지 가능합니다. 실행 즉시 선이자 10%, 10턴마다 이자 10%가 발생합니다.</p></div>
-        <div><b>채권</b><p>최소 10만원, 10턴 만기, 확정 수익 5%입니다. 원금은 순자산에 포함됩니다.</p></div>
-        <div><b>블라인드 턴</b><p>10·20턴에는 직전 턴 순위와 자산만 보입니다. 아이템으로도 차단할 수 있습니다.</p></div>
-        <div><b>음수 자산</b><p>신규 대출과 아이템이 막히며 월급 20% 감소, 정기 대출이자 5% 가산 페널티가 적용됩니다.</p></div>
+        <div><b>3~6명 · 10/20/30라운드</b><p>모든 게임에 11개 섹터가 등장하며 자산이 낮은 플레이어부터 행동합니다.</p></div>
+        <div><b>행동 → 주사위 → 이벤트</b><p>매수·매도·견제·방어·도박 중 하나를 선택하고 주사위 이벤트를 해결합니다.</p></div>
+        <div><b>금 · 구리 · 코인</b><p>금은 안전자산, 구리는 경기민감, 코인은 수수료 5%가 붙는 초고위험 자산입니다.</p></div>
+        <div><b>파산 위기와 올인</b><p>총자산 58 이하는 파산 위기입니다. 2라운드 안에 155 이상 회복하거나 올인으로 역전하세요.</p></div>
+        <div><b>최대주주 · 스킬카드</b><p>단독 3주 이상이면 최대주주 보너스를 받습니다. 시작 시 3장 중 2장의 비밀 스킬을 고릅니다.</p></div>
+        <div><b>다양한 승리조건</b><p>최후 생존, 텐배거, 7개 섹터 최대주주, 최종자산 1위 또는 비밀 목표로 승리합니다.</p></div>
       </div>
       <p class="data-note">프로토타입 시세는 실제 기업을 노출하지 않는 합성 섹터 패턴입니다. 섹터별 수익성·안정성·변동성을 조합해 매 게임 새로 생성됩니다.</p>
     </div>

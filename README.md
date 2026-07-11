@@ -1,6 +1,6 @@
 # 주식 서바이벌
 
-3~7명의 트레이더가 정보와 전략으로 경쟁하는 온라인 주식 섹터 생존 보드게임 프로토타입입니다. 빠른 게임은 3명·10라운드·5섹터, 기본 게임은 5명·20라운드·8섹터, 장기 게임은 7명·30라운드·11섹터로 자동 설정되며 빈자리는 AI 봇이 채웁니다.
+3~6명의 트레이더가 정보와 전략으로 경쟁하는 모바일 턴제 경제 배틀로얄입니다. 빠른 게임은 10라운드, 기본 게임은 20라운드, 장기 게임은 30라운드이며 모든 모드에 11개 섹터가 등장하고 빈자리는 AI 봇이 채웁니다.
 
 ## 실행
 
@@ -63,7 +63,7 @@ npm run preview
 - 평균 매수가·수익률·평가금액·평가손익을 항상 보여주는 내 보유 종목 패널
 - 시장 정보·분석 리포트·미확인 첩보를 구분하는 NEW 정보 카드
 - 빠른 45초·기본 90초·장기 120초 제한시간을 사용하며, 전원 `턴 종료` 또는 시간 만료 시 다음 라운드로 진행하는 시스템
-- 게임 모드에 따른 3·5·7명 자동 설정과 빈자리 AI 봇 자동 충원
+- 게임 모드에 따른 최대 3·5·6명 설정과 빈자리 AI 봇 자동 충원
 - 방 생성·6자리 코드 참가·방장 시작·새로고침 재접속
 - 서버 전송 이벤트 기반 실시간 상태 동기화
 - 가격·턴·거래·아이템을 서버에서 판정하는 권한형 구조
@@ -156,7 +156,9 @@ https://stock-battleground-server.onrender.com/api/rooms/active
 ## 배포 전 체크리스트
 
 - [ ] `npm test`가 통과한다.
-- [ ] `npm run build`가 성공하고 `dist/index.html`, `dist/app.js`, `dist/ui-shell.js`, `dist/ui-state.js`, `dist/onboarding-state.js`, `dist/sector-art.js`, `dist/i18n.js`, `dist/config.js`, `dist/styles.css`, `dist/mobile-first.css`, `dist/assets/stock-meme-avatars.png`와 11개 `dist/assets/sector-ceo-*-v2.webp`가 생성된다.
+- [ ] `npm run build`가 성공하고 `dist/index.html`, PWA 파일, `dist/survival-mvp` 모듈, 앱 아이콘과 11개 CEO 이미지가 생성된다.
+- [ ] PWA 설치와 오프라인 앱 셸을 확인한다.
+- [ ] Android 패키징 시 `capacitor.config.json`의 앱 ID를 배포 계정 기준으로 확인한다.
 - [ ] `npm run preview`에서 방 생성·참가·거래를 확인한다.
 - [ ] Vercel의 `VITE_API_BASE_URL`이 실제 HTTPS 게임 서버 주소인지 확인한다.
 - [ ] 게임 서버의 `ALLOWED_ORIGINS`에 정확한 Vercel Origin을 넣는다.

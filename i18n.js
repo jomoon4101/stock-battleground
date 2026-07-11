@@ -13,10 +13,12 @@ const EN = {
   "시장 분석": "Market analysis", "최신 이슈": "Latest issues", "투자 전략": "Investment strategy", "실전 노하우": "Practical know-how", "종목 정보": "Stock intelligence", "섹터 정보": "Sector intelligence", "생존 구역": "Survival zones", "커뮤니티": "Community", "정보 교류": "Intel exchange",
   "기본 게임": "Standard game", "장기 게임": "Long game", "10라운드": "10 rounds", "20라운드": "20 rounds", "30라운드": "30 rounds", "생존 인원": "Survivors", "투자 구역 난이도": "Market-zone difficulty", "쉬움 · 5종목": "Easy · 5 stocks", "보통 · 8종목": "Normal · 8 stocks", "어려움 · 10종목": "Hard · 10 stocks",
   "3명 · 10라운드 · 5섹터": "3 players · 10 rounds · 5 sectors", "5명 · 20라운드 · 8섹터": "5 players · 20 rounds · 8 sectors", "7명 · 30라운드 · 11섹터": "7 players · 30 rounds · 11 sectors",
+  "10라운드 · 11섹터": "10 rounds · 11 sectors", "20라운드 · 11섹터": "20 rounds · 11 sectors", "30라운드 · 11섹터": "30 rounds · 11 sectors", "플레이어 인원": "Players",
   "다음 라운드까지 살아남으세요": "Survive the next round", "차트와 정보를 읽고 위험 구역을 피해 생존 자산을 지키세요.": "Read charts and intelligence, avoid danger zones, and protect your survival assets.", "정보마다 속도와 신뢰도가 다릅니다": "Every source has different speed and reliability", "시장 정보, 분석 리포트, 미확인 첩보를 비교해 행동을 선택하세요.": "Compare market news, analyst reports, and unverified tips before acting.", "마지막 생존자가 승리합니다": "The last survivor wins", "최대 라운드 또는 최후의 한 명이 남으면 게임이 종료됩니다.": "The game ends at the round limit or when only one survivor remains.",
   "주요 기능": "Key features", "투자 구역": "Investment zone", "행동 선택": "Choose action", "현재 라운드": "Current round", "생존 자산": "Survival assets", "보유 현금": "Cash", "생존 위험도": "Survival risk", "남은 시간": "Time left", "진행 방식": "Game flow", "무제한": "No limit", "순수 턴제 · 시간 무제한": "Turn based · No time limit", "턴 종료 시 다음 라운드 진행": "Advance when you end turn", "턴 종료": "End turn", "행동 완료": "Finish actions", "현재 선택 종목": "Selected stock", "섹터": "Sector", "내 보유 수량": "Owned shares", "평균 매수가": "Average price", "평가 손익": "Unrealized P/L", "내 보유 종목": "My holdings", "생존 정보 센터": "Survival intelligence", "쪽지함 열기 →": "Open mailbox →", "게임 로그": "Game log",
   "3~6명 · 3가지 모드": "3–6 players · 3 game modes", "빠른 게임 10라운드, 기본 게임 20라운드, 장기 게임 30라운드입니다.": "Quick has 10 rounds, Standard has 20, and Long has 30.",
   "3~7명 · 3가지 자동 모드": "3–7 players · 3 automatic modes", "빠른 게임은 3명·10라운드·5섹터, 기본 게임은 5명·20라운드·8섹터, 장기 게임은 7명·30라운드·11섹터입니다.": "Quick uses 3 players, 10 rounds and 5 sectors; Standard uses 5, 20 and 8; Long uses 7, 30 and all 11 sectors.",
+  "3~6명 · 3가지 자동 모드": "3–6 players · 3 game modes", "빠른 게임은 10라운드, 기본 게임은 20라운드, 장기 게임은 30라운드이며 모든 모드에 11개 섹터가 등장합니다.": "Quick has 10 rounds, Standard 20, and Long 30; every mode uses all 11 sectors.",
   "🔥 서바이벌 진행중": "🔥 SURVIVALS IN PROGRESS", "현재 진행 중인 서바이벌이 없습니다.": "There are no survival games in progress.", "목록 새로고침": "Refresh list", "바로 참여": "Join now", "진행중": "In progress",
   "본 서비스는 가상 주식 시뮬레이션 게임이며, 실제 투자 자문이나 금융 거래 서비스를 제공하지 않습니다.": "This is a virtual stock simulation game. It does not provide investment advice or real financial transaction services.",
   "일개미(개발자)에게 일시키기": "Put the worker ant (developer) to work", "익명 게시판 →": "Anonymous board →", "매 10턴은 블라인드 라운드": "Every 10th turn is blind", "순위가 잠기고 추가 5분이 주어집니다.": "Rankings lock and extra time is added.",
@@ -79,6 +81,24 @@ Object.assign(EN, {
   "글자": "Text", "글자 작게": "Smaller text", "글자 크게": "Larger text", "시장": "Market", "차트": "Chart", "거래": "Trade", "자산": "Assets", "순위": "Rank", "쪽지": "Messages", "전체 채팅": "Room chat", "모든 생존자와 대화": "Chat with every survivor", "전체 메시지 입력": "Message everyone", "전송": "Send", "일개미(개발자) 메일 :": "Developer ant email:",
   "매수": "Buy", "매도": "Sell", "아이템": "Item", "대출": "Loan", "채권": "Bonds", "게임 상태를 읽지 못했습니다.": "Could not read the game state.", "온라인 세션이 없습니다.": "No online session is active.",
   "PNG, JPG 또는 WebP 이미지를 선택하세요.": "Choose a PNG, JPG or WebP image.", "이미지를 읽을 수 없습니다.": "Could not read the image.", "작업을 완료하지 못했습니다.": "Could not complete the action.", "서버 요청을 처리하지 못했습니다.": "The server could not process the request.",
+});
+
+Object.assign(EN, {
+  "3~6명 · 10/20/30라운드": "3–6 players · 10/20/30 rounds",
+  "모든 게임에 11개 섹터가 등장하며 자산이 낮은 플레이어부터 행동합니다.": "All games use 11 sectors, and the lowest-asset player acts first.",
+  "행동 → 주사위 → 이벤트": "Action → Dice → Event",
+  "매수·매도·견제·방어·도박 중 하나를 선택하고 주사위 이벤트를 해결합니다.": "Choose Buy, Sell, Interfere, Defend, or Gamble, then resolve the dice event.",
+  "금 · 구리 · 코인": "Gold · Copper · Coin",
+  "금은 안전자산, 구리는 경기민감, 코인은 수수료 5%가 붙는 초고위험 자산입니다.": "Gold is defensive, copper is cyclical, and coin is ultra-risky with a 5% fee.",
+  "파산 위기와 올인": "Bankruptcy Risk & All In",
+  "총자산 58 이하는 파산 위기입니다. 2라운드 안에 155 이상 회복하거나 올인으로 역전하세요.": "At 58 assets or less you enter bankruptcy risk. Recover to 155 within two rounds or attempt an all-in comeback.",
+  "최대주주 · 스킬카드": "Major Shareholder · Skill Cards",
+  "단독 3주 이상이면 최대주주 보너스를 받습니다. 시작 시 3장 중 2장의 비밀 스킬을 고릅니다.": "Hold at least three uncontested shares for a shareholder bonus. Choose two of three secret skills at the start.",
+  "다양한 승리조건": "Multiple Victory Paths",
+  "최후 생존, 텐배거, 7개 섹터 최대주주, 최종자산 1위 또는 비밀 목표로 승리합니다.": "Win as the last survivor, a tenbagger, major shareholder of seven sectors, top assets, or through a secret objective.",
+  "대체자산 · 스킬": "Alternative Assets · Skills", "비밀 목표": "Secret Goal", "본인만 확인할 수 있습니다.": "Only you can see it.",
+  "금 1개 매수": "Buy 1 gold", "금 1개 매도": "Sell 1 gold", "구리 1개 매수": "Buy 1 copper", "구리 1개 매도": "Sell 1 copper", "코인 1개 매수": "Buy 1 coin", "코인 1개 매도": "Sell 1 coin",
+  "코인 올인": "Coin all-in", "긴급매도": "Emergency sell", "현재가의 90%로 즉시 현금화": "Sell immediately at 90% of the current price",
 });
 
 const PATTERNS = [

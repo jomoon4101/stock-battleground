@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const dist = join(root, "dist");
-const publicFiles = ["index.html", "styles.css", "mobile-first.css", "app.js", "ui-shell.js", "ui-state.js", "onboarding-state.js", "sector-art.js", "engine.js", "i18n.js", "ai-chat.js", "manifest.webmanifest", "service-worker.js"];
+const publicFiles = ["index.html", "styles.css", "mobile-first.css", "app.js", "ui-shell.js", "ui-state.js", "onboarding-state.js", "sector-art.js", "engine.js", "i18n.js", "ai-chat.js", "manifest.webmanifest", "service-worker.js", "capacitor.config.json"];
 
 async function loadLocalEnv() {
   const file = join(root, ".env");

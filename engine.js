@@ -1,6 +1,6 @@
 export const CONFIG = Object.freeze({
   playerMin: 3,
-  playerMax: 7,
+  playerMax: 6,
   playerCount: 5,
   stockCount: 8,
   totalTurns: 20,
@@ -15,7 +15,7 @@ export const CONFIG = Object.freeze({
 export const GAME_MODES = Object.freeze({
   quick: Object.freeze({ totalTurns: 10, turnSeconds: 45, playerCount: 3, stockCount: 5, difficulty: "easy" }),
   standard: Object.freeze({ totalTurns: 20, turnSeconds: 90, playerCount: 5, stockCount: 8, difficulty: "normal" }),
-  long: Object.freeze({ totalTurns: 30, turnSeconds: 120, playerCount: 7, stockCount: 11, difficulty: "hard" }),
+  long: Object.freeze({ totalTurns: 30, turnSeconds: 120, playerCount: 6, stockCount: 11, difficulty: "hard" }),
   test: Object.freeze({ totalTurns: 20, turnSeconds: 1, playerCount: 6, stockCount: 5, difficulty: "easy" }),
 });
 

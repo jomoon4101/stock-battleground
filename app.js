@@ -29,10 +29,11 @@ import { closeSheet, getActiveAppTab, openSheet, setActiveAppTab } from "./ui-st
 import { hasSeenOnboarding, markOnboardingSeen } from "./onboarding-state.js";
 import { applySectorArtProbeState, sectorArtPath } from "./sector-art.js";
 import { createSurvivalMvpGame } from "./survival-mvp/game-state.js";
-import { applyAction as applyMvpAction, autoCompletePhase, runAiTurns } from "./survival-mvp/game-logic.js";
+import { applyAction as applyMvpAction, autoCompletePhase, emergencySell, runAiTurns } from "./survival-mvp/game-logic.js";
 import { renderBattleArena } from "./survival-mvp/ui.js";
-import { buyAlternativeAsset } from "./survival-mvp/assets.js";
-import { SKILL_CARDS, useSkill } from "./survival-mvp/skills.js";
+import { buyAlternativeAsset, sellAlternativeAsset } from "./survival-mvp/assets.js";
+import { confirmSkillSelection, SKILL_CARDS, toggleSkillDraft, useSkill } from "./survival-mvp/skills.js";
+import { calculateMajorShareholders, getSurvivalRanking, survivalNetWorth } from "./survival-mvp/progression.js";
 
 mountAppShell();
 setActiveAppTab("home");
@@ -94,7 +95,7 @@ const randomItem = (items) => items[Math.floor(Math.random() * items.length)];
 const randomNickname = () => `${randomItem(NICKNAME_WORDS)}${randomItem(NICKNAME_CREATURES)}`;
 const selectedSetup = () => {
   const mode = GAME_MODES[$("#game-speed").value] || GAME_MODES.standard;
-  return { playerCount: mode.playerCount, difficulty: mode.difficulty, totalTurns: mode.totalTurns };
+  return { playerCount: Number($("#solo-player-count")?.value || mode.playerCount), difficulty: "hard", totalTurns: mode.totalTurns };
 };
 
 function updateCurrencySymbols() {
@@ -143,9 +144,14 @@ let seenGlobalChatIds = new Set();
 let localAiConversationGeneration = 0;
 let onlineGameEntered = false;
 let onboardingPrompted = false;
+const playedEventCueIds = new Set();
 const stockDetailPanelOrigins = new Map();
 const myPlayer = () => game?.players.find((player) => player.id === viewerId);
-const playerSummary = () => online ? game.viewerSummary : getPlayerSummary(game, viewerId);
+const playerSummary = () => {
+  if (online) return game.viewerSummary;
+  const summary = getPlayerSummary(game, viewerId);
+  return game?.survivalMvp ? { ...summary, assets: survivalNetWorth(game, myPlayer()), alternativeAssets: { ...myPlayer().alternativeAssets } } : summary;
+};
 
 function topStockFor(playerId) {
   const player = game.players.find((candidate) => candidate.id === playerId);
@@ -183,7 +189,7 @@ function decorateLocalRanking(ranking) {
 }
 
 const displayRanking = () => online ? game.displayRanking : decorateLocalRanking(getRanking(game, { display: true, viewerId }));
-const actualRanking = () => online ? game.actualRanking : decorateLocalRanking(getRanking(game, { display: false, viewerId }));
+const actualRanking = () => online ? game.actualRanking : decorateLocalRanking(game?.survivalMvp ? getSurvivalRanking(game) : getRanking(game, { display: false, viewerId }));
 
 function initializeCurrencyInputs() {
   if (!game || currencyInputsLanguage === getLanguage()) return;
@@ -335,7 +341,8 @@ function beginSoloGame() {
   roomState = null;
   viewerId = "PLAYER-001";
   const playerCount = Number($("#solo-player-count")?.value || 3);
-  game = createSurvivalMvpGame({ nickname, seed: Date.now(), language: getLanguage(), avatar: selectedAvatar, playerCount });
+  const mode = GAME_MODES[$("#game-speed").value] || GAME_MODES.quick;
+  game = createSurvivalMvpGame({ nickname, seed: Date.now(), language: getLanguage(), avatar: selectedAvatar, playerCount, totalTurns: mode.totalTurns, requireSkillSelection: true });
   game.messages = [];
   deliverLocalRumor();
   selectedStock = 0;
@@ -744,10 +751,37 @@ function renderAll() {
   renderGlobalChat();
   announceNewRumorMessages();
   renderBattleArena($("#battle-arena-panel"), game, getLanguage());
+  playSurvivalEventCue();
+  if (game.survivalMvp && !myPlayer()?.skillSelectionComplete) {
+    $$("#battle-actions [data-mvp-action]").forEach((button) => { button.disabled = true; });
+    $("#battle-result span").textContent = getLanguage() === "en" ? "Choose 2 of 3 skill cards first." : "먼저 스킬카드 3장 중 2장을 선택하세요.";
+  }
+  if (game.survivalMvp && online && game.survivalMvp.activePlayerId !== viewerId) {
+    $$("#battle-actions [data-mvp-action]").forEach((button) => { button.disabled = true; });
+    const current = game.players.find((player) => player.id === game.survivalMvp.activePlayerId);
+    $("#battle-result span").textContent = getLanguage() === "en" ? `Waiting for ${current?.nickname || "player"}` : `${current?.nickname || "다른 플레이어"} 행동 대기 중`;
+  }
   renderSurvivalExpansion();
   if (!$("#message-modal").classList.contains("is-hidden")) renderMessages();
   renderActiveBattleTab();
   localizeDocument($("#app-shell"));
+}
+
+function playSurvivalEventCue() {
+  const card = game?.survivalMvp?.diceResult?.eventCards?.at(-1);
+  const cueId = card ? `${game.turn}-${game.survivalMvp.activePlayerId}-${card.id}-${card.rate}` : "";
+  if (!card || card.grade !== "disaster" || playedEventCueIds.has(cueId)) return;
+  playedEventCueIds.add(cueId);
+  try {
+    const Context = globalThis.AudioContext || globalThis.webkitAudioContext;
+    if (!Context) return;
+    const context = new Context();
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    oscillator.type = "sawtooth"; oscillator.frequency.setValueAtTime(180, context.currentTime); oscillator.frequency.exponentialRampToValueAtTime(70, context.currentTime + 0.38);
+    gain.gain.setValueAtTime(0.0001, context.currentTime); gain.gain.exponentialRampToValueAtTime(0.12, context.currentTime + 0.03); gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.42);
+    oscillator.connect(gain).connect(context.destination); oscillator.start(); oscillator.stop(context.currentTime + 0.43); oscillator.addEventListener("ended", () => context.close());
+  } catch { /* Sound is optional when browser audio is unavailable. */ }
 }
 
 function renderSurvivalExpansion() {
@@ -764,7 +798,21 @@ function renderSurvivalExpansion() {
   const status = $("#bankruptcy-status");
   status.textContent = player.bankruptcyDanger ? (getLanguage() === "en" ? "BANKRUPTCY RISK" : "파산 위기") : "SAFE";
   status.classList.toggle("danger", player.bankruptcyDanger);
-  $("#skill-hand").innerHTML = player.skills.length ? player.skills.map((id) => `<button data-use-skill="${id}" data-tooltip="${getLanguage() === "en" ? SKILL_CARDS[id].en : SKILL_CARDS[id].ko}" aria-label="${getLanguage() === "en" ? SKILL_CARDS[id].en : SKILL_CARDS[id].ko}"><span>✦</span><b>${getLanguage() === "en" ? SKILL_CARDS[id].en : SKILL_CARDS[id].ko}</b></button>`).join("") : `<small>${getLanguage() === "en" ? "No skill cards" : "보유 스킬카드 없음"}</small>`;
+  $("#coin-all-in").classList.toggle("is-hidden", !player.bankruptcyDanger || game.survivalMvp.phase !== "action");
+  if (!player.skillSelectionComplete) {
+    $("#skill-hand").innerHTML = player.skillDraft.map((id) => `<button class="${player.selectedSkillDraft.includes(id) ? "is-selected" : ""}" data-draft-skill="${id}" data-tooltip="${getLanguage() === "en" ? `${SKILL_CARDS[id].en}: ${SKILL_CARDS[id].descEn}` : `${SKILL_CARDS[id].ko}: ${SKILL_CARDS[id].descKo}`}" aria-pressed="${player.selectedSkillDraft.includes(id)}"><span>✦</span><b>${getLanguage() === "en" ? SKILL_CARDS[id].en : SKILL_CARDS[id].ko}</b></button>`).join("") + `<button class="skill-confirm" data-confirm-skills ${player.selectedSkillDraft.length !== 2 ? "disabled" : ""} aria-label="${getLanguage() === "en" ? "Confirm two skills" : "스킬 2장 선택 완료"}">✓</button>`;
+  } else $("#skill-hand").innerHTML = player.skills.length ? player.skills.map((id) => `<button data-use-skill="${id}" data-tooltip="${getLanguage() === "en" ? `${SKILL_CARDS[id].en}: ${SKILL_CARDS[id].descEn}` : `${SKILL_CARDS[id].ko}: ${SKILL_CARDS[id].descKo}`}" aria-label="${getLanguage() === "en" ? SKILL_CARDS[id].en : SKILL_CARDS[id].ko}"><span>✦</span><b>${getLanguage() === "en" ? SKILL_CARDS[id].en : SKILL_CARDS[id].ko}</b></button>`).join("") : `<small>${getLanguage() === "en" ? "No skill cards" : "보유 스킬카드 없음"}</small>`;
+  const skillIntel = $("#skill-intel");
+  const intelLines = [];
+  if (player.insideInfo?.turn === game.turn) intelLines.push(getLanguage() === "en" ? `Next event sector: ${game.stocks[player.insideInfo.nextSectorIndex]?.sector}` : `다음 이벤트 영향 섹터: ${game.stocks[player.insideInfo.nextSectorIndex]?.sector}`);
+  if (player.peekResult?.turn === game.turn) intelLines.push(getLanguage() === "en" ? `Rival skills: ${player.peekResult.cards.map((id) => SKILL_CARDS[id]?.en).join(", ") || "None"}` : `상대 보유 스킬: ${player.peekResult.cards.map((id) => SKILL_CARDS[id]?.ko).join(", ") || "없음"}`);
+  skillIntel.classList.toggle("is-hidden", !intelLines.length);
+  skillIntel.innerHTML = intelLines.map((line) => `<span>◉ ${escapeHtml(line)}</span>`).join("");
+  const objectiveNames = getLanguage() === "en"
+    ? { "safe-asset-king": "Safe Asset King", "crisis-hunter": "Crisis Hunter", "monopoly-tycoon": "Monopoly Tycoon", "defense-wins": "Defense Wins", "coin-rich": "Crypto Rich" }
+    : { "safe-asset-king": "안전자산 왕", "crisis-hunter": "위기 사냥꾼", "monopoly-tycoon": "독점 재벌", "defense-wins": "방어가 최고의 공격", "coin-rich": "코인 부자" };
+  $("#hidden-objective-name").textContent = objectiveNames[player.hiddenVictory] || "SECRET";
+  $("#hidden-objective-progress").textContent = getLanguage() === "en" ? "Only you can see this victory condition." : "조건을 달성하면 라운드 정산 후 공개됩니다.";
 }
 
 function renderHeader() {
@@ -774,6 +822,10 @@ function renderHeader() {
   $("#round-label").textContent = checkpoint
     ? (getLanguage() === "en" ? "BLIND ROUND · BONUS TIME" : "블라인드 라운드 · 추가 시간")
     : (getLanguage() === "en" ? "LIVE ROUND · TIME LIMIT" : "일반 라운드 · 제한시간");
+  if (game.survivalMvp) {
+    const active = game.players.find((player) => player.id === game.survivalMvp.activePlayerId);
+    $("#round-label").textContent = getLanguage() === "en" ? `${active?.nickname || "Player"}'s turn` : `${active?.nickname || "플레이어"}의 턴`;
+  }
   const showBlindBanner = checkpoint || game.rankBlindTurn === game.turn;
   $("#blind-banner").classList.toggle("is-hidden", !showBlindBanner);
   const bannerText = game.rankBlindTurn === game.turn
@@ -807,6 +859,7 @@ function renderSurvivalStatus() {
   $("#survival-risk").className = danger;
   const ended = online && Boolean(roomState?.turnEnded);
   $("#end-turn-button").disabled = game.finished || myPlayer()?.eliminated || ended;
+  if (online && game.survivalMvp) $("#end-turn-button").disabled ||= game.survivalMvp.activePlayerId !== viewerId;
   $("#end-turn-button b").textContent = ended ? (getLanguage() === "en" ? "WAITING" : "종료 완료") : (getLanguage() === "en" ? "END TURN" : "턴 종료");
   if (game.survivalMvp && !ended) {
     const labels = getLanguage() === "en" ? { action: "AUTO ACTION", dice: "ROLL DICE", resolved: "NEXT ROUND" } : { action: "자동 행동", dice: "주사위 굴리기", resolved: "다음 라운드" };
@@ -848,9 +901,10 @@ function volumeSignal(candles, index) {
 
 function ceoPresentation(stock, change) {
   const mood = change > 0.0005 ? "up" : change < -0.0005 ? "down" : "neutral";
+  const intensity = change >= 0.25 ? "surge" : change <= -0.25 ? "crash" : "normal";
   const column = { neutral: "0%", up: "50%", down: "100%" }[mood];
   const vertical = stock.sectorKey === "technology" ? "32%" : "center";
-  return { mood, className: `ceo-${stock.sectorKey}`, style: `background-position:${column} ${vertical}` };
+  return { mood, intensity, className: `ceo-${stock.sectorKey}`, style: `background-position:${column} ${vertical}` };
 }
 
 function sectorFallbackLabel(stock) {
@@ -919,6 +973,7 @@ function renderMarket() {
   });
   const stockList = $("#stock-list");
   const previousScroll = stockList.scrollLeft;
+  const currentMajorShareholders = game.survivalMvp ? (online ? game.survivalMvp.majorShareholders : calculateMajorShareholders(game)) : [];
   stockList.innerHTML = rows.map(({ stock, index, change, streak }) => {
     const quantity = myPlayer().holdings[index] || 0;
     const average = myPlayer().averagePrices?.[index] || 0;
@@ -927,9 +982,12 @@ function renderMarket() {
     const risk = Math.abs(change) >= 0.05 ? (getLanguage() === "en" ? "HIGH RISK" : "위험 구역") : Math.abs(change) >= 0.025 ? (getLanguage() === "en" ? "WATCH" : "관심 구역") : (getLanguage() === "en" ? "STABLE" : "안정 구역");
     const ceo = ceoPresentation(stock, change);
     const stats = stock.sectorStats || {};
+    const supply = game.survivalMvp?.stockSupply?.[index];
+    const majorId = currentMajorShareholders[index];
+    const isMajor = majorId === viewerId;
     return `
-    <article class="stock-row sector-card sector-${stock.sectorKey} mood-${ceo.mood} ${index === selectedStock ? "is-active" : ""}" data-stock-index="${index}" data-open-stock-detail="${index}" role="listitem" tabindex="0" aria-label="${escapeHtml(stock.sector)} · ${escapeHtml(stock.name)} · ${percent(change)} · ${getLanguage() === "en" ? "open trading window" : "거래창 열기"}">
-      <span class="sector-card-heading"><em>${stock.icon || "◆"} ${escapeHtml(stock.sector)}</em>${owned ? `<i class="owned-badge">${getLanguage() === "en" ? "OWNED" : "보유중"}</i>` : ""}</span>
+    <article class="stock-row sector-card sector-${stock.sectorKey} mood-${ceo.mood} move-${ceo.intensity} ${index === selectedStock ? "is-active" : ""}" data-stock-index="${index}" data-open-stock-detail="${index}" role="listitem" tabindex="0" aria-label="${escapeHtml(stock.sector)} · ${escapeHtml(stock.name)} · ${percent(change)} · ${getLanguage() === "en" ? "open trading window" : "거래창 열기"}">
+      <span class="sector-card-heading"><em>${stock.icon || "◆"} ${escapeHtml(stock.sector)}</em>${isMajor ? `<i class="major-badge">${getLanguage() === "en" ? "MAJOR" : "최대주주"}</i>` : owned ? `<i class="owned-badge">${getLanguage() === "en" ? "OWNED" : "보유중"}</i>` : ""}</span>
       <span class="sector-ceo ${ceo.className} ${sectorArtFallbackClass(stock)}" style="${ceo.style}" role="img" data-sector-fallback="${escapeHtml(sectorFallbackLabel(stock))}" aria-label="${ceo.mood === "up" ? (getLanguage() === "en" ? "CEO cheering" : "CEO 환호") : ceo.mood === "down" ? (getLanguage() === "en" ? "CEO disappointed" : "CEO 우울") : (getLanguage() === "en" ? "CEO neutral" : "CEO 기본 표정")}">${sectorArtProbeMarkup(stock)}</span>
       <span class="sector-company"><b class="${streak.direction ? `streak-${streak.direction}` : ""}">${escapeHtml(stock.name)}</b><small>${stock.ticker} · ${escapeHtml(stock.sectorDescription || "")}</small></span>
       <span class="sector-stats"><small class="${sectorLevelClass(stats.profitability)}">${getLanguage() === "en" ? "RETURN" : "수익성"} <b>${sectorLevelLabel(stats.profitability)}</b></small><small class="${sectorLevelClass(stats.stability)}">${getLanguage() === "en" ? "STABILITY" : "안정성"} <b>${sectorLevelLabel(stats.stability)}</b></small><small class="${sectorLevelClass(stats.volatility)}">${getLanguage() === "en" ? "VOLATILITY" : "변동성"} <b>${sectorLevelLabel(stats.volatility)}</b></small></span>
@@ -938,6 +996,7 @@ function renderMarket() {
         <small>${getLanguage() === "en" ? "MY SHARES" : "내 보유수량"}<b>${quantity.toLocaleString()}${getLanguage() === "en" ? " sh" : "주"}</b></small>
         <small>${getLanguage() === "en" ? "AVG PRICE" : "평균 매수가"}<b>${quantity ? money(average, true) : "-"}</b></small>
         <small>${getLanguage() === "en" ? "UNREALIZED" : "평가 손익"}<b class="${pnl > 0 ? "profit" : pnl < 0 ? "loss" : ""}">${quantity ? `${pnl >= 0 ? "+" : ""}${money(pnl, true)}` : "-"}</b></small>
+        ${supply == null ? "" : `<small>${getLanguage() === "en" ? "REMAINING" : "남은 주식"}<b>${supply}${getLanguage() === "en" ? " sh" : "주"}</b></small>`}
       </span>
       <span class="sector-chart-shell"><small>${getLanguage() === "en" ? "SECTOR PRICE TREND" : "섹터 가격 흐름"}</small>${sectorMiniChart(stock, change)}</span>
     </article>`;
@@ -1213,7 +1272,7 @@ function renderRanking() {
     <button class="rank-row ${entry.playerId === viewerId ? "is-me" : ""} ${effect ? `rank-${effect}` : ""} ${streak >= 2 ? "is-hot-streak" : ""}" data-player-id="${entry.playerId}" aria-label="${escapeHtml(entry.nickname)} 상세 정보">
       <span class="rank-number">${String(entry.rank).padStart(2, "0")}</span>
       ${avatarMarkup(entry.avatar, "rank-avatar")}
-      <span class="rank-person"><b>${escapeHtml(entry.nickname)} ${streak >= 2 ? `<em class="streak-mark">연속 ${streak}↑</em>` : ""}</b><small>${entry.playerId}</small></span>
+      <span class="rank-person"><b>${entry.rank === 1 && game.survivalMvp ? `<em class="bounty-mark" title="${getLanguage() === "en" ? "10-money bounty" : "견제 성공 보상 10머니"}">♛ 10</em>` : ""}${escapeHtml(entry.nickname)} ${streak >= 2 ? `<em class="streak-mark">연속 ${streak}↑</em>` : ""}</b><small>${entry.playerId}</small></span>
       <span class="rank-assets-wrap"><i class="rank-move ${movement > 0 ? "up" : movement < 0 ? "down" : ""}">${movement > 0 ? `▲${movement}` : movement < 0 ? `▼${Math.abs(movement)}` : ""}</i><span class="rank-assets ${entry.assets < 0 ? "negative" : ""}">${money(entry.assets, true)}</span></span>
       <span class="rank-message-button" data-message-player="${entry.playerId}" title="쪽지 보내기">✉</span>
     </button>`;
@@ -1282,8 +1341,11 @@ function renderTradePanel() {
     ? owned ? (getLanguage() === "en" ? `BUY MORE ${stock.name}` : `${stock.name} 추가 매수`) : (getLanguage() === "en" ? `BUY ${stock.name}` : `${stock.name} 매수하기`)
     : getLanguage() === "en" ? `SELL ${stock.name}` : `${stock.name} 매도하기`;
   $("#trade-submit").className = `button trade-submit ${tradeSide}`;
-  const disabledReason = player.eliminated || player.frozenTurn === game.turn || player.tradeLockTurn === game.turn || game.finished || (online && roomState?.turnEnded) || (tradeSide === "sell" && owned <= 0);
+  const mvpBlocked = game.survivalMvp && (game.survivalMvp.phase !== "action" || !player.skillSelectionComplete || (online && game.survivalMvp.activePlayerId !== viewerId));
+  const disabledReason = player.eliminated || player.frozenTurn === game.turn || player.tradeLockTurn === game.turn || game.finished || (online && roomState?.turnEnded) || mvpBlocked || (tradeSide === "sell" && owned <= 0);
   $("#trade-submit").disabled = disabledReason;
+  $$(".trade-panel .tab").forEach((button) => button.classList.toggle("is-hidden", Boolean(game.survivalMvp) && button.dataset.tab !== "trade"));
+  $("#emergency-sell-button").classList.toggle("is-hidden", !game.survivalMvp || owned <= 0);
   $("#holdings-mini").innerHTML = `<span>현재 선택 종목 <b>${escapeHtml(stock.name)}</b></span><span>보유 수량 <b>${owned.toLocaleString()}주</b></span><span>평가액 <b>${money(owned * price)}</b></span><span>주문 가능 현금 <b>${money(player.cash)}</b></span>`;
 }
 
@@ -1354,6 +1416,14 @@ function setTradeSide(side) {
 
 async function submitTrade() {
   const quantity = Number($("#trade-quantity").value);
+  if (game.survivalMvp) {
+    const action = { type: tradeSide, stockIndex: selectedStock, quantity };
+    if (online) {
+      try { await sendAction("mvp-action", action, `${game.stocks[selectedStock].name} ${tradeSide === "buy" ? "매수" : "매도"} 완료`); }
+      catch (error) { showToast(error.message, "error"); }
+    } else safeAction(() => applyMvpAction(game, action, viewerId), `${game.stocks[selectedStock].name} ${tradeSide === "buy" ? "매수" : "매도"} 완료`);
+    return;
+  }
   if (online) {
     try {
       await sendAction("trade", { side: tradeSide, stockIndex: selectedStock, quantity }, `${game.stocks[selectedStock].name} ${tradeSide === "buy" ? "매수" : "매도"} 완료`);
@@ -1369,7 +1439,8 @@ async function submitTrade() {
 function selectQuickAmount(portion) {
   const player = myPlayer();
   const price = currentPrice(game, selectedStock);
-  const max = tradeSide === "buy" ? Math.floor(player.cash / price) : player.holdings[selectedStock];
+  let max = tradeSide === "buy" ? Math.floor(player.cash / price) : player.holdings[selectedStock];
+  if (game.survivalMvp && tradeSide === "buy") max = Math.min(5, max, 11 - player.holdings[selectedStock], game.survivalMvp.stockSupply[selectedStock]);
   $("#trade-quantity").value = Math.max(1, Math.floor(max * Number(portion)));
   renderTradePanel();
 }
@@ -1557,7 +1628,13 @@ function showResults() {
   const ranking = game.finalRanking;
   const me = ranking.find((entry) => entry.playerId === viewerId);
   $("#final-rank").textContent = me.rank;
-  $("#result-message").textContent = me.rank === 1 ? `최후의 트레이더가 되었습니다. 최종 순자산 ${money(me.assets)}.` : `최종 순자산 ${money(me.assets)}. 다음 게임에서는 정보 아이템과 예약 주문을 더 일찍 활용해보세요.`;
+  const victoryReason = game.survivalMvp?.victory?.reason;
+  const reasonNames = getLanguage() === "en"
+    ? { "last-survivor": "Last Survivor", "major-shareholder": "Major Shareholder", tenbagger: "Tenbagger", assets: "Top Assets", "hidden-safe-asset-king": "Safe Asset King", "hidden-crisis-hunter": "Crisis Hunter", "hidden-monopoly-tycoon": "Monopoly Tycoon", "hidden-defense-wins": "Defense Wins", "hidden-coin-rich": "Crypto Rich" }
+    : { "last-survivor": "최후 생존", "major-shareholder": "최대주주", tenbagger: "텐배거", assets: "최종 자산 1위", "hidden-safe-asset-king": "안전자산 왕", "hidden-crisis-hunter": "위기 사냥꾼", "hidden-monopoly-tycoon": "독점 재벌", "hidden-defense-wins": "방어가 최고의 공격", "hidden-coin-rich": "코인 부자" };
+  $("#result-message").textContent = me.rank === 1
+    ? (getLanguage() === "en" ? `${reasonNames[victoryReason] || "Survival"} victory. Final assets ${money(me.assets)}.` : `[${reasonNames[victoryReason] || "생존"}] 타이틀로 우승했습니다. 최종 순자산 ${money(me.assets)}.`)
+    : (getLanguage() === "en" ? `Final assets ${money(me.assets)}. Try a sharper survival strategy next time.` : `최종 순자산 ${money(me.assets)}. 다음 게임에서는 견제·방어·스킬 타이밍을 노려보세요.`);
   $("#podium").innerHTML = ranking.slice(0, 3).map((entry) => `<div><b>${entry.rank}위</b><span>${escapeHtml(entry.nickname)}</span><small>${money(entry.assets, true)}</small></div>`).join("");
   openSheet("result-modal");
 }
@@ -1894,7 +1971,7 @@ $("#active-survival-list").addEventListener("click", (event) => {
 });
 $("#active-survival-refresh").addEventListener("click", loadActiveRooms);
 $("#solo-button").addEventListener("click", beginSoloGame);
-$("#battle-actions").addEventListener("click", (event) => {
+$("#battle-actions").addEventListener("click", async (event) => {
   const button = event.target.closest("[data-mvp-action]");
   if (!button || !game?.survivalMvp || game.survivalMvp.phase !== "action") return;
   const type = button.dataset.mvpAction;
@@ -1903,20 +1980,60 @@ $("#battle-actions").addEventListener("click", (event) => {
     action.stockIndex = selectedStock;
     action.quantity = 1;
   } else if (type === "interfere") {
-    action.targetPlayerId = getRanking(game, { display: false }).find((entry) => entry.playerId !== viewerId)?.playerId;
+    action.targetPlayerId = actualRanking().find((entry) => entry.playerId !== viewerId)?.playerId;
   } else if (type === "all-in") { action.stockIndex = selectedStock; }
-  safeAction(() => applyMvpAction(game, action, viewerId), () => getLanguage() === "en" ? "Action locked. Roll the die." : "행동이 확정되었습니다. 주사위를 굴리세요.");
+  if (online) {
+    try { await sendAction("mvp-action", action, getLanguage() === "en" ? "Action locked. Roll the die." : "행동이 확정되었습니다. 주사위를 굴리세요."); }
+    catch (error) { showToast(error.message, "error"); }
+  } else safeAction(() => applyMvpAction(game, action, viewerId), () => getLanguage() === "en" ? "Action locked. Roll the die." : "행동이 확정되었습니다. 주사위를 굴리세요.");
 });
-$("#alternative-assets").addEventListener("click", (event) => {
+$("#alternative-assets").addEventListener("click", async (event) => {
   const button = event.target.closest("[data-alt-asset]");
   if (!button || !game?.survivalMvp) return;
-  safeAction(() => buyAlternativeAsset(game, viewerId, button.dataset.altAsset, 1), () => getLanguage() === "en" ? "Asset purchased." : "대체자산 1개를 매수했습니다.");
+  const side = button.dataset.altSide || "buy";
+  if (online) {
+    try { await sendAction("mvp-asset", { side, assetKey: button.dataset.altAsset, quantity: 1 }, getLanguage() === "en" ? "Asset order completed." : "대체자산 주문을 완료했습니다."); }
+    catch (error) { showToast(error.message, "error"); }
+  } else safeAction(() => side === "sell" ? sellAlternativeAsset(game, viewerId, button.dataset.altAsset, 1) : buyAlternativeAsset(game, viewerId, button.dataset.altAsset, 1), () => getLanguage() === "en" ? "Asset order completed." : "대체자산 주문을 완료했습니다.");
 });
-$("#skill-hand").addEventListener("click", (event) => {
+$("#coin-all-in").addEventListener("click", async () => {
+  const action = { type: "all-in", assetKey: "coin" };
+  if (online) {
+    try { await sendAction("mvp-action", action, getLanguage() === "en" ? "Crypto all-in locked." : "코인 올인을 확정했습니다."); }
+    catch (error) { showToast(error.message, "error"); }
+  } else safeAction(() => applyMvpAction(game, action, viewerId), () => getLanguage() === "en" ? "Crypto all-in locked." : "코인 올인을 확정했습니다.");
+});
+$("#skill-hand").addEventListener("click", async (event) => {
+  const draft = event.target.closest("[data-draft-skill]");
+  if (draft) {
+    if (online) {
+      try { await sendAction("mvp-skill-draft", { skillId: draft.dataset.draftSkill }); }
+      catch (error) { showToast(error.message, "error"); }
+    } else safeAction(() => toggleSkillDraft(game, viewerId, draft.dataset.draftSkill));
+    return;
+  }
+  if (event.target.closest("[data-confirm-skills]")) {
+    if (online) {
+      try { await sendAction("mvp-skill-confirm", {}, getLanguage() === "en" ? "Skills equipped." : "스킬 2장을 장착했습니다."); }
+      catch (error) { showToast(error.message, "error"); }
+    } else safeAction(() => confirmSkillSelection(game, viewerId), () => getLanguage() === "en" ? "Skills equipped." : "스킬 2장을 장착했습니다.");
+    return;
+  }
   const button = event.target.closest("[data-use-skill]");
   if (!button || !game?.survivalMvp) return;
-  const payload = { stockIndex: selectedStock, targetPlayerId: getRanking(game, { display: false }).find((entry) => entry.playerId !== viewerId)?.playerId };
-  safeAction(() => useSkill(game, viewerId, button.dataset.useSkill, payload), () => getLanguage() === "en" ? "Skill used." : "스킬카드를 사용했습니다.");
+  const payload = { stockIndex: selectedStock, targetPlayerId: actualRanking().find((entry) => entry.playerId !== viewerId)?.playerId };
+  if (online) {
+    try { await sendAction("mvp-skill", { skillId: button.dataset.useSkill, options: payload }, getLanguage() === "en" ? "Skill used." : "스킬카드를 사용했습니다."); }
+    catch (error) { showToast(error.message, "error"); }
+  } else safeAction(() => useSkill(game, viewerId, button.dataset.useSkill, payload), () => getLanguage() === "en" ? "Skill used." : "스킬카드를 사용했습니다.");
+});
+$("#emergency-sell-button").addEventListener("click", async () => {
+  if (!game?.survivalMvp) return;
+  const quantity = Math.max(1, Math.floor(Number($("#trade-quantity").value) || 1));
+  if (online) {
+    try { await sendAction("mvp-emergency-sell", { stockIndex: selectedStock, quantity }, getLanguage() === "en" ? "Emergency sale completed." : "긴급매도를 완료했습니다."); }
+    catch (error) { showToast(error.message, "error"); }
+  } else safeAction(() => emergencySell(game, viewerId, selectedStock, quantity), () => getLanguage() === "en" ? "Emergency sale completed." : "긴급매도를 완료했습니다.");
 });
 $("#onboarding-confirm").addEventListener("click", () => {
   try {
@@ -1961,6 +2078,11 @@ $("#end-turn-button").addEventListener("click", async () => {
   if (!game || game.finished) return;
   if (!online) {
     endCurrentTurn();
+    return;
+  }
+  if (game.survivalMvp) {
+    try { await sendAction("mvp-progress", {}, getLanguage() === "en" ? "Turn phase advanced." : "턴 단계를 진행했습니다."); }
+    catch (error) { showToast(error.message, "error"); }
     return;
   }
   try {

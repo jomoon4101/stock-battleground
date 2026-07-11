@@ -35,4 +35,12 @@ export function renderBattleArena(panel, game, language = "ko") {
   else if (mvp.phase === "dice") result.textContent = language === "en" ? "Action locked. Roll the die." : "행동 확정. 주사위를 굴리세요.";
   else result.textContent = language === "en" ? mvp.diceResult?.event?.labelEn : mvp.diceResult?.event?.labelKo;
   die.textContent = mvp.diceResult?.roll || "—";
+  const reveal = panel.querySelector("#event-reveal");
+  const card = mvp.diceResult?.eventCards?.at(-1);
+  reveal.className = `event-reveal ${card ? `grade-${card.grade}` : "is-hidden"}`;
+  if (card) {
+    panel.querySelector("#event-grade").textContent = card.grade.toUpperCase();
+    panel.querySelector("#event-name").textContent = language === "en" ? card.nameEn : card.nameKo;
+    panel.querySelector("#event-impact").textContent = `${card.rate >= 0 ? "+" : ""}${(card.rate * 100).toFixed(0)}%`;
+  }
 }

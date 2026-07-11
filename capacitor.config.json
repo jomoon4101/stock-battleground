@@ -1,0 +1,6 @@
+{
+  "appId": "com.stockvival.game",
+  "appName": "주식서바이벌",
+  "webDir": "dist",
+  "server": { "androidScheme": "https" }
+}
