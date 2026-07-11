@@ -1,0 +1,72 @@
+/* Stock Survival UI System v29 — final cascade layer */
+@layer survival-redesign {
+  :root {
+    --ui-bg: #07101f;
+    --ui-bg-deep: #040a14;
+    --ui-surface: #111d30;
+    --ui-surface-soft: #142238;
+    --ui-surface-raised: #17243a;
+    --ui-border: #293a54;
+    --ui-border-strong: #3b4f6e;
+    --ui-text: #f6f8fc;
+    --ui-muted: #a9b6ca;
+    --ui-subtle: #708099;
+    --ui-up: #ff3b5c;
+    --ui-up-soft: rgba(255, 59, 92, .14);
+    --ui-down: #2f8cff;
+    --ui-down-soft: rgba(47, 140, 255, .14);
+    --ui-gold: #f5b942;
+    --ui-gold-soft: rgba(245, 185, 66, .14);
+    --ui-success: #20c997;
+    --ui-danger: #ff5c74;
+    --ui-radius-sm: 10px;
+    --ui-radius-md: 16px;
+    --ui-radius-lg: 22px;
+    --ui-space-1: 4px;
+    --ui-space-2: 8px;
+    --ui-space-3: 12px;
+    --ui-space-4: 16px;
+    --ui-space-5: 20px;
+    --ui-space-6: 24px;
+    --ui-space-8: 32px;
+    --ui-shadow-card: 0 18px 48px rgba(0, 0, 0, .24);
+    --ui-shadow-float: 0 28px 80px rgba(0, 0, 0, .42);
+    --ui-content: 1240px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+  html {
+    min-width: 320px;
+    background: var(--ui-bg-deep);
+    color: var(--ui-text);
+    font-size: 16px;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    margin: 0;
+    overflow-x: clip;
+    background:
+      radial-gradient(circle at 10% -10%, rgba(47, 140, 255, .16), transparent 32rem),
+      radial-gradient(circle at 90% 0, rgba(255, 59, 92, .12), transparent 28rem),
+      var(--ui-bg);
+    color: var(--ui-text);
+    font-family: "Noto Sans KR", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 1rem;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  button, input, select, textarea { font: inherit; }
+  button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+  button { min-height: 44px; }
+  :where(button, a, input, select, textarea):focus-visible {
+    outline: 3px solid rgba(47, 140, 255, .52);
+    outline-offset: 2px;
+  }
+  :where(h1, h2, h3, p) { overflow-wrap: anywhere; }
+  :where(strong, b, code, [id*="price"], [id*="asset"], [id*="cash"], [id*="rank"], [id*="timer"]) {
+    font-variant-numeric: tabular-nums;
+  }
+}

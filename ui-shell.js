@@ -78,13 +78,13 @@ export function mountAppShell(root = document.querySelector("#stock-survival-roo
   </section>
 
   <section class="matchmaking-screen is-hidden" id="matchmaking-screen">
-    <div class="matchmaking-card"><span class="section-kicker">AUTO MATCHMAKING</span><div class="matching-spinner"></div><h2 id="matching-title">플레이어를 찾고 있습니다</h2><strong id="matching-countdown">5</strong><p id="matching-player-count">1 / 5명 참가</p><small>5초 뒤 빈자리는 AI 트레이더가 채웁니다.</small><button class="button button-secondary" id="cancel-matchmaking">매칭 취소</button></div>
+    <div class="matchmaking-card"><span class="section-kicker">빠른 매칭</span><div class="matching-spinner"></div><h2 id="matching-title">함께 생존할 플레이어를 찾는 중</h2><strong id="matching-countdown">5</strong><p id="matching-player-count">1 / 5명 참가</p><small>5초 뒤 빈자리는 AI 트레이더가 채웁니다.</small><button class="button button-secondary" id="cancel-matchmaking">매칭 취소</button></div>
   </section>
 
   <section class="lobby-screen is-hidden" id="lobby-screen" aria-labelledby="lobby-title">
     <div class="lobby-card">
-      <span class="section-kicker">ONLINE MATCH LOBBY</span>
-      <h2 id="lobby-title">플레이어 대기실</h2>
+      <span class="section-kicker">친구 방</span>
+      <h2 id="lobby-title">게임 준비</h2>
       <p>친구에게 아래 방 코드를 알려주세요. 방장이 시작하면 남은 자리는 AI가 채웁니다.</p>
       <button class="room-code" id="room-code" title="클릭해서 복사">------</button>
       <div class="lobby-status"><span><i></i> 서버 연결됨</span><strong id="lobby-count">1 / 5명</strong></div>
@@ -168,7 +168,7 @@ export function mountAppShell(root = document.querySelector("#stock-survival-roo
         </section>
 
         <article class="panel portfolio-panel" id="portfolio-panel">
-          <div class="panel-header"><div><span class="section-kicker">MY SURVIVAL BAG</span><h2>내 보유 종목</h2></div><strong id="portfolio-summary">0개 종목</strong></div>
+          <div class="panel-header"><div><span class="section-kicker">내 포트폴리오</span><h2>보유 종목</h2></div><strong id="portfolio-summary">0개 종목</strong></div>
           <div class="portfolio-list" id="portfolio-list"><p>아직 보유한 종목이 없습니다. 종목을 선택해 매수해보세요.</p></div>
         </article>
         <article class="panel expansion-panel is-hidden" id="expansion-panel">
@@ -196,7 +196,7 @@ export function mountAppShell(root = document.querySelector("#stock-survival-roo
           <label class="search-box"><span>⌕</span><input id="stock-search" placeholder="섹터·회사 검색" autocomplete="off"></label>
         </div>
         <article class="panel intel-panel" id="intel-panel">
-          <div class="panel-header"><div class="intel-title-block"><span class="section-kicker">SURVIVAL INTELLIGENCE</span><h2>생존 정보 센터</h2><button id="open-intel-messages">찌라시 쪽지함 →</button></div></div>
+          <div class="panel-header"><div class="intel-title-block"><span class="section-kicker">생존 정보</span><h2>생존 정보 센터</h2><button id="open-intel-messages">찌라시 쪽지함 →</button></div></div>
           <div class="intel-cards" id="intel-cards"></div>
         </article>
         <div class="stock-table-head">
