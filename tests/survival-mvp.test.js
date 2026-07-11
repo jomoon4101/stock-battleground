@@ -84,3 +84,13 @@ test("timeout safely advances every phase", () => {
   assert.equal(game.survivalMvp.phase, "resolved");
   assert.equal(MVP_RULES.survivalIncome, 29);
 });
+
+test("timeout auto-equips two dealt skills before the first action", () => {
+  const game = createSurvivalMvpGame({ playerCount: 3, seed: 121, requireSkillSelection: true });
+  const player = game.players[0];
+  assert.equal(player.skillSelectionComplete, false);
+  autoCompletePhase(game, player.id, () => 0.2);
+  assert.equal(player.skillSelectionComplete, true);
+  assert.deepEqual(player.skills, player.skillDraft.slice(0, 2));
+  assert.equal(game.survivalMvp.phase, "dice");
+});

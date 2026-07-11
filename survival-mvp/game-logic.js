@@ -3,6 +3,7 @@ import { drawEventCard, eventForRoll } from "./events.js";
 import { calculateTurnOrder } from "./game-state.js";
 import { alternativeAssetValue } from "./assets.js";
 import { calculateMajorShareholders, getSurvivalRanking, settleSurvivalRound, survivalNetWorth } from "./progression.js";
+import { confirmSkillSelection } from "./skills.js";
 
 const playerById = (game, id) => {
   const player = game.players.find((candidate) => candidate.id === id);
@@ -303,7 +304,14 @@ export function advanceAfterResolved(game, playerId, random = Math.random) {
 }
 
 export function autoCompletePhase(game, playerId, random = Math.random) {
-  if (game.survivalMvp.phase === "action") return applyAction(game, { type: "defend" }, playerId, random);
+  if (game.survivalMvp.phase === "action") {
+    const player = playerById(game, playerId);
+    if (player.isHuman && !player.skillSelectionComplete) {
+      player.selectedSkillDraft = player.skillDraft.slice(0, 2);
+      confirmSkillSelection(game, playerId);
+    }
+    return applyAction(game, { type: "defend" }, playerId, random);
+  }
   if (game.survivalMvp.phase === "dice") return resolveDice(game, playerId, null, random);
   return advanceAfterResolved(game, playerId, random);
 }
