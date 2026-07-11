@@ -1,0 +1,397 @@
+/*
+ * 주식서바이벌 고대비 테마
+ * 기존 레이아웃과 기능은 그대로 두고 색상, 글자 대비, 카드 구분만 보강합니다.
+ */
+
+:root {
+  --contrast-navy: #0f1d31;
+  --contrast-navy-deep: #081322;
+  --contrast-navy-soft: #1d3049;
+  --contrast-light: #f4f7fa;
+  --contrast-card: #ffffff;
+  --contrast-ink: #132238;
+  --contrast-mint: #00c98b;
+  --contrast-mint-dark: #008d64;
+  --ui-bg: #0f1d31;
+  --ui-bg-deep: #081322;
+  --ui-surface: #17283f;
+  --ui-surface-soft: #1d3049;
+  --ui-surface-raised: #253b58;
+  --ui-border: #4a6381;
+  --ui-border-strong: #7890ab;
+  --ui-text: #ffffff;
+  --ui-muted: #d7e0eb;
+  --ui-subtle: #b1c0d2;
+  --ui-up: #ff4968;
+  --ui-down: #52a3ff;
+  --ui-gold: #ffc857;
+  --ui-success: var(--contrast-mint);
+  --ui-shadow-card: 0 14px 34px rgba(2, 9, 20, .25);
+  --ui-shadow-float: 0 24px 64px rgba(2, 9, 20, .44);
+}
+
+html { background: var(--contrast-navy-deep); }
+
+body {
+  background:
+    radial-gradient(circle at 12% 0, rgba(0, 201, 139, .10), transparent 34rem),
+    var(--ui-bg);
+}
+
+::selection { background: var(--contrast-mint); color: #071a17; }
+
+:where(button, a, input, select, textarea):focus-visible {
+  outline-color: var(--contrast-mint);
+  outline-offset: 3px;
+}
+
+input,
+select,
+textarea {
+  border-color: var(--ui-border-strong);
+  background: #0c192b;
+  color: #fff;
+}
+
+input::placeholder,
+textarea::placeholder { color: #b6c5d6; }
+
+.section-kicker,
+.eyebrow,
+.rule-number {
+  color: var(--ui-gold);
+  font-size: .78rem;
+  letter-spacing: .09em;
+}
+
+.button-primary {
+  border-color: #52e0b4;
+  background: linear-gradient(135deg, #10d99a, var(--contrast-mint-dark));
+  color: #061a16;
+  box-shadow: 0 12px 28px rgba(0, 201, 139, .25);
+}
+
+.button-secondary {
+  border-color: var(--ui-border-strong);
+  background: var(--ui-surface-raised);
+  color: #fff;
+}
+
+.button:hover:not(:disabled) { filter: brightness(1.08); }
+.button:disabled { opacity: .58; color: #d7e0eb; cursor: not-allowed; }
+
+/* 메인: 밝은 정보 면과 짙은 게임 소개 영역을 분리합니다. */
+.start-screen {
+  gap: 18px;
+  background: linear-gradient(180deg, #eef3f7 0, #f8fafc 58%, #edf2f6 100%);
+}
+
+.start-screen::before {
+  opacity: .44;
+  background-image:
+    linear-gradient(rgba(15, 29, 49, .045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 29, 49, .045) 1px, transparent 1px);
+  mask-image: linear-gradient(to bottom, #000, transparent 68%);
+}
+
+.start-card {
+  padding: 64px 18px 22px;
+  border: 1px solid #263d5b;
+  border-radius: 26px;
+  background:
+    radial-gradient(circle at 90% 5%, rgba(0, 201, 139, .18), transparent 22rem),
+    linear-gradient(145deg, #152844, #0c192b 74%);
+  color: #fff;
+  box-shadow: 0 28px 70px rgba(15, 29, 49, .22);
+}
+
+.hero-language {
+  top: 16px;
+  right: 16px;
+  border-color: #5a718e;
+  background: #10233b;
+}
+
+.hero-language button { color: #dce6f1; }
+.hero-language button.is-active { background: var(--contrast-mint); color: #062019; }
+.logo-mark, .brand-mark { background: linear-gradient(145deg, #ff4c69, #d71b42); }
+.logo-lockup h1, .start-card .hero-slogan { color: #fff; }
+.logo-lockup h1 em { color: #ff4968; }
+.start-card .start-copy { color: #dce6f1; font-size: 1rem; line-height: 1.65; }
+
+.feature-grid article {
+  border-color: #49617f;
+  background: rgba(255, 255, 255, .075);
+}
+
+.feature-grid article > span { color: #4ee5b7; }
+.feature-grid b { color: #fff; font-size: 1rem; }
+.feature-grid small { color: #dce6f1; font-size: .8rem; }
+
+.start-form,
+.active-survivals {
+  border-color: #d5dee8;
+  background: #fff;
+  color: var(--contrast-ink);
+  box-shadow: 0 16px 34px rgba(3, 14, 30, .24);
+  backdrop-filter: none;
+}
+
+.start-form > label,
+.start-form .profile-setup > label { color: #40536c; font-size: .875rem; }
+
+.start-form input,
+.start-form select {
+  border-color: #b7c4d3;
+  background: #f5f8fb;
+  color: var(--contrast-ink);
+}
+
+.start-form input::placeholder { color: #65778c; }
+
+.profile-open-button,
+.game-mode-buttons button {
+  border-color: #c7d2df;
+  background: #f4f7fa;
+  color: var(--contrast-ink);
+}
+
+.profile-open-button small,
+.profile-open-button i,
+.game-mode-buttons small { color: #52667f; }
+
+.game-mode-buttons button.is-active {
+  border-color: var(--contrast-mint-dark);
+  background: #e7fbf4;
+  color: #075e47;
+  box-shadow: inset 4px 0 var(--contrast-mint-dark);
+}
+
+.join-form input { border-color: #b7c4d3; background: #f5f8fb; color: var(--contrast-ink); }
+.solo-text-link { color: #65778c; }
+.active-survivals > header { border-color: #d7e0e9; }
+.active-survivals h2 { color: var(--contrast-ink); }
+.active-survivals header button { border-color: #b9c7d5; background: #edf3f7; color: var(--contrast-ink); }
+
+.active-survival-card,
+.active-survival-empty {
+  border-color: #d7e0e9;
+  background: #f4f7fa;
+  color: var(--contrast-ink);
+}
+
+.active-survival-empty p { color: #52667f; font-size: .9rem; }
+.start-meta, .service-disclaimer, .developer-email { color: #cbd7e4; font-size: .8rem; }
+.developer-email a { color: #fff; }
+.developer-board-button { border-color: #617895; background: #1b304b; color: #fff; }
+.developer-board-button span { color: #54e2b6; }
+
+.start-rules {
+  border-color: #d5dee8;
+  background: #fff;
+  color: var(--contrast-ink);
+  box-shadow: 0 18px 46px rgba(15, 29, 49, .14);
+  backdrop-filter: none;
+}
+
+.start-rules .section-kicker { color: #008d64; }
+.start-rules > strong, .start-rules h3 { color: var(--contrast-ink); }
+.start-rules > p { color: #455970; font-size: .94rem; line-height: 1.65; }
+.start-rules .hall-of-fame { border-color: #d7e0e9; }
+
+/* 로비와 매칭 */
+.matchmaking-screen,
+.lobby-screen {
+  background:
+    radial-gradient(circle at 50% 5%, rgba(0, 201, 139, .16), transparent 28rem),
+    var(--contrast-navy);
+}
+
+.matchmaking-card,
+.lobby-card {
+  border-color: var(--ui-border-strong);
+  background: linear-gradient(150deg, #243b58, #14253c);
+}
+
+.matching-spinner { border-color: #516984; border-top-color: var(--contrast-mint); }
+.room-code { border-color: var(--contrast-mint); background: rgba(0, 201, 139, .12); }
+.lobby-members { border-color: var(--ui-border-strong); background: #0f1e32; }
+
+/* 게임: 패널 표면을 한 단계씩 분리해 정보 위계를 선명하게 합니다. */
+.app-shell {
+  background: linear-gradient(180deg, #0b1728, var(--contrast-navy) 28rem);
+}
+
+.battle-hud {
+  border-color: #526b88;
+  background: rgba(9, 22, 38, .97);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .36);
+}
+
+.topbar { background: transparent; }
+.timer-line span, .turn-badge span, .turn-badge small { color: #d8e2ed; }
+.progress-track { background: #4b617b; }
+.progress-track > div { background: linear-gradient(90deg, var(--contrast-mint), #4e9fff); }
+
+.game-room-code,
+.icon-button { border-color: #607895; background: #1b304b; }
+.game-room-code small { color: #66ecc4; }
+
+.survival-status > div {
+  border-color: #49627f;
+  background: #162941;
+}
+
+.survival-status small { color: #c8d4e2; font-size: .72rem; }
+.survival-status strong { color: #fff; font-size: .9rem; }
+
+.panel,
+.identity-card,
+.battle-arena-panel {
+  border-color: #49627f;
+  background: linear-gradient(145deg, #203550, #15263d 72%);
+  box-shadow: 0 16px 38px rgba(2, 9, 20, .30);
+}
+
+.panel-header {
+  border-color: #48617e;
+  background: rgba(255, 255, 255, .035);
+}
+
+.panel-header h2, .identity-card, .identity-card strong, .identity-card b { color: #fff; }
+.identity-card small, .identity-card p { color: #d4dfeb; }
+
+.my-goal-panel { border-color: #506985; background: #12243a; }
+
+.asset-total,
+.portfolio-empty,
+.holding-row,
+.alternative-assets > div,
+.battle-stepper i,
+.battle-result,
+.chart-card,
+.market-intelligence,
+.info-ticker,
+.intelligence-row,
+.order-summary,
+.rank-row,
+.log-row,
+.global-chat-message,
+.onboarding-steps li,
+.stock-detail-character,
+.rules-grid > div,
+.modal-cost,
+.holdings-modal-summary,
+.notice-row,
+.board-post,
+.holdings-list .holding-row,
+.elimination-stats > div,
+.top-stock-card,
+.player-history-summary,
+.history-chart-grid > div {
+  border-color: #49627f;
+  background-color: #112239;
+}
+
+.asset-breakdown > div { border-color: #49627f; background: #192e48; }
+.asset-breakdown span, .asset-breakdown small, .asset-footer, .portfolio-empty p, .holding-row small { color: #d4dfeb; }
+.alternative-assets > div { border: 1px solid #526b88; }
+.alternative-assets button { border-color: #617996; color: #fff; }
+
+.sector-market-panel, .survival-intelligence { border-color: #4e6784; }
+.sector-toolbar, .sector-search { border-color: #4e6784; background: #192d46; }
+.sector-search input { background: #0e1d31; }
+
+.sector-card {
+  border-color: #617996;
+  box-shadow: 0 18px 38px rgba(0, 0, 0, .34);
+}
+
+.sector-card::after { background: linear-gradient(180deg, rgba(4, 10, 20, .03), rgba(4, 10, 20, .92) 78%); }
+.sector-card :where(h2, h3, strong, b) { text-shadow: 0 2px 8px rgba(0, 0, 0, .9); }
+.sector-card :where(p, small, span) { color: #f1f5f9; }
+
+.survival-intelligence { background: #172b44; }
+.intelligence-row { border-bottom-color: #4a6380; }
+.intelligence-row :where(span, small, p) { color: #d9e3ee; }
+.intelligence-row strong { color: #fff; }
+.order-tabs button { color: #c5d2df; }
+.order-tabs button.is-active { color: #fff; }
+.order-quantity input { border-color: #657d98; }
+
+.game-bottom-actions { background: linear-gradient(180deg, transparent, rgba(8, 19, 34, .98) 30%); }
+
+.game-bottom-nav {
+  border-color: #425b78;
+  background: rgba(10, 23, 40, .98);
+}
+
+.game-bottom-nav button { color: #b9c8d8; }
+.game-bottom-nav button > small { color: inherit; font-size: .75rem; }
+.game-bottom-nav button.is-active,
+.game-bottom-nav button[aria-current="page"] { background: var(--contrast-mint); color: #062019; }
+
+.rank-row { border-bottom-color: #465f7c; }
+.rank-person small, .rank-move, .log-row, .log-row time { color: #c8d5e3; }
+.rank-assets { color: #fff; font-size: .84rem; }
+
+/* 채팅, 모달, 바텀시트 */
+.global-chat-sheet, .modal-backdrop { background: rgba(3, 10, 20, .82); }
+
+.global-chat,
+.modal,
+.sheet-card {
+  border-color: #7690ad;
+  background: linear-gradient(165deg, #263d5b, #17283f 72%);
+}
+
+.global-chat-header, .global-chat-compose, .message-compose { border-color: #526b88; }
+.global-chat-message { background: #102138; }
+.global-chat-message.mine, .message-bubble.mine { background: #087fbd; }
+.global-chat-message span, .message-bubble { color: #fff; }
+.modal::before, .sheet-card::before { background: #93a7bd; }
+.modal-close { border-color: #6e86a1; background: #203651; }
+.modal > p, .modal :where(small, .data-note, .holdings-helper) { color: #d5e0eb; }
+.profile-upload-button { border-color: #7890ab; background: #13253c; color: #e0e8f1; }
+.message-thread, .message-contact { border-color: #506986; background: #112239; }
+.message-contact.is-active { border-color: var(--contrast-mint); background: rgba(0, 201, 139, .12); }
+
+.toast,
+.leader-announcement {
+  border: 1px solid #88a0b9;
+  background: #172b44;
+  color: #fff;
+  box-shadow: var(--ui-shadow-float);
+}
+
+/* 모바일에서 작은 라벨도 읽을 수 있는 최소 크기를 보장합니다. */
+.game-room-code small,
+.rank-person small,
+.rank-person em,
+.rank-move,
+.log-row time,
+.message-contact small,
+.message-bubble small,
+.global-chat-message time { font-size: .68rem; }
+
+@media (min-width: 768px) {
+  .start-screen { padding: 40px 28px; }
+  .start-card { padding: 72px 28px 28px; }
+  .start-form { padding: 22px; }
+  .feature-grid { gap: 12px; }
+  .feature-grid article { min-height: 104px; padding: 16px; }
+  .panel-header { padding: 18px 20px; }
+}
+
+@media (min-width: 1180px) {
+  .start-screen { gap: 30px; padding: 56px 48px; }
+  .start-card { padding: 78px 32px 32px; }
+  .start-rules { margin-top: 64px; padding: 28px; }
+  .battle-hud { padding-left: 104px; }
+  .game-bottom-nav button.is-active,
+  .game-bottom-nav button[aria-current="page"] { box-shadow: inset 4px 0 #78f0ca; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button, .game-bottom-nav button { transition: none; }
+}
