@@ -500,6 +500,191 @@ textarea::placeholder { color: #b6c5d6; }
 .message-bubble small,
 .global-chat-message time { font-size: .68rem; }
 
+/* 모바일 종목 상세창: CEO 카드부터 주문까지 한 화면 흐름으로 읽히게 압축합니다. */
+@media (max-width: 767px) {
+  .modal-backdrop:has(.stock-detail-modal-card) { align-items: flex-start; padding: 0; }
+
+  .stock-detail-modal-card {
+    width: 100%;
+    max-height: 100dvh;
+    padding: 10px;
+    padding-bottom: 9px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    border-radius: 0;
+  }
+
+  .stock-detail-modal-card > .modal-close {
+    top: 8px;
+    right: 8px;
+    width: 38px;
+    height: 38px;
+    min-height: 38px;
+  }
+
+  .stock-detail-character {
+    min-height: 96px;
+    grid-template-columns: 80px minmax(0, 1fr);
+    gap: 10px;
+    margin-top: 0;
+    overflow: hidden;
+    border-radius: 14px;
+  }
+
+  .stock-detail-character > .sector-ceo {
+    position: relative;
+    inset: auto;
+    grid-column: 1;
+    grid-row: 1;
+    width: 80px;
+    height: 96px;
+    min-height: 96px;
+    align-self: stretch;
+    border-radius: 0;
+    background-repeat: no-repeat;
+    background-size: 300% 100%;
+    transform: none;
+  }
+
+  .stock-detail-character-copy {
+    min-width: 0;
+    padding: 6px 44px 4px 0;
+  }
+
+  .stock-detail-character-copy .section-kicker {
+    display: block;
+    overflow: hidden;
+    font-size: .7rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .stock-detail-character-copy h2 {
+    overflow: hidden;
+    margin: 3px 0;
+    color: #fff;
+    font-size: 1.2rem;
+    line-height: 1.2;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .stock-detail-character-copy p {
+    min-height: 15px;
+    font-size: .72rem;
+    line-height: 1.35;
+    -webkit-line-clamp: 1;
+  }
+
+  .stock-detail-actions { gap: 5px; margin-top: 4px; }
+  .stock-detail-actions button { min-height: 32px; padding: 0 8px; font-size: .74rem; }
+
+  .stock-detail-sector-switcher {
+    margin-top: 6px;
+    padding: 6px;
+    border-radius: 12px;
+  }
+
+  .stock-detail-sector-switcher > div:first-child {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .stock-detail-sector-switcher > div:first-child .section-kicker { font-size: .64rem; }
+  .stock-detail-sector-switcher > div:first-child strong { font-size: .78rem; }
+  .stock-detail-sector-switcher > div:first-child small { display: none; }
+  .stock-detail-sector-list { gap: 5px; margin-top: 4px; }
+
+  .stock-detail-sector-list button {
+    height: 34px;
+    min-height: 34px;
+    max-width: 132px;
+    padding: 0 9px;
+    overflow: hidden;
+    font-size: .72rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .stock-detail-sector-list button b,
+  .stock-detail-sector-list button small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .stock-detail-sector-list button small { display: none; }
+
+  .stock-detail-body { gap: 8px; margin-top: 4px; }
+  .stock-detail-body .chart-panel,
+  .stock-detail-body .trade-panel { border-radius: 14px; }
+
+  .stock-detail-body .chart-header { min-height: 58px; gap: 8px; padding: 8px 10px; }
+  .stock-detail-body .selected-stock-icon { flex-basis: 36px; width: 36px; height: 36px; font-size: 1rem; }
+  .stock-detail-body .stock-title { gap: 8px; }
+  .stock-detail-body .stock-title span:not(.flag) { font-size: .62rem; }
+  .stock-detail-body .stock-title h2 { margin-top: 2px; font-size: 1rem; }
+  .stock-detail-body .quote strong { font-size: 1.15rem; }
+  .stock-detail-body .quote span { font-size: .68rem; }
+
+  .stock-detail-body .selected-position-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin: 0;
+    border-radius: 0;
+  }
+
+  .stock-detail-body .selected-position-grid > div { min-height: 44px; padding: 5px 6px; }
+  .stock-detail-body .selected-position-grid small { font-size: .58rem; white-space: nowrap; }
+  .stock-detail-body .selected-position-grid strong {
+    margin-top: 2px;
+    overflow: hidden;
+    font-size: .68rem;
+    overflow-wrap: normal;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .stock-detail-body .chart-meta { min-height: 38px; padding: 3px 8px; }
+  .stock-detail-body .chart-meta > span:first-child { display: none; }
+  .stock-detail-body .chart-controls { width: 100%; flex-wrap: nowrap; justify-content: flex-end; }
+  .stock-detail-body .chart-type-toggle button { min-height: 34px; padding: 0 8px; font-size: .64rem; }
+  .stock-detail-body .turn-marker { font-size: .62rem; }
+  .stock-detail-body .volume-alert { max-width: 82px; overflow: hidden; font-size: .56rem; text-overflow: ellipsis; white-space: nowrap; }
+  .stock-detail-body .chart-wrap { height: 120px; min-height: 120px; margin: 0 8px; }
+  .stock-detail-body .chart-stats { min-height: 42px; margin-top: 8px; padding: 0; }
+  .stock-detail-body .chart-stats span { min-height: 42px; padding: 3px; font-size: .54rem; }
+  .stock-detail-body .chart-stats b { font-size: .62rem; }
+
+  .stock-detail-body .tabs { min-height: 42px; padding: 0 4px; }
+  .stock-detail-body .tab { min-height: 40px; padding: 0 8px; font-size: .72rem; }
+  .stock-detail-body .tab-content { padding: 8px; }
+  .stock-detail-body .trade-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 6px;
+  }
+
+  .stock-detail-body .side-toggle { min-height: 40px; padding: 2px; }
+  .stock-detail-body .side-toggle button,
+  .stock-detail-body .trade-grid input { min-height: 38px; height: 38px; }
+  .stock-detail-body .trade-grid > label { min-width: 0; font-size: .68rem; }
+  .stock-detail-body .input-suffix { margin-top: 2px; }
+  .stock-detail-body .quick-amounts,
+  .stock-detail-body .order-summary,
+  .stock-detail-body .trade-submit,
+  .stock-detail-body .holdings-mini { grid-column: 1 / -1; }
+  .stock-detail-body .quick-amounts button { min-height: 36px; font-size: .68rem; }
+  .stock-detail-body .order-summary { min-height: 40px; padding: 7px 9px; }
+  .stock-detail-body .order-summary span,
+  .stock-detail-body .order-summary strong { font-size: .72rem; }
+  .stock-detail-body .trade-submit { min-height: 42px; font-size: .8rem; }
+  .stock-detail-body .emergency-sell-button { display: none; }
+  .stock-detail-body .holdings-mini {
+    min-height: 28px;
+    height: 28px;
+    padding: 4px 0 0;
+    overflow: hidden;
+    flex-wrap: nowrap;
+    font-size: .62rem;
+    white-space: nowrap;
+  }
+}
+
 @media (min-width: 768px) {
   .start-screen { padding: 40px 28px; }
   .start-card { padding: 72px 28px 28px; }
